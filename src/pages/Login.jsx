@@ -51,7 +51,6 @@ function Login() {
         if (authError) throw authError;
       }
       
-      localStorage.setItem('vibecraft_logged_in', 'true');
       navigate('/dashboard');
     } catch (err) {
       setError(`Błąd API: ${err.message}`);

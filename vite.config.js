@@ -22,7 +22,8 @@ function chatPlugin() {
               const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
               
               if (model === 'z-ai/glm-5.2') {
-                const apiKey = process.env.ZENMUX_API_KEY || 'sk-ai-v1-2753529e636ddd134ed823e3d87a32d3fe0bd5aa5baf02bc1e28dc2a853c788e';
+                const apiKey = process.env.ZENMUX_API_KEY;
+                if (!apiKey) throw new Error("Brak ZENMUX_API_KEY w zmiennych środowiskowych.");
                 const url = 'https://zenmux.ai/api/v1/chat/completions';
                 
                 const messages = [];
@@ -120,7 +121,10 @@ function compilePlugin() {
               fs.mkdirSync(buildDir);
 
               files.forEach(f => {
-                const filePath = path.join(buildDir, f.path);
+                const filePath = path.resolve(buildDir, f.path);
+                if (!filePath.startsWith(path.resolve(buildDir) + path.sep)) {
+                  throw new Error(`Niedozwolona ścieżka pliku: ${f.path}`);
+                }
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
                 fs.writeFileSync(filePath, f.content);

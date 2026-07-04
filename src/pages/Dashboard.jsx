@@ -36,7 +36,9 @@ const ENGINES = [
 ];
 
 const MODELS = [
-  'Claude 3.5 Sonnet', 'Claude 3 Opus', 'GPT-4o', 'z-ai/glm-5.2'
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { id: 'z-ai/glm-5.2', label: 'GLM 5.2 (z-ai)' }
 ];
 
 function Dashboard() {
@@ -46,7 +48,7 @@ function Dashboard() {
   const [prompt, setPrompt] = useState('');
   
   // Selections
-  const [model, setModel] = useState(MODELS[0]);
+  const [model, setModel] = useState(MODELS[0].id);
   const [engine, setEngine] = useState(ENGINES[0]);
   const [mcVersion, setMcVersion] = useState(MC_VERSIONS[0]);
   
@@ -164,13 +166,13 @@ function Dashboard() {
             {/* Model Selection */}
             <div className="relative dropdown-container">
               <button className="toolbar-btn" onClick={(e) => toggleDropdown('model', e)}>
-                {model} <ChevronDown size={14} />
+                {MODELS.find(m => m.id === model)?.label || model} <ChevronDown size={14} />
               </button>
               {activeDropdown === 'model' && (
                 <div className="minimal-dropdown">
                   <div className="dropdown-label">Model AI</div>
                   {MODELS.map(m => (
-                    <button key={m} onClick={() => { setModel(m); setActiveDropdown(null); }}>{m}</button>
+                    <button key={m.id} onClick={() => { setModel(m.id); setActiveDropdown(null); }}>{m.label}</button>
                   ))}
                 </div>
               )}
