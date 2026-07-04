@@ -191,9 +191,11 @@ function Project() {
     if (!projectData) return;
     if (messages.length > 0) return;
     if (initialGenerated.current) return;
+    if (isGenerating) return;
     
+    initialGenerated.current = true;
+
     const generateInitial = async () => {
-      initialGenerated.current = true;
       setIsGenerating(true);
       let msgId = null;
       
@@ -298,12 +300,13 @@ ${projectData.prompt}
       }
     };
     
-    if (messages.length === 0 && !isGenerating) {
+    if (messages.length === 0) {
         generateInitial();
     }
   }, [projectData]);
 
   const handleSend = async (overrideMsg = null) => {
+    if (isGenerating) return;
     const isEvent = overrideMsg && overrideMsg.target;
     const userMsg = (typeof overrideMsg === 'string' && !isEvent) ? overrideMsg : chatInput;
     
@@ -341,9 +344,9 @@ ${projectData.prompt}
       }
 
       let historyContext = '';
-      let summaryToUse = projectData.conversationSummary || '';
+      let summaryToUse = projectData.conversation_summary || '';
 
-      if (messages.length > 8 && !projectData.conversationSummary) {
+      if (messages.length > 8 && !projectData.conversation_summary) {
         try {
           const summaryPrompt = "Jesteś asystentem AI. Streść w max 5 zdaniach poniższą rozmowę, zachowując kluczowe decyzje architektoniczne i nazwy zaimplementowanych funkcji:\n\n" + messages.map(m => `${m.sender}: ${m.text}`).join('\n\n');
           const summaryRes = await fetch('/api/chat', {
@@ -377,8 +380,8 @@ ${projectData.prompt}
             }
             if (summaryText) {
                summaryToUse = summaryText;
-               await supabase.from('projects').update({ conversationSummary: summaryText }).eq('id', id);
-               setProjectData(prev => ({ ...prev, conversationSummary: summaryText }));
+               await supabase.from('projects').update({ conversation_summary: summaryText }).eq('id', id);
+               setProjectData(prev => ({ ...prev, conversation_summary: summaryText }));
             }
           }
         } catch (err) {

@@ -1,108 +1,24 @@
-# ============================================================
-# StatsTop - Konfiguracja glowna
-# ============================================================
+# --- KONFIGURACJA PRZENOŚNEGO ENDERCHESTA ---
 
-# Co ile minut plugin ma automatycznie zapisywac cache do bazy danych
-auto-save-minutes: 5
-
-# Opoznienie w tickach (20 tick = 1s) miedzy zabicie a inkrementacja statystyki
-# Domyslnie 0 - natychmiast. Zwieksz jesli masz bardzo lagujacy serwer.
-kill-delay-ticks: 0
-
-# Czy zabicia gracza powinny byc zliczane (PvP)
-track-player-kills: true
-# Czy zabicia mobow powinny byc zliczane (PvE)
-track-mob-kills: true
-# Czy smierci gracza powinny byc zliczane
-track-deaths: true
-
-# Maksymalna liczba graczy pokazywana w topliscie (max 45 dla GUI)
-top-size: 45
-
-# ============================================================
-# Komunikaty (MiniMessage)
-# ============================================================
+# Wiadomości (MiniMessage)
 messages:
-  prefix: "<dark_gray>[<gradient:gold:yellow>StatsTop</gradient><dark_gray>] "
-  no-permission: "<red>Nie masz uprawnien do tej komendy."
-  player-only: "<red>Tej komendy moze uzyc tylko gracz."
-  unknown-argument: "<red>Nieznany argument. Uzyj: <yellow>/statstop reload|set|add|reset|show"
-  reload-success: "<green>Pomyslnie przeladowano konfiguracje."
-  set-success: "<green>Ustawiono <yellow>%type% <green>dla <yellow>%player% <green>na <yellow>%value%<green>."
-  add-success: "<green>Dodano <yellow>%value% <green>do <yellow>%type% <green>dla <yellow>%player%<green>."
-  reset-success: "<green>Zresetowano statystyki gracza <yellow>%player%<green>."
-  reset-all-success: "<green>Zresetowano statystyki wszystkich graczy."
-  invalid-number: "<red>Podana wartosc nie jest poprawna liczba."
-  player-not-found: "<red>Nie znaleziono gracza <yellow>%name%<red>."
-  invalid-stat-type: "<red>Nieprawidlowy typ statystyki. Dostepne: <yellow>player, mob, deaths"
-  usage-set: "<yellow>Uzycie: /statstop set <gracz> <player|mob|deaths> <wartosc>"
-  usage-add: "<yellow>Uzycie: /statstop add <gracz> <player|mob|deaths> <wartosc>"
+  prefix: "<dark_gray>[<gradient:#a855f7:#ec4899>EC</gradient>]</dark_gray> "
+  no-permission: "<red>Nie masz uprawnień do tej akcji."
+  player-only: "<red>Ta komenda może być wykonana tylko przez gracza."
 
-# Wiadomosci wyswietlane po zabiciu gracza/moba (puste = brak)
-kill-messages:
-  player-kill: "<gradient:gold:yellow>+%value% kill</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
-  mob-kill: "<gradient:gold:yellow>+%value% kill moba</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
-  death: "<gradient:gold:yellow>+%value% smierc</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
+# Tytuł wyświetlany na ekranie gracza przy otwarciu
+title:
+  enabled: true
+  title: "<gradient:#a855f7:#ec4899>EnderChest"
+  subtitle: "<dark_purple>Otwierasz swój ekwipunek..."
+  fade-in: 10
+  stay: 40
+  fade-out: 10
 
-# Ustawienia efektow
+# Efekty dźwiękowe przy otwarciu
 effects:
-  # Efekt dzwiekowy po zabiciu gracza (puste = brak)
-  player-kill-sound: "ENTITY_PLAYER_LEVELUP"
-  player-kill-sound-volume: 1.0
-  player-kill-sound-pitch: 1.0
-  # Efekt czasteczkowy po zabiciu gracza (puste = brak)
-  player-kill-particle: "CRIT"
-
-# ============================================================
-# Konfiguracja GUI Topki
-# ============================================================
-gui:
-  title: "<gradient:gold:yellow>Top Kills</gradient> <dark_gray>| <gray>Strona %page%"
-  size: 54
-  # Maksymalna ilosc slotow przeznaczona na graczy (reszta to dekoracje)
-  max-per-page: 45
-
-  # Glowa gracza jest pokazywana jako item - czy pokazywac realna glowe gracza (online/offline)
-  use-player-heads: true
-
-  # Format lore dla itemu gracza (MiniMessage). Zmienne: %rank%, %player%, %player_kills%, %mob_kills%, %deaths%, %kdr%
-  lore:
-    - "<dark_gray>--------------------"
-    - "<gold>Pozycja: <yellow>#%rank%"
-    - ""
-    - "<red>Kille graczy: <white>%player_kills%"
-    - "<green>Kille mobow: <white>%mob_kills%"
-    - "<gray>Smierci: <white>%deaths%"
-    - "<gold>K/D Ratio: <white>%kdr%"
-    - "<dark_gray>--------------------"
-
-  # Format nazwy wyswietlanej dla gracza
-  display-name: "<yellow>%player%"
-
-  # Sloty w ktorych beda przyciski nawigacyjne
-  slots:
-    previous: 45
-    next: 53
-    close: 49
-
-  # Itemy dekoracyjne (wypelniaja wolne sloty)
-  filler-item: GRAY_STAINED_GLASS_PANE
-  filler-name: " "
-
-  # Itemy nawigacji
-  previous-item: ARROW
-  previous-name: "<gold>< Poprzednia strona"
-  next-item: ARROW
-  next-name: "<gold>Nastepna strona >"
-  close-item: BARRIER
-  close-name: "<red>Zamknij"
-
-# Ktory typ statystyki ma byc domyslnie sortowany w topce (player, mob, deaths)
-default-sort: player
-
-# Czy toplista w chatcie powinna byc dostepna komenda /topkills chat
-chat-top-enabled: true
-chat-top-size: 10
-chat-top-format: "<gold>#%rank% <yellow>%player% <gray>- <white>%player_kills% killi"
-chat-top-header: "<gradient:gold:yellow>=== Top %size% graczy ===</gradient>"
-chat-top-footer: "<gray>Wyswietlono top %size%"
+  sound:
+    enabled: true
+    type: "BLOCK_ENDER_CHEST_OPEN"
+    volume: 1.0
+    pitch: 1.0

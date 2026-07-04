@@ -1,27 +1,15 @@
-name: StatsTop
+name: PortableEnderChest
 version: '1.2'
-main: pl.statstop.StatsPlugin
+main: com.example.portableenderchest.PortableEnderChestPlugin
 api-version: '1.21'
-author: StatsTop
-description: Profesjonalny system statystyk killi graczy i zabójstw mobów z topką.
-
+author: YourName
+description: Przenośny EnderChest dostępny komendą /ec.
 commands:
-  statstop:
-    description: Administracja pluginem StatsTop.
-    usage: /statstop <reload|set|add|reset|show> [gracz] [wartosc]
-    permission: statstop.admin
-  topkills:
-    description: Otwiera topliste graczy wedlug killi.
-    usage: /topkills [player|mob] [strona]
-    permission: statstop.top
-
+  enderchest:
+    description: Otwiera przenośny enderchest
+    usage: /enderchest
+    aliases: [ec, echest, pend]
 permissions:
-  statstop.admin:
-    description: Dostep do administracji pluginem.
-    default: op
-  statstop.top:
-    description: Dostep do toplisty.
-    default: true
-  statstop.top.chat:
-    description: Pozwala na ogladanie topki w chatcie zamiast GUI.
+  portableenderchest.use:
+    description: Pozwala użyć komendy /ec
     default: true

@@ -1,10 +1,4 @@
-pl\statstop\AutoSaveTask.class
-pl\statstop\TopCommand.class
-pl\statstop\ConfigManager.class
-pl\statstop\KillListener.class
-pl\statstop\StatsPlugin.class
-pl\statstop\TopMenuListener.class
-pl\statstop\TopMenu.class
-pl\statstop\StatsCommand.class
-pl\statstop\StatsManager.class
-pl\statstop\StatsHolder.class
+com\example\portableenderchest\EnderChestCommand.class
+com\example\portableenderchest\EnderChestListener.class
+com\example\portableenderchest\EnderChestManager.class
+com\example\portableenderchest\PortableEnderChestPlugin.class

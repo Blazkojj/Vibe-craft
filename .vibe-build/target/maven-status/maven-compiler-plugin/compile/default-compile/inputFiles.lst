@@ -1,10 +1,4 @@
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\AutoSaveTask.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\ConfigManager.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\KillListener.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\StatsCommand.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\StatsHolder.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\StatsManager.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\StatsPlugin.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\TopCommand.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\TopMenu.java
-C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\pl\statstop\TopMenuListener.java
+C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\com\example\portableenderchest\EnderChestCommand.java
+C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\com\example\portableenderchest\EnderChestListener.java
+C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\com\example\portableenderchest\EnderChestManager.java
+C:\Users\Blazkoj\Desktop\Vibe-craft\.vibe-build\src\main\java\com\example\portableenderchest\PortableEnderChestPlugin.java

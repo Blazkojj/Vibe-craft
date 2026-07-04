@@ -118,7 +118,7 @@ function Dashboard() {
         .select();
 
       if (error) {
-        alert("Błąd podczas tworzenia projektu w bazie!");
+        alert(`Błąd podczas tworzenia projektu w bazie: ${error.message}`);
         console.error(error);
         return;
       }
