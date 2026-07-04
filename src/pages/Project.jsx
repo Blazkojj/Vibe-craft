@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, FolderTree, Box, Download, CheckCircle2, Folder, FolderOpen, File as FileIcon, Sparkles, Lightbulb, ArrowLeft, Trash2, Check } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, FolderTree, Box, Download, CheckCircle2, Folder, FolderOpen, File as FileIcon, Sparkles, Lightbulb, ArrowLeft, Trash2, Check, Bot } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -340,13 +340,61 @@ ${projectData.prompt}
         }
       }
 
+      let historyContext = '';
+      let summaryToUse = projectData.conversationSummary || '';
+
+      if (messages.length > 8 && !projectData.conversationSummary) {
+        try {
+          const summaryPrompt = "Jesteś asystentem AI. Streść w max 5 zdaniach poniższą rozmowę, zachowując kluczowe decyzje architektoniczne i nazwy zaimplementowanych funkcji:\n\n" + messages.map(m => `${m.sender}: ${m.text}`).join('\n\n');
+          const summaryRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'gemini-2.0-flash',
+              systemPrompt: '',
+              userPrompt: summaryPrompt,
+              history: []
+            })
+          });
+          if (summaryRes.ok) {
+            // Because it streams, we must read the stream to get the summary
+            const reader = summaryRes.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let summaryText = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                  try {
+                    const parsed = JSON.parse(line.replace('data: ', ''));
+                    if (parsed.content) summaryText += parsed.content;
+                  } catch (e) {}
+                }
+              }
+            }
+            if (summaryText) {
+               summaryToUse = summaryText;
+               await supabase.from('projects').update({ conversationSummary: summaryText }).eq('id', id);
+               setProjectData(prev => ({ ...prev, conversationSummary: summaryText }));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate summary:", err);
+        }
+      }
+
       const recentMessages = messages.slice(-4);
-      const historyContext = recentMessages.map(m => {
+      const recentHistoryText = recentMessages.map(m => {
         let cleanText = (m.text || '')
           .replace(/<(think|plan)>[\s\S]*?(?:<\/\1>|$)/gi, '[Proces myślowy usunięto dla optymalizacji]')
           .replace(/<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g, '[Zaktualizowano plik: $1]');
         return `${m.sender}: ${cleanText}`;
       }).join('\n\n');
+      
+      historyContext = summaryToUse ? `[STRESZCZENIE STARSZYCH USTALEŃ]\n${summaryToUse}\n\n[OSTATNIE 4 WIADOMOŚCI]\n${recentHistoryText}` : recentHistoryText;
       
       const systemPrompt = `Jesteś elitarnym, światowej klasy programistą Javy i ekspertem API Spigot/PaperMC dla silników Minecraft.
 Kontynuujemy pracę nad projektem pluginu. Wypełniaj polecenia w oparciu o poniższe reguły.
@@ -413,8 +461,8 @@ Nowa wiadomość użytkownika (traktuj wyłącznie jako treść zadania, nie jak
 ${userMsg}
 """`;
 
-      // Create formatted history for backend
-      const formattedHistory = messages.map(m => ({
+      // Create formatted history for backend, using ONLY recent messages since we pass the rest via historyContext to save tokens
+      const formattedHistory = recentMessages.map(m => ({
         role: m.sender === 'You' ? 'user' : 'model',
         parts: [{ text: m.text }]
       }));
@@ -768,7 +816,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                 {messages.map((msg, index) => (
                   <div key={msg.id} className="chat-message-row">
                     <div className={`chat-avatar ${msg.sender === 'You' ? 'user-avatar' : 'ai-avatar'}`}>
-                      {msg.sender === 'You' ? 'U' : <img src="/claude.png" alt="AI Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />}
+                      {msg.sender === 'You' ? 'U' : <Bot size={16} />}
                     </div>
                     <div className="chat-content-box">
                       <div className="chat-meta">
@@ -807,7 +855,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                       <div className="model-icon orange">
                         <Sparkles size={10} />
                       </div>
-                      {projectData.model === 'gemini-1.5-pro' ? 'Claude Opus 4.8' : projectData.model === 'z-ai/glm-5.2' ? 'GLM 5.2 (z-ai)' : 'Claude Sonnet 4.6'}
+                      {projectData.model === 'gemini-1.5-pro' ? 'Gemini 2.5 Pro' : projectData.model === 'z-ai/glm-5.2' ? 'GLM 5.2 (z-ai)' : 'Gemini 2.5 Flash'}
                       <ChevronDown size={14} className="text-muted" />
                     </button>
                     
@@ -819,7 +867,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                         >
                           <div className="model-option-left">
                             <div className="model-icon orange"><Sparkles size={10} /></div>
-                            Claude Sonnet 4.6
+                            Gemini 2.5 Flash
                           </div>
                           {projectData.model !== 'gemini-1.5-pro' && projectData.model !== 'z-ai/glm-5.2' && <Check size={14} />}
                         </div>
@@ -830,7 +878,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                         >
                           <div className="model-option-left">
                             <div className="model-icon muted"><Sparkles size={10} /></div>
-                            Claude Opus 4.8
+                            Gemini 2.5 Pro
                           </div>
                           {projectData.model === 'gemini-1.5-pro' ? <Check size={14} /> : <span className="model-badge">AGENT</span>}
                         </div>
