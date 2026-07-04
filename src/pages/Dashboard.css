@@ -1,0 +1,218 @@
+.dashboard-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  width: 100%;
+}
+
+/* Minimal Generator */
+.minimal-generator {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 3rem;
+  transition: border-color 0.2s ease;
+}
+
+.minimal-generator:focus-within {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.generator-input-wrapper {
+  display: flex;
+  align-items: flex-start;
+  padding: 1.5rem;
+  gap: 1rem;
+}
+
+.input-icon {
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.minimal-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  min-height: 80px;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+}
+
+.minimal-input::placeholder {
+  color: var(--text-darker);
+}
+
+.generator-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-selectors {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.minimal-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  border-radius: 8px;
+  padding: 0.5rem;
+  min-width: 180px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  animation: slideUp 0.15s ease-out;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.minimal-dropdown.large-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: max-content;
+  max-width: 450px;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-darker);
+  padding: 0.25rem 0.5rem 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.minimal-dropdown button {
+  text-align: left;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  border-radius: 4px;
+}
+
+.minimal-dropdown button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-create {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--text-primary);
+  color: var(--bg-canvas);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-create:hover:not(:disabled) {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-create:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Projects Section */
+.section-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.minimal-empty {
+  color: var(--text-darker);
+  font-size: 0.875rem;
+}
+
+.minimal-projects-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.minimal-project-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.minimal-project-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.project-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.project-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.project-meta {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.project-date {
+  font-size: 0.8125rem;
+}
+
+.relative { position: relative; }
+
+/* Custom scrollbar for minimal dropdowns */
+.minimal-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+.minimal-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}

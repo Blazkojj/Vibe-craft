@@ -1,0 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+
+:root {
+  --bg-raw: #0a0a0a;
+  --text-main: #e5e5e5;
+  --text-dim: #888888;
+  --brick: #d94527;
+  --brick-dim: #7a2614;
+  --border-dim: #222222;
+}
+
+.dev-landing {
+  background-color: var(--bg-raw);
+  color: var(--text-main);
+  min-height: 100vh;
+  position: relative;
+  font-family: 'JetBrains Mono', monospace; /* Dev tool vibes */
+}
+
+/* Subtle texture (grid lines) instead of glowing blobs */
+.noise-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(var(--border-dim) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.2;
+  z-index: 0;
+}
+
+.dev-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8rem;
+}
+
+/* Typography Overrides */
+.dev-title, h2, h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.text-brick {
+  color: var(--brick);
+}
+
+.section-title {
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  border-bottom: 2px solid var(--border-dim);
+  padding-bottom: 1rem;
+  display: inline-block;
+}
+
+/* HERO */
+.dev-hero {
+  display: flex;
+  gap: 4rem;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.dev-hero-left {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.dev-title {
+  font-size: 4.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dev-copy {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+  max-width: 80%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.dev-hero-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.dev-btn {
+  padding: 0.8rem 1.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dev-btn-primary {
+  background: var(--brick);
+  color: #fff;
+}
+
+.dev-btn-primary:hover {
+  background: #f15231;
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0px rgba(217, 69, 39, 0.3);
+}
+
+.dev-btn-ghost {
+  background: transparent;
+  color: var(--text-main);
+  border-color: var(--border-dim);
+}
+
+.dev-btn-ghost:hover {
+  border-color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dev-integrations {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.dev-tag {
+  border: 1px solid var(--border-dim);
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+}
+
+.dev-hero-right {
+  flex: 0.8;
+}
+
+.raw-code-box {
+  background: #000;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.raw-code-header {
+  background: #111;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-dim);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.brick-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--brick);
+  border-radius: 50%;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.raw-code-content {
+  padding: 1.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+}
+
+/* PROOF */
+.dev-proof {
+  display: flex;
+  align-items: flex-end;
+  gap: 4rem;
+  padding: 3rem;
+  background: #111;
+  border-left: 4px solid var(--brick);
+}
+
+.proof-text {
+  flex: 1;
+}
+
+.proof-text h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.proof-text p {
+  color: var(--text-dim);
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.proof-stats {
+  flex: 1;
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--brick);
+  line-height: 1;
+}
+
+.stat-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* HOW IT WORKS */
+.dev-steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.step-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--brick-dim);
+}
+
+.step-content h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.step-content p {
+  color: var(--text-dim);
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* COMPARISON */
+.comp-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.comp-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.comp-table th, .comp-table td {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-dim);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.comp-table th {
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text-dim);
+  font-weight: 400;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.highlight-col {
+  background: rgba(217, 69, 39, 0.05);
+  color: var(--brick);
+  font-weight: 600;
+}
+.comp-table th.highlight-col {
+  color: var(--brick);
+}
+
+/* FOOTER */
+.dev-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-dim);
+}
+
+.footer-left h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.footer-left p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+@media (max-width: 800px) {
+  .dev-hero, .dev-proof {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+  .dev-title {
+    font-size: 3rem;
+  }
+  .comp-table th, .comp-table td {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+}
