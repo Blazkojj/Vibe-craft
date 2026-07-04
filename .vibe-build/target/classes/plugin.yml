@@ -1,31 +1,27 @@
-name: CosmicCrates
-version: '1.6'
-main: com.cosmic.crates.CosmicCratesPlugin
+name: StatsTop
+version: '1.2'
+main: pl.statstop.StatsPlugin
 api-version: '1.21'
-author: CosmicDev
-description: Premium system skrzynek lootowych z animowanym losowaniem, hologramami i bezpiecznymi kluczami PDC.
+author: StatsTop
+description: Profesjonalny system statystyk killi graczy i zabójstw mobów z topką.
 
 commands:
-  cosmiccrates:
-    description: Glowna komenda pluginu CosmicCrates
-    aliases: [cc, crates, skrzynki]
-    permission: cosmiccrates.use
-    usage: |
-      /cc give <gracz> <typ> <ilosc>
-      /cc create <nazwa> <typ>
-      /cc remove <nazwa>
-      /cc list
-      /cc reload
-      /cc keys [gracz]
-      /cc menu
+  statstop:
+    description: Administracja pluginem StatsTop.
+    usage: /statstop <reload|set|add|reset|show> [gracz] [wartosc]
+    permission: statstop.admin
+  topkills:
+    description: Otwiera topliste graczy wedlug killi.
+    usage: /topkills [player|mob] [strona]
+    permission: statstop.top
 
 permissions:
-  cosmiccrates.admin:
-    description: Dostep administracyjny do pluginu
+  statstop.admin:
+    description: Dostep do administracji pluginem.
     default: op
-  cosmiccrates.use:
-    description: Mozliwosc korzystania ze skrzynek
+  statstop.top:
+    description: Dostep do toplisty.
     default: true
-  cosmiccrates.give:
-    description: Mozliwosc wydawania kluczy
-    default: op
+  statstop.top.chat:
+    description: Pozwala na ogladanie topki w chatcie zamiast GUI.
+    default: true

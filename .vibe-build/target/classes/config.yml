@@ -1,222 +1,108 @@
 # ============================================================
-#  CosmicCrates - Konfiguracja glowna
+# StatsTop - Konfiguracja glowna
 # ============================================================
 
-# Ustawienia globalne
-settings:
-  # Czy hologramy nad skrzynkami maja byc widoczne
-  holograms-enabled: true
-  # Wysokosc hologramu nad skrzynka (w blokach)
-  hologram-height: 1.2
-  # Dlugosc animacji losowania w tickach (20 tick = 1 sekunda)
-  roll-duration-ticks: 100
-  # Minimalny interwal pomiedzy krokami animacji (w tickach) - im mniejszy tym szybsze krecenie
-  roll-min-interval: 2
-  # Cooldown pomiedzy otwarciem skrzynki przez tego samego gracza (w sekundach)
-  open-cooldown-seconds: 3
-  # Czy blokada shift-click na skrzynkach (zapobiega otwieraniu inventory skrzynki)
-  prevent-shift-click: true
+# Co ile minut plugin ma automatycznie zapisywac cache do bazy danych
+auto-save-minutes: 5
 
-# Wiadomosci (obsloga & kolorow oraz hex &#RRGGBB)
+# Opoznienie w tickach (20 tick = 1s) miedzy zabicie a inkrementacja statystyki
+# Domyslnie 0 - natychmiast. Zwieksz jesli masz bardzo lagujacy serwer.
+kill-delay-ticks: 0
+
+# Czy zabicia gracza powinny byc zliczane (PvP)
+track-player-kills: true
+# Czy zabicia mobow powinny byc zliczane (PvE)
+track-mob-kills: true
+# Czy smierci gracza powinny byc zliczane
+track-deaths: true
+
+# Maksymalna liczba graczy pokazywana w topliscie (max 45 dla GUI)
+top-size: 45
+
+# ============================================================
+# Komunikaty (MiniMessage)
+# ============================================================
 messages:
-  prefix: "&8[&bCosmicCrates&8] &r"
-  no-permission: "&cNie masz uprawnien do tej akcji."
-  player-only: "&cTa komenda jest dostepna tylko dla graczy."
-  key-received: "&aOtrzymales &ex{amount} &aklucz(y) typu &e{type}&a."
-  key-given: "&aWydano &ex{amount} &aklucz(y) typu &e{type} &agraczowi &e{player}&a."
-  invalid-key-type: "&cNiepoprawny typ klucza: &e{type}"
-  crate-created: "&aSkrzynka &e{name} &a(typ: &e{type}&a) zostala utworzona w Twojej lokalizacji."
-  crate-removed: "&aSkrzynka &e{name} &azostala usunieta."
-  crate-not-found: "&cSkrzynka o nazwie &e{name} &cnie istnieje."
-  crate-already-exists: "&cSkrzynka o tej nazwie juz istnieje."
-  no-key-in-hand: "&cMusisz trzymac odpowiedni klucz w rece, aby otworzyc ta skrzynke."
-  key-does-not-match: "&cTen klucz nie pasuje do tej skrzynki."
-  cooldown-active: "&cMusisz odczekac &e{seconds} &csekund przed ponownym otwarciem."
-  crate-list-header: "&6=== &eLista skrzynek &6==="
-  crate-list-entry: "&8- &e{name} &8| &7typ: &f{type} &8| &7{world}, x:{x}, y:{y}, z:{z}"
-  reloaded: "&aKonfiguracja zostala przeladowana."
-  keys-count: "&aPosiadasz &e{amount} &aklucz(y) typu &e{type}&a."
-  keys-count-other: "&aGracz &e{player} &aposiada &e{amount} &aklucz(y) typu &e{type}&a."
-  invalid-amount: "&cNiepoprawna ilosc."
-  invalid-player: "&cNie znaleziono gracza: &e{player}"
-  usage: "&7Uzyj: &e/cc <give|create|remove|list|reload|keys|menu>"
-  crate-protected: "&cNie mozesz zniszczyc skrzynki! Uzyj &e/cc remove <nazwa>&c."
+  prefix: "<dark_gray>[<gradient:gold:yellow>StatsTop</gradient><dark_gray>] "
+  no-permission: "<red>Nie masz uprawnien do tej komendy."
+  player-only: "<red>Tej komendy moze uzyc tylko gracz."
+  unknown-argument: "<red>Nieznany argument. Uzyj: <yellow>/statstop reload|set|add|reset|show"
+  reload-success: "<green>Pomyslnie przeladowano konfiguracje."
+  set-success: "<green>Ustawiono <yellow>%type% <green>dla <yellow>%player% <green>na <yellow>%value%<green>."
+  add-success: "<green>Dodano <yellow>%value% <green>do <yellow>%type% <green>dla <yellow>%player%<green>."
+  reset-success: "<green>Zresetowano statystyki gracza <yellow>%player%<green>."
+  reset-all-success: "<green>Zresetowano statystyki wszystkich graczy."
+  invalid-number: "<red>Podana wartosc nie jest poprawna liczba."
+  player-not-found: "<red>Nie znaleziono gracza <yellow>%name%<red>."
+  invalid-stat-type: "<red>Nieprawidlowy typ statystyki. Dostepne: <yellow>player, mob, deaths"
+  usage-set: "<yellow>Uzycie: /statstop set <gracz> <player|mob|deaths> <wartosc>"
+  usage-add: "<yellow>Uzycie: /statstop add <gracz> <player|mob|deaths> <wartosc>"
 
-# Tytuly wyswietlane przy wygranej
-titles:
-  win-title: "&#FFD700&lWYGRANA!"
-  win-subtitle: "&fOtrzymales: &e{reward}"
-  no-permission-title: "&c&lBRAK DOSTEPU"
-  no-permission-subtitle: "&7Potrzebujesz odpowiedniego klucza"
+# Wiadomosci wyswietlane po zabiciu gracza/moba (puste = brak)
+kill-messages:
+  player-kill: "<gradient:gold:yellow>+%value% kill</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
+  mob-kill: "<gradient:gold:yellow>+%value% kill moba</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
+  death: "<gradient:gold:yellow>+%value% smierc</gradient> <dark_gray>(<gray>razem: %total%<dark_gray>)"
 
-# Definicje skrzynek
-crates:
-  common:
-    display-name: "&aSkrzynka Common"
-    block: SHULKER_BOX
-    glow: false
-    # Teksty hologramu (kolejnosc = linie)
-    hologram:
-      - "&a&lCOMMON CRATE"
-      - "&7Klucze: &f{keys}"
-      - "&7Kliknij PPM, aby otworzyc"
-    # Klucz przypisany do tej skrzynki
-    key:
-      material: TRIPWIRE_HOOK
-      display-name: "&aKlucz Common"
-      lore:
-        - "&7Uzyj na skrzynce &aCommon"
-        - "&7aby losowac nagrody."
-      glow: true
-      custom-model-data: 10001
-    # Dzwieki
-    sounds:
-      open: BLOCK_CHEST_OPEN
-      roll: UI_BUTTON_CLICK
-      win: ENTITY_PLAYER_LEVELUP
-      lose: BLOCK_NOTE_BLOCK_BASS
-    # Czasteczki
-    particles:
-      win:
-        - HAPPY_VILLAGER
-        - CRIT
-      ambient:
-        - FLAME
-    # Nagrody (weight = waga, wieksza = czestsza)
-    rewards:
-      - display: "&fDiament x16"
-        material: DIAMOND
-        weight: 50
-        commands:
-          - "give %player% diamond 16"
-      - display: "&6Zlote Jablko x2"
-        material: GOLDEN_APPLE
-        weight: 30
-        commands:
-          - "give %player% golden_apple 2"
-      - display: "&bDoswiadczenie 100lvl"
-        material: EXPERIENCE_BOTTLE
-        weight: 15
-        commands:
-          - "xp set %player% 100 levels"
-      - display: "&5&lNetheriteowa Sztabka x1"
-        material: NETHERITE_INGOT
-        weight: 5
-        commands:
-          - "give %player% netherite_ingot 1"
+# Ustawienia efektow
+effects:
+  # Efekt dzwiekowy po zabiciu gracza (puste = brak)
+  player-kill-sound: "ENTITY_PLAYER_LEVELUP"
+  player-kill-sound-volume: 1.0
+  player-kill-sound-pitch: 1.0
+  # Efekt czasteczkowy po zabiciu gracza (puste = brak)
+  player-kill-particle: "CRIT"
 
-  rare:
-    display-name: "&bSkrzynka Rare"
-    block: SHULKER_BOX
-    glow: true
-    hologram:
-      - "&b&lRARE CRATE"
-      - "&7Klucze: &f{keys}"
-      - "&7Kliknij PPM, aby otworzyc"
-    key:
-      material: TRIPWIRE_HOOK
-      display-name: "&bKlucz Rare"
-      lore:
-        - "&7Uzyj na skrzynce &bRare"
-        - "&7aby losowac lepsze nagrody."
-      glow: true
-      custom-model-data: 10002
-    sounds:
-      open: BLOCK_CHEST_OPEN
-      roll: UI_BUTTON_CLICK
-      win: ENTITY_PLAYER_LEVELUP
-      lose: BLOCK_NOTE_BLOCK_BASS
-    particles:
-      win:
-        - CRIT
-        - TOTEM_OF_UNDYING
-      ambient:
-        - END_ROD
-    rewards:
-      - display: "&fDiament x32"
-        material: DIAMOND
-        weight: 40
-        commands:
-          - "give %player% diamond 32"
-      - display: "&6Zlote Jablko x8"
-        material: GOLDEN_APPLE
-        weight: 30
-        commands:
-          - "give %player% golden_apple 8"
-      - display: "&bEnchanted Golden Apple x1"
-        material: ENCHANTED_GOLDEN_APPLE
-        weight: 15
-        commands:
-          - "give %player% enchanted_golden_apple 1"
-      - display: "&5Netheriteowe Kowadlo x1"
-        material: NETHERITE_AXE
-        weight: 10
-        commands:
-          - "give %player% netherite_axe 1"
-      - display: "&d&lKOSMETYCZNA NAGRODA"
-        material: FIREWORK_ROCKET
-        weight: 5
-        commands:
-          - "say %player% wygral kosmetyczna nagrode z Rare Crate!"
+# ============================================================
+# Konfiguracja GUI Topki
+# ============================================================
+gui:
+  title: "<gradient:gold:yellow>Top Kills</gradient> <dark_gray>| <gray>Strona %page%"
+  size: 54
+  # Maksymalna ilosc slotow przeznaczona na graczy (reszta to dekoracje)
+  max-per-page: 45
 
-  legendary:
-    display-name: "&6&lSkrzynka Legendary"
-    block: SHULKER_BOX
-    glow: true
-    hologram:
-      - "&6&lLEGENDARY CRATE"
-      - "&7Klucze: &f{keys}"
-      - "&7Kliknij PPM, aby otworzyc"
-    key:
-      material: TRIPWIRE_HOOK
-      display-name: "&6&lKlucz Legendary"
-      lore:
-        - "&7Uzyj na skrzynce &6Legendary"
-        - "&7Najlepsze nagrody serwera!"
-      glow: true
-      custom-model-data: 10003
-    sounds:
-      open: BLOCK_CHEST_OPEN
-      roll: UI_BUTTON_CLICK
-      win: UI_TOAST_CHALLENGE_COMPLETE
-      lose: BLOCK_ANVIL_LAND
-    particles:
-      win:
-        - TOTEM_OF_UNDYING
-        - DRAGON_BREATH
-        - CRIT
-      ambient:
-        - DRAGON_BREATH
-    rewards:
-      - display: "&5Netheriteowy Set"
-        material: NETHERITE_HELMET
-        weight: 25
-        commands:
-          - "give %player% netherite_helmet 1"
-          - "give %player% netherite_chestplate 1"
-          - "give %player% netherite_leggings 1"
-          - "give %player% netherite_boots 1"
-      - display: "&6Zlote Jablko x32"
-        material: GOLDEN_APPLE
-        weight: 30
-        commands:
-          - "give %player% golden_apple 32"
-      - display: "&bEnchanted Golden Apple x4"
-        material: ENCHANTED_GOLDEN_APPLE
-        weight: 20
-        commands:
-          - "give %player% enchanted_golden_apple 4"
-      - display: "&dElytra x1"
-        material: ELYTRA
-        weight: 15
-        commands:
-          - "give %player% elytra 1"
-      - display: "&4&lNetheriteowe Kowadlo x2"
-        material: NETHERITE_AXE
-        weight: 10
-        commands:
-          - "give %player% netherite_axe 2"
+  # Glowa gracza jest pokazywana jako item - czy pokazywac realna glowe gracza (online/offline)
+  use-player-heads: true
 
-# Lokalizacje skrzynek (zapelniane automatycznie przez komende /cc create)
-# NIE EDYTUJ RECZNIE - uzywaj komend
-crate-locations: {}
+  # Format lore dla itemu gracza (MiniMessage). Zmienne: %rank%, %player%, %player_kills%, %mob_kills%, %deaths%, %kdr%
+  lore:
+    - "<dark_gray>--------------------"
+    - "<gold>Pozycja: <yellow>#%rank%"
+    - ""
+    - "<red>Kille graczy: <white>%player_kills%"
+    - "<green>Kille mobow: <white>%mob_kills%"
+    - "<gray>Smierci: <white>%deaths%"
+    - "<gold>K/D Ratio: <white>%kdr%"
+    - "<dark_gray>--------------------"
+
+  # Format nazwy wyswietlanej dla gracza
+  display-name: "<yellow>%player%"
+
+  # Sloty w ktorych beda przyciski nawigacyjne
+  slots:
+    previous: 45
+    next: 53
+    close: 49
+
+  # Itemy dekoracyjne (wypelniaja wolne sloty)
+  filler-item: GRAY_STAINED_GLASS_PANE
+  filler-name: " "
+
+  # Itemy nawigacji
+  previous-item: ARROW
+  previous-name: "<gold>< Poprzednia strona"
+  next-item: ARROW
+  next-name: "<gold>Nastepna strona >"
+  close-item: BARRIER
+  close-name: "<red>Zamknij"
+
+# Ktory typ statystyki ma byc domyslnie sortowany w topce (player, mob, deaths)
+default-sort: player
+
+# Czy toplista w chatcie powinna byc dostepna komenda /topkills chat
+chat-top-enabled: true
+chat-top-size: 10
+chat-top-format: "<gold>#%rank% <yellow>%player% <gray>- <white>%player_kills% killi"
+chat-top-header: "<gradient:gold:yellow>=== Top %size% graczy ===</gradient>"
+chat-top-footer: "<gray>Wyswietlono top %size%"

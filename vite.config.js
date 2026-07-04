@@ -29,7 +29,11 @@ function chatPlugin() {
                 const messages = [];
                 if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
                 if (history && Array.isArray(history)) {
-                   messages.push(...history);
+                   const convertedHistory = history.map(h => ({
+                     role: h.role === 'model' ? 'assistant' : 'user',
+                     content: h.parts ? h.parts[0].text : h.content
+                   }));
+                   messages.push(...convertedHistory);
                 }
                 if (userPrompt) messages.push({ role: 'user', content: userPrompt });
 
