@@ -209,6 +209,8 @@ export default function Dashboard() {
       let mailErr = '';
       if (MAIL_SERVER_URL && MAIL_API_KEY) {
         try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 30000);
           const resp = await fetch(`${MAIL_SERVER_URL}/send-order-email`, {
             method: 'POST',
             headers: {
@@ -224,11 +226,18 @@ export default function Dashboard() {
               nick: order.suppiNick,
               orderId: order.orderId,
             }),
+            signal: controller.signal,
           });
-          if (resp.ok) mailOk = true;
-          else mailErr = (await resp.text()).slice(0, 200);
+          clearTimeout(timeout);
+          if (resp.ok) {
+            mailOk = true;
+          } else {
+            let detail = '';
+            try { detail = JSON.stringify(await resp.json()); } catch { try { detail = await resp.text(); } catch {} }
+            mailErr = `HTTP ${resp.status}: ${detail.slice(0, 300)}`;
+          }
         } catch (e) {
-          mailErr = e.message;
+          mailErr = e.name === 'AbortError' ? 'Timeout (30s) — serwer nie odpowiada' : e.message;
         }
       }
 

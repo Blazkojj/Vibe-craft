@@ -41,7 +41,29 @@ function auth(req, res, next) {
   next();
 }
 
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', async (req, res) => {
+  try {
+    await transporter.verify();
+    res.json({ ok: true, smtp: 'connected' });
+  } catch (err) {
+    res.status(500).json({ ok: false, smtp: 'error', error: err.message });
+  }
+});
+
+app.get('/test-send', async (req, res) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"Zenexcode Test" <${process.env.SMTP_USER || 'support@zenexcode.pl'}>`,
+      to: process.env.SMTP_USER || 'support@zenexcode.pl',
+      subject: 'Test SMTP — Zenexcode mail-server',
+      text: 'To jest testowa wiadomość z serwera mailowego Zenexcode.',
+    });
+    res.json({ ok: true, messageId: info.messageId });
+  } catch (err) {
+    console.error('[TEST-SEND] Błąd:', err);
+    res.status(500).json({ ok: false, error: err.message, code: err.code, command: err.command });
+  }
+});
 
 app.post('/send-order-email', auth, async (req, res) => {
   const {
@@ -148,8 +170,14 @@ ${orderId ? `Nr zamówienia: ${orderId}` : ''}
     console.log(`[MAIL] Wysłano do ${email} (msgid=${info.messageId})`);
     res.json({ ok: true, messageId: info.messageId });
   } catch (err) {
-    console.error('[MAIL] Błąd wysyłki:', err.message);
-    res.status(500).json({ error: 'Błąd wysyłki', details: err.message });
+    console.error('[MAIL] Błąd wysyłki:', err);
+    res.status(500).json({
+      error: 'Błąd wysyłki SMTP',
+      details: err.message,
+      code: err.code,
+      command: err.command,
+      response: err.response,
+    });
   }
 });
 
