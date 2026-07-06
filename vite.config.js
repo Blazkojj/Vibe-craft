@@ -241,4 +241,7 @@ function compilePlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), compilePlugin(), chatPlugin()],
+  server: {
+    allowedHosts: true
+  }
 })
