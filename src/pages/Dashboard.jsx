@@ -119,7 +119,7 @@ export default function Dashboard() {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [confirmingOrderId, setConfirmingOrderId] = useState(null);
 
-  const MAIL_SERVER_URL = import.meta.env.VITE_MAIL_SERVER_URL || '';
+  const MAIL_SERVER_URL = import.meta.env.VITE_MAIL_SERVER_URL || '/api';
   const MAIL_API_KEY = import.meta.env.VITE_MAIL_API_KEY || '';
 
   const fetchAdminUsers = async () => {
