@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Terminal, Lock, Mail, User } from 'lucide-react';
 import './Login.css';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
+const TURNSTILE_ENABLED = !!TURNSTILE_SITE_KEY;
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -10,7 +13,39 @@ function Login() {
   const [username, setUsername] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!TURNSTILE_ENABLED) return;
+    let cancelled = false;
+
+    const render = () => {
+      if (cancelled || !window.turnstile) return;
+      if (turnstileRef.current && turnstileRef.current.childElementCount === 0) {
+        window.turnstile.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+          theme: 'dark',
+        });
+      }
+    };
+
+    if (window.turnstile) render();
+    else {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit';
+      script.async = true;
+      script.defer = true;
+      window.onTurnstileLoad = render;
+      document.body.appendChild(script);
+    }
+
+    return () => { cancelled = true; };
+  }, [isRegistering]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +58,11 @@ function Login() {
 
     if (password.length < 6) {
       setError('Błąd: Hasło musi mieć co najmniej 6 znaków.');
+      return;
+    }
+
+    if (TURNSTILE_ENABLED && !turnstileToken) {
+      setError('Błąd: Potwierdź, że nie jesteś robotem (Cloudflare Turnstile).');
       return;
     }
 
@@ -39,6 +79,7 @@ function Login() {
           options: {
             data: {
               username: username.trim(),
+              turnstile_token: turnstileToken,
             }
           }
         });
@@ -54,6 +95,10 @@ function Login() {
       navigate('/dashboard');
     } catch (err) {
       setError(`Błąd API: ${err.message}`);
+      if (TURNSTILE_ENABLED && window.turnstile && turnstileRef.current) {
+        window.turnstile.reset(turnstileRef.current);
+        setTurnstileToken('');
+      }
     }
   };
 
@@ -128,7 +173,13 @@ function Login() {
               </div>
             </div>
 
-            <button type="submit" className="login-btn-submit">
+            {TURNSTILE_ENABLED && (
+              <div className="form-group">
+                <div ref={turnstileRef} className="turnstile-widget" style={{ minHeight: '65px' }}></div>
+              </div>
+            )}
+
+            <button type="submit" className="login-btn-submit" disabled={TURNSTILE_ENABLED && !turnstileToken}>
               {isRegistering ? 'ZAREJESTRUJ ↗' : 'ZALOGUJ ↗'}
             </button>
           </form>

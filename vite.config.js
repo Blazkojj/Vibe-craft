@@ -13,6 +13,35 @@ function chatPlugin() {
   return {
     name: 'chat-plugin',
     configureServer(server) {
+      server.middlewares.use('/api/verify-turnstile', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString() });
+        req.on('end', async () => {
+          try {
+            const { token } = JSON.parse(body);
+            const secret = process.env.TURNSTILE_SECRET_KEY;
+            if (!secret || !token) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ success: false, error: 'Brak tokenu lub sekretu' }));
+            }
+            const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ response: token, secret }),
+            });
+            const data = await verifyRes.json();
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(data));
+          } catch (e) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ success: false, error: e.message }));
+          }
+        });
+      });
       server.middlewares.use('/api/chat', async (req, res) => {
         if (req.method === 'POST') {
           let body = '';
@@ -80,7 +109,9 @@ function chatPlugin() {
 
                 const reqHeaders = {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`
+                  'Authorization': `Bearer ${apiKey}`,
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Accept': 'text/event-stream, application/json'
                 };
                 if (isTrueClaude) reqHeaders['anthropic-beta'] = 'prompt-caching-2024-07-31';
 
