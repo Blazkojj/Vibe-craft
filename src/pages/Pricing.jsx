@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import './Pricing.css';
 
 const tiers = [
   {
-    name: 'PRO',
+    name: 'Basic',
     price: '30',
     credits: '$200',
     features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Szybki czas odpowiedzi'],
   },
   {
-    name: 'Developer',
+    name: 'Pro',
     price: '50',
     credits: '$320',
     badge: '⭐ Popularne',
+    isPopular: true,
     features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Priorytetowe wsparcie', 'Zwiększony limit RPM'],
   },
   {
-    name: 'VibeCoder',
+    name: 'Elite',
     price: '100',
     credits: '$600',
     badge: '★ Najlepsza wartość',
@@ -30,11 +31,10 @@ const tiers = [
     features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Dedykowany serwer', 'Brak limitu RPM'],
   },
   {
-    name: 'Unlimited*',
+    name: 'Unlimited+',
     price: '250',
     credits: '∞ tokenów',
-    badge: '∞ Unlimited*',
-    isUltimate: true,
+    badge: '∞ Unlimited+',
     features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Fair Use Unlimited', 'Najwyższy priorytet SLA'],
   }
 ];
@@ -49,107 +49,85 @@ function Pricing() {
       alert("Proszę wypełnić wszystkie pola!");
       return;
     }
-    // Przekierowanie do suppi
-    window.open('https://suppi.pl/vibecraft', '_blank');
+    window.open('https://suppi.pl/zenexcode', '_blank');
   };
 
   return (
-    <div className="pricing-container">
-      <div className="pricing-header">
-        <h1 className="pricing-title">Plany stworzone dla <span className="text-accent">profesjonalistów</span></h1>
-        <p className="pricing-subtitle">
-          Płać mniej za dostęp do najwyższej jakości modeli AI do generowania kodu. Skaluj swoje serwery Minecraft bez obaw o koszty programistów.
-        </p>
+    <div className="claude-pricing-container">
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text)' }}>Wybierz plan</h2>
+        <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>Uwaga: To NIE jest subskrypcja. Kupujesz jednorazowy pakiet ważny przez 1 miesiąc.</p>
       </div>
-
-      <div className="pricing-grid">
+      <div className="claude-pricing-grid">
         {tiers.map((tier, index) => (
-          <div key={index} className={`pricing-card glass-panel ${tier.isUltimate ? 'tier-unlimited' : ''}`}>
+          <div key={index} className={`claude-pricing-card ${tier.isPopular ? 'popular' : ''}`}>
             {tier.badge && (
-              <div className={`tier-badge ${tier.isUltimate ? 'badge-unlimited' : ''}`}>
+              <div className="claude-badge">
                 {tier.badge}
               </div>
             )}
 
-            <div className="tier-header">
-              <h3 className="tier-name">{tier.name}</h3>
-              <div className="tier-price">
-                <span className="currency">PLN</span>
-                <span className="amount">{tier.price}</span>
-                <span className="period">/mo</span>
-              </div>
+            <h3 className="claude-tier-name">{tier.name}</h3>
+            
+            <div className="claude-tier-price">
+              {tier.price} <span className="currency">PLN</span><span className="period">/mies.</span>
             </div>
 
-            <div className="tier-credits">
-              <span className="credits-label">OTRZYMUJESZ</span>
-              <span className={`credits-value font-mono ${tier.isUltimate ? 'text-accent glow-text' : ''}`}>
-                {tier.credits}
-              </span>
-              <span className="credits-label">kredytów</span>
+            <div className="claude-tier-credits">
+              <span className="claude-credits-val">{tier.credits}</span>
+              <span className="claude-credits-label">na generowanie kodu</span>
             </div>
 
-            <div className="tier-features">
+            <ul className="claude-feature-list">
               {tier.features.map((feature, fIndex) => (
-                <div key={fIndex} className="feature-item">
-                  <Check size={16} className={tier.isUltimate ? 'text-accent' : 'text-muted'} />
+                <li key={fIndex} className="claude-feature-item">
+                  <Check size={18} className="claude-feature-icon" />
                   <span>{feature}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
 
             <button 
-              className={`btn tier-btn ${tier.isUltimate ? 'btn-accent' : 'btn-secondary'}`}
+              className="claude-pricing-btn"
               onClick={() => setSelectedTier(tier)}
             >
-              Wybierz Tier <ArrowRight size={16} style={{ marginLeft: '8px' }} />
+              Wybierz plan
             </button>
           </div>
         ))}
       </div>
 
       {selectedTier && (
-        <div className="pricing-modal-overlay">
-          <div className="pricing-modal">
-            <button className="close-modal-btn" onClick={() => setSelectedTier(null)}>
+        <div className="claude-modal-overlay">
+          <div className="claude-modal-content">
+            <button className="claude-modal-close" onClick={() => setSelectedTier(null)}>
               <X size={24} />
             </button>
-            <h2>Zakup planu <span className="text-accent">{selectedTier.name}</span></h2>
-            <p className="modal-price">Kwota do zapłaty: <strong>{selectedTier.price} PLN</strong> / miesiąc</p>
             
-            <div className="modal-form">
-              <div className="input-group">
-                <label>Twój adres E-mail</label>
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  placeholder="email@example.com"
-                  required
-                />
-              </div>
-              <div className="input-group">
-                <label>Twój Nick (taki sam jak wpiszesz na Suppi)</label>
-                <input 
-                  type="text" 
-                  value={suppiNick} 
-                  onChange={(e) => setSuppiNick(e.target.value)} 
-                  placeholder="np. Kowalski123"
-                  required
-                />
-              </div>
-            </div>
+            <h2 className="claude-modal-title">Subskrypcja: {selectedTier.name}</h2>
+            
+            <input 
+              type="email" 
+              placeholder="Twój adres E-mail"
+              className="claude-modal-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            
+            <input 
+              type="text" 
+              placeholder="Twój nick na suppi (do weryfikacji)"
+              className="claude-modal-input"
+              value={suppiNick}
+              onChange={(e) => setSuppiNick(e.target.value)}
+            />
 
-            <div className="modal-info-box">
-              <p>
-                <strong>Skrypt automatycznie weryfikuje wpłatę przez Suppi.</strong> Po dokonaniu wpłaty na stronie Suppi (pamiętaj o podaniu tego samego Nicku!), system zaktualizuje Twoje konto i przydzieli tokeny na cały miesiąc.
-              </p>
-              <p className="psc-info">
-                Jeśli chcesz zapłacić przez <strong>PSC</strong> lub inną metodą, otwórz ticket na naszym serwerze Discord!
-              </p>
+            <div className="claude-modal-warning" style={{ backgroundColor: 'rgba(224, 122, 95, 0.08)', border: '1px solid var(--accent)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
+              <strong>⚠️ Ważne!</strong> Podaj tutaj <u>dokładnie taki sam Nick oraz E-mail</u>, jakiego użyjesz przy płatności na portalu Suppi! Tylko na tej podstawie przypiszemy pakiet do Twojego konta.
             </div>
-
-            <button className="btn btn-accent full-width-btn" onClick={handleCheckout}>
-              Opłać przez Suppi (Przekierowanie)
+            
+            <button className="claude-checkout-btn" onClick={handleCheckout}>
+              Przejdź do płatności ({selectedTier.price} PLN)
             </button>
           </div>
         </div>

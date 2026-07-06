@@ -1,24 +1,97 @@
-# --- KONFIGURACJA PRZENOŚNEGO ENDERCHESTA ---
+#AdvancedPlots - Konfiguracja
+# Paper 1.21.4
 
-# Wiadomości (MiniMessage)
-messages:
-  prefix: "<dark_gray>[<gradient:#a855f7:#ec4899>EC</gradient>]</dark_gray> "
-  no-permission: "<red>Nie masz uprawnień do tej akcji."
-  player-only: "<red>Ta komenda może być wykonana tylko przez gracza."
+general:
+  # Prefix wiadomości pluginu (MiniMessage)
+  prefix: "<dark_gray>[<gradient:#55FF55:#00AA00>Działki</gradient>]</dark_gray> "
+  # Światy, w których działki są wyłączone
+  disabled-worlds:
+    - "world_nether"
+    - "world_the_end"
+  # Czy gracze mogą claimować w world_nether / world_the_end (nadpisywane przez disabled-worlds)
+  allow-nether: false
+  allow-end: false
 
-# Tytuł wyświetlany na ekranie gracza przy otwarciu
-title:
+claims:
+  # Domyślny limit działek na gracza
+  default-limit: 3
+  # Minimalny rozmiar działki (szerokość i długość)
+  min-size: 5
+  # Maksymalny rozmiar działki
+  max-size: 200
+  # Domyślny rozmiar auto-claima(/plot claim auto)
+  auto-claim-size: 30
+  # Minimalna odległość między działkami różnych graczy (bloki)
+  min-distance-between-plots: 5
+  # Czy gracz może claimować działkę, jeśli stoi blisko innej działki?
+  allow-claim-near-others: false
+
+protection:
+  # Ochrona dla działek zanim gracz się zaloguje (false = nikt nie może, true = wszyscy mogą)
+  protect-unclaimed-land: false
+  # Czy eksplozje mogą niszczyć bloki poza działkami?
+  protect-wilderness-explosions: true
+  # Czy ogień może się rozprzestrzeniać poza działkami?
+  protect-wilderness-fire: true
+
+# Domyślne flagi dla nowych działek
+default-flags:
+  PVP: false
+  FIRE_SPREAD: false
+  EXPLOSIONS: false
+  MOB_SPAWNING: true
+  VISITOR_INTERACT: false
+  VISITOR_BUILD: false
+  FLY: false
+  GREET: true
+
+visualization:
+  # Czy wizualizacja granic jest włączona?
   enabled: true
-  title: "<gradient:#a855f7:#ec4899>EnderChest"
-  subtitle: "<dark_purple>Otwierasz swój ekwipunek..."
-  fade-in: 10
-  stay: 40
-  fade-out: 10
+  # Co ile ticków odświeżać wizualizację (20 =1 sekunda)
+  refresh-interval: 20
+  # Promień aktywacji wizualizacji od granicy działki (bloki)
+  activation-radius: 5
+  # Kolor cząsteczek dla granic (R G B,0-255)
+  border-color-owned:
+    r: 0
+    g: 200
+    b: 50
+  border-color-others:
+    r: 200
+    g: 50
+    b: 50
+  border-color-member:
+    r: 50
+    g: 100
+    b: 255
 
-# Efekty dźwiękowe przy otwarciu
-effects:
-  sound:
-    enabled: true
-    type: "BLOCK_ENDER_CHEST_OPEN"
-    volume: 1.0
-    pitch: 1.0
+messages:
+  claim-success: "<green>✅ Działka <gold><name></gold> została zaclaimowana! (<gray><size> bloków</gray>)"
+  claim-fail-overlap: "<red>❌ Ten obszar nakłada się na istniejącą działkę!"
+  claim-fail-limit: "<red>❌ Osiągnąłeś limit działek (<gold><limit></gold>). Usuń starą lub kup więcej miejsca."
+  claim-fail-size: "<red>❌ Działka jest za<type>! Min: <min>, Max: <max> bloków."
+  claim-fail-world: "<red>❌ Nie możesz claimować działek w tym świecie."
+  claim-fail-selection: "<red>❌ Najpierw zaznacz obszar złotą łopatą (2 narożniki)!"
+  unclaim-success: "<green>✅ Działka <gold><name></gold> została usunięta."
+  unclaim-not-owner: "<red>❌ Tylko właściciel działki może ją usunąć."
+  no-permission-build: "<red>⛔ Nie masz prawa budować na tej działce!"
+  no-permission-interact: "<red>⛔ Nie masz prawa interaktować na tej działce!"
+  no-permission-pvp: "<red>⛔ PVP jest wyłączone na tej działce!"
+  plot-enter: "<green>➤ Wchodzisz na działkę <gold><name></gold> (<gray>właściciel: <owner></gray>)"
+  plot-leave: "<gray>◀ Opuściłeś działkę <gold><name></gold>"
+  selection-first: "<aqua>📍 Pierwszy narożnik zaznaczony: <white><x>, <y>, <z>"
+  selection-second: "<aqua>📍 Drugi narożnik zaznaczony: <white><x>, <y>, <z>. Teraz wpisz /plot claim"
+  tool-given: "<green>🔧 Otrzymałeś narzędzie do zaznaczania działek! Klikaj prawym przyciskiem myszy."
+  member-added: "<green>✅ Gracz <gold><player></gold> został dodany do działki z rolą <role>."
+  member-removed: "<green>✅ Gracz <gold><player></gold> został usunięty z działki."
+  player-not-found: "<red>❌ Nie znaleziono gracza <gold><player></gold>."
+  flag-set: "<green>✅ Flaga <gold><flag></gold> ustawiona na <value>."
+  transfer-success: "<green>✅ Działka przekazana graczowi <gold><player></gold>."
+  plot-renamed: "<green>✅ Działka przemianowana na <gold><name></gold>."
+  spawn-set: "<green>✅ Punkt teleportacji działki ustawiony."
+  teleported: "<green>✈ Teleportowano na działkę <gold><name></gold>."
+  bypass-on: "<gold>⚡ Tryb bypass działek: <green>WŁĄCZONY"
+  bypass-off: "<gold>⚡ Tryb bypass działek: <red>WYŁĄCZONY"
+  reload-success: "<green>✅ Konfiguracja przeładowana."
+  admin-deleted: "<green>✅ Usunięto działkę <gold><name></gold>."

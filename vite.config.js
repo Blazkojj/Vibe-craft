@@ -21,32 +21,77 @@ function chatPlugin() {
             try {
               const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
               
-              if (model === 'z-ai/glm-5.2') {
-                const apiKey = process.env.ZENMUX_API_KEY;
-                if (!apiKey) throw new Error("Brak ZENMUX_API_KEY w zmiennych środowiskowych.");
-                const url = 'https://zenmux.ai/api/v1/chat/completions';
-                
+              const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
+              const isTrueClaude = ['claude-opus-4-8', 'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
+              const isZenmux = model === 'z-ai/glm-5.2' || isClaudeAlias || isTrueClaude;
+
+              if (isZenmux) {
+                let apiKey = process.env.ZENMUX_API_KEY;
+                let backendModel = 'z-ai/glm-5.2';
+                let url = 'https://zenmux.ai/api/v1/chat/completions';
+
+                if (isTrueClaude) {
+                  url = 'https://aiapiflow.com/v1/chat/completions';
+                  if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = 'sk-f0d2a44153c70c1b33c972e2912b961e93db62db43cbb709f30ea2f633c440b9'; }
+                  if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = 'sk-a0f84134c115efb020ffcef5deae07328b726cc93b2d085dfc71479f0418bb91'; }
+                  if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = 'sk-fdd379c52685e84359a76380c1512707a0c7e3ee9c69d65b1a031b5a3814e79b'; }
+                  if (model === 'claude-haiku-4-5-20251001') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = 'sk-98b017735d702535bc9c3a15f481cfd581c1fec630edff6b52120fdc2ce0c0cf'; }
+                  if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = 'sk-d50fbe6f318d7d302f053d650d5cb25f425f9125f9df5466dd64484dcb0cb228'; }
+                }
+
+                if (!apiKey) throw new Error("Brak odpowiedniego klucza API w .env");
+
+                let finalSystemPrompt = systemPrompt;
+                if (model === 'z-ai/glm-5.2') {
+                  try {
+                    const opusPrompt = fs.readFileSync(path.join(process.cwd(), 'anthropic-claude-opus-4.5-full_20251124.txt'), 'utf8');
+                    finalSystemPrompt = finalSystemPrompt + '\n\n# SYSTEM BEHAVIOR INSTRUCTIONS (OPUS 4.5 SIMULATION)\n' + opusPrompt;
+                  } catch (e) {
+                    console.error('Failed to load Opus prompt:', e.message);
+                  }
+                }
+
                 const messages = [];
-                if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
+                // Claude prompt caching: mark system prompt as cacheable (saves ~90% on repeated calls)
+                if (finalSystemPrompt) {
+                  messages.push({
+                    role: 'system',
+                    content: isTrueClaude
+                      ? [{ type: 'text', text: finalSystemPrompt, cache_control: { type: 'ephemeral' } }]
+                      : finalSystemPrompt
+                  });
+                }
                 if (history && Array.isArray(history)) {
-                   const convertedHistory = history.map(h => ({
-                     role: h.role === 'model' ? 'assistant' : 'user',
-                     content: h.parts ? h.parts[0].text : h.content
-                   }));
+                   const convertedHistory = history.map((h, i) => {
+                     const text = h.parts ? h.parts[0].text : h.content;
+                     const role = h.role === 'model' ? 'assistant' : 'user';
+                     // Cache breakpoint on last assistant message for multi-turn caching
+                     const isLastAssistant = isTrueClaude && role === 'assistant' && i === history.map((x, j) => x.role === 'model' ? j : -1).filter(j => j >= 0).slice(-1)[0];
+                     return {
+                       role,
+                       content: isLastAssistant
+                         ? [{ type: 'text', text, cache_control: { type: 'ephemeral' } }]
+                         : text
+                     };
+                   });
                    messages.push(...convertedHistory);
                 }
                 if (userPrompt) messages.push({ role: 'user', content: userPrompt });
 
+                const reqHeaders = {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`
+                };
+                if (isTrueClaude) reqHeaders['anthropic-beta'] = 'prompt-caching-2024-07-31';
+
                 const response = await fetch(url, {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                  },
+                  headers: reqHeaders,
                   body: JSON.stringify({
-                    model: model,
+                    model: backendModel,
                     messages: messages,
-                    stream: true
+                    stream: true,
+                    max_tokens: 8192
                   })
                 });
                 
@@ -68,8 +113,8 @@ function chatPlugin() {
                 res.end();
               } else {
                 // Gemini API
-                const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-                if (!apiKey) throw new Error("Missing Gemini API Key in .env");
+                const apiKey = process.env.GEMINI_API_KEY;
+                if (!apiKey) throw new Error("Missing GEMINI_API_KEY in .env");
                 
                 const genAI = new GoogleGenerativeAI(apiKey);
                 const geminiModel = genAI.getGenerativeModel({ 
@@ -149,12 +194,26 @@ function compilePlugin() {
                 if (fs.existsSync(targetDir)) {
                   const jarFile = fs.readdirSync(targetDir).find(f => f.endsWith('.jar') && !f.startsWith('original-'));
                   if (jarFile) {
+                    let finalFilename = jarFile;
+                    try {
+                      const pomPath = path.join(buildDir, 'pom.xml');
+                      if (fs.existsSync(pomPath)) {
+                        const pomContent = fs.readFileSync(pomPath, 'utf8');
+                        const versionMatch = pomContent.match(/<version>([^<]+)<\/version>/);
+                        const artifactMatch = pomContent.match(/<artifactId>([^<]+)<\/artifactId>/);
+                        if (versionMatch && artifactMatch && !jarFile.includes(versionMatch[1])) {
+                          finalFilename = `${artifactMatch[1]}-${versionMatch[1]}.jar`;
+                        }
+                      }
+                    } catch(e) {}
+
                     const jarPath = path.join(targetDir, jarFile);
                     const stat = fs.statSync(jarPath);
                     res.writeHead(200, {
                       'Content-Type': 'application/java-archive',
                       'Content-Length': stat.size,
-                      'Content-Disposition': `attachment; filename="${jarFile}"`
+                      'Content-Disposition': `attachment; filename="${finalFilename}"`,
+                      'Access-Control-Expose-Headers': 'Content-Disposition'
                     });
                     const readStream = fs.createReadStream(jarPath);
                     readStream.pipe(res);

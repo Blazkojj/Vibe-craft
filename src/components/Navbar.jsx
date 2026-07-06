@@ -1,30 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Terminal, LogOut } from 'lucide-react';
+import { Layers, LogOut } from 'lucide-react';
+import { supabase } from '../supabase';
 import './Navbar.css';
 
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const isLoggedIn = localStorage.getItem('vibecraft_logged_in') === 'true';
+  const [session, setSession] = useState(null);
 
-  const handleLogout = () => {
-    localStorage.removeItem('vibecraft_logged_in');
-    localStorage.removeItem('vibecraft_user');
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/');
   };
+
+  if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/project')) {
+    return null;
+  }
+
+  const isLoggedIn = !!session;
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-brand">
-          <div className="brand-logo-wrapper" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-            <img src="/logo.png" alt="VibeCraft Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-          </div>
-          <span className="brand-text">VibeCraft<span className="text-accent">AI</span></span>
+          <img src="/zenexcode.png" alt="Zenexcode" style={{ height: '32px', objectFit: 'contain' }} />
         </Link>
+
         <div className="navbar-links">
-          <Link to="/" className={location.pathname === '/' ? 'active' : ''}>Platforma</Link>
+          <a href="/#funkcje">Funkcje</a>
+          <a href="/#cennik">Cennik</a>
+          <a href="/#modele">Modele</a>
+          <Link to="/dokumentacja">Dokumentacja</Link>
           {isLoggedIn && (
             <Link to="/dashboard" className={location.pathname === '/dashboard' ? 'active' : ''}>Dashboard</Link>
           )}
@@ -32,10 +45,10 @@ function Navbar() {
         <div className="navbar-actions">
           {isLoggedIn ? (
             <button onClick={handleLogout} className="btn-logout">
-              Wyloguj <LogOut size={13} style={{ marginLeft: '4px' }} />
+              Wyloguj <LogOut size={13} />
             </button>
           ) : (
-            <Link to="/login" className="btn-start">Rozpocznij ↗</Link>
+            <Link to="/login" className="btn-start">Start →</Link>
           )}
         </div>
       </div>

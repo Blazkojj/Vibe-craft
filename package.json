@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.110.0",
+    "@xyflow/react": "^12.11.1",
     "dotenv": "^17.4.2",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",

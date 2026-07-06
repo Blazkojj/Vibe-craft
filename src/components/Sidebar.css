@@ -1,0 +1,217 @@
+.claude-sidebar {
+  width: 256px;
+  background-color: var(--bg-canvas);
+  border-right: 1px solid var(--border-solid);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  font-family: var(--font-main);
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.125rem 1rem 0.5rem;
+}
+
+.sidebar-logo {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  font-family: var(--font-main);
+}
+
+.sidebar-header-icons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sidebar-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.sidebar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.sidebar-search-box {
+  padding: 0 0.75rem 0.75rem;
+}
+
+.sidebar-search-box input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-solid);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  font-size: 0.8125rem;
+  font-family: var(--font-main);
+  transition: border-color 0.18s;
+}
+
+.sidebar-search-box input::placeholder {
+  color: var(--text-darker);
+}
+
+.sidebar-search-box input:focus {
+  border-color: var(--border-focus);
+}
+
+.sidebar-new-chat {
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.new-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-family: var(--font-main);
+  transition: background 0.15s;
+  cursor: pointer;
+}
+
+.new-chat-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav {
+  padding: 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 1.25rem;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8375rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  font-family: var(--font-main);
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-nav-item:hover,
+.sidebar-nav-item.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.sidebar-recents {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-solid) transparent;
+}
+
+.recents-title {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: var(--text-darker);
+  letter-spacing: 0.08em;
+  padding: 0 0.75rem;
+  margin-bottom: 0.375rem;
+  font-weight: 600;
+}
+
+.recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.recent-item {
+  display: block;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.8375rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s;
+}
+
+.recent-item:hover,
+.recent-item.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.sidebar-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-solid);
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-main);
+}
+
+.user-profile-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-name {
+  color: var(--text-primary);
+  font-size: 0.8375rem;
+  font-weight: 500;
+}

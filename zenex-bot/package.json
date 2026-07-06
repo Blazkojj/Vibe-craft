@@ -1,0 +1,15 @@
+{
+  "name": "zenex-guard",
+  "version": "1.0.0",
+  "description": "Discord Bot for Zenexcode",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
+  }
+}

@@ -1,15 +1,37 @@
-name: PortableEnderChest
-version: '1.2'
-main: com.example.portableenderchest.PortableEnderChestPlugin
+name: AdvancedPlots
+version: '1.0'
+main: pl.advancedplots.AdvancedPlotsPlugin
 api-version: '1.21'
-author: YourName
-description: Przenośny EnderChest dostępny komendą /ec.
+description: Zaawansowany system działek dla Paper 1.21.4
+authors: [AdvancedPlugins]
+
 commands:
-  enderchest:
-    description: Otwiera przenośny enderchest
-    usage: /enderchest
-    aliases: [ec, echest, pend]
+  plot:
+    description: Główna komenda systemu działek
+    aliases: [p, dzialka, dz]
+    usage: /plot <subkomenda>plotadmin:
+    description: Komendy administracyjne działek
+    aliases: [pa, dzialkaadmin]
+    usage: /plotadmin <subkomenda>
+
 permissions:
-  portableenderchest.use:
-    description: Pozwala użyć komendy /ec
+  advancedplots.use:
+    description: Dostęp do podstawowych komend działek
+    default: trueadvancedplots.claim:
+    description: Możliwość claimowania działek
     default: true
+  advancedplots.claim.auto:
+    description: Możliwość auto-claima
+    default: true
+  advancedplots.bypass:
+    description: Pomijanie ochrony działek (admin)
+    default: op
+  advancedplots.admin:
+    description: Dostęp do komend administracyjnych
+    default: op
+  advancedplots.admin.bypass:
+    description: Trwały bypass bez komendy
+    default: false
+  advancedplots.unlimited:
+    description: Brak limitu działek
+    default: false

@@ -6,6 +6,9 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Project from './pages/Project';
 import Login from './pages/Login';
+import Legal from './pages/Legal';
+import Docs from './pages/Docs';
+import Settings from './pages/Settings';
 
 function ProtectedRoute({ children }) {
   const [session, setSession] = React.useState(undefined);
@@ -31,6 +34,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/project/:id" element={<ProtectedRoute><Project /></ProtectedRoute>} />
+        <Route path="/ustawienia" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/regulamin" element={<Legal />} />
+        <Route path="/polityka-prywatnosci" element={<Legal />} />
+        <Route path="/warunki" element={<Legal />} />
+        <Route path="/dokumentacja" element={<Docs />} />
       </Routes>
     </Router>
   );

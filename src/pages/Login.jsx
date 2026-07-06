@@ -64,7 +64,7 @@ function Login() {
         <div className="login-header">
           <div className="brand-badge">
             <Terminal size={14} className="text-brick" />
-            <span>vibecraft_auth v1.0.0</span>
+            <span>zenexcode_auth v1.0.0</span>
           </div>
           <span className="brick-dot"></span>
         </div>
