@@ -258,6 +258,37 @@ export default function Dashboard() {
     }
   };
 
+  const handleCancelOrder = async (order) => {
+    if (!confirm(`Na pewno anulować zamówienie ${order.orderId}?\nKlient: ${order.email}\nPakiet: ${order.planName} (${order.price})`)) return;
+    setConfirmingOrderId(order.orderId);
+    try {
+      const profileKey = `__user_profile:${order.email}__`;
+      const { data: profs } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('title', profileKey);
+      if (!profs || profs.length === 0) throw new Error('Profil nie istnieje');
+      const record = profs[0];
+      const pData = record.messages || {};
+      const updatedOrders = (pData.pending_orders || []).map(o =>
+        o.orderId === order.orderId
+          ? { ...o, status: 'cancelled', cancelledAt: new Date().toISOString() }
+          : o
+      );
+      await supabase
+        .from('projects')
+        .update({ messages: { ...pData, pending_orders: updatedOrders } })
+        .eq('id', record.id);
+      alert(`❌ Zamówienie ${order.orderId} anulowane.`);
+      fetchAdminUsers();
+    } catch (e) {
+      console.error(e);
+      alert(`Błąd anulowania: ${e.message}`);
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
   useEffect(() => {
     if (activeView === 'admin') {
       fetchAdminUsers();
@@ -959,13 +990,23 @@ export default function Dashboard() {
                           <td style={{ padding: '1rem', fontFamily: 'var(--mono)', fontWeight: '700', color: 'var(--text)' }}>{o.price} zł</td>
                           <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{datePL}</td>
                           <td style={{ padding: '1rem', textAlign: 'right' }}>
-                            <button
-                              onClick={() => handleConfirmOrder(o)}
-                              disabled={isConfirming}
-                              style={{ background: isConfirming ? 'var(--border)' : 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.9rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: isConfirming ? 'not-allowed' : 'pointer' }}
-                            >
-                              {isConfirming ? 'Wysyłanie...' : 'Potwierdź i wyślij email'}
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => handleConfirmOrder(o)}
+                                disabled={isConfirming}
+                                style={{ background: isConfirming ? 'var(--border)' : 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.9rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: isConfirming ? 'not-allowed' : 'pointer' }}
+                              >
+                                {isConfirming ? '...' : 'Potwierdź i wyślij email'}
+                              </button>
+                              <button
+                                onClick={() => handleCancelOrder(o)}
+                                disabled={isConfirming}
+                                title="Anuluj zamówienie"
+                                style={{ background: 'transparent', color: '#EF4444', border: '1px solid rgba(239,68,68,0.4)', padding: '0.4rem 0.7rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: isConfirming ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                              >
+                                <X size={13} /> Anuluj
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
