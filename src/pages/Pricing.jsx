@@ -56,7 +56,7 @@ function Pricing() {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-      const hasDiscord = currentUser?.identities?.some(id => id.provider === 'discord');
+      const hasDiscord = currentUser?.identities?.some(id => id.provider === 'discord') || !!currentUser?.user_metadata?.discord_profile;
       if (!hasDiscord) {
         alert('Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
         return;

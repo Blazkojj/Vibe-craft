@@ -32,17 +32,19 @@ export default function Settings() {
   // ─── Discord OAuth redirect handler ───
   const handleDiscordRedirect = async () => {
     if (handledRedirect.current) return;
-    try {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
-      if (!session) return;
-      const providerToken = session.provider_token;
-      if (!providerToken) return;
-      handledRedirect.current = true;
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('access_token')) return;
 
-      setDiscordLoading(true);
+    handledRedirect.current = true;
+    setDiscordLoading(true);
+
+    try {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get('access_token');
+      if (!accessToken) throw new Error('No access_token found');
+
       const res = await fetch('https://discord.com/api/users/@me', {
-        headers: { Authorization: `Bearer ${providerToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) throw new Error('discord fetch failed');
       const d = await res.json();
@@ -55,16 +57,17 @@ export default function Settings() {
         global_name: d.global_name || d.username,
         avatar,
       };
+      
       await supabase.auth.updateUser({ data: { discord_profile: profile } });
       setDiscordProfile(profile);
       setUser(prev => prev ? ({ ...prev, user_metadata: { ...prev.user_metadata, discord_profile: profile } }) : prev);
-      flash('Konto Discord zostało połączone!', 'success');
+      flash('Konto Discord zostało połączone pomyślnie!', 'success');
     } catch (e) {
       console.error('Discord profile fetch failed:', e);
-      flash('Połączono z Discordem, ale nie udało się pobrać profilu.', 'error');
+      flash('Błąd podczas pobierania profilu Discord.', 'error');
     } finally {
       setDiscordLoading(false);
-      if (window.location.hash) window.history.replaceState(null, '', window.location.pathname);
+      window.history.replaceState(null, '', window.location.pathname);
     }
   };
 
@@ -115,35 +118,29 @@ export default function Settings() {
 
   const connectDiscord = async () => {
     setDiscordConnecting(true);
-    const { error } = await supabase.auth.linkIdentity({
-      provider: 'discord',
-      options: {
-        redirectTo: window.location.origin + '/ustawienia',
-        scopes: 'identify guilds guilds.join',
-      },
-    });
-    if (error) {
-      setDiscordConnecting(false);
-      flash('Błąd: ' + error.message, 'error');
-    }
-    // jeśli brak błędu — przekierowanie do Discorda nastąpi automatycznie
+    const clientId = '1522979675784216679';
+    const redirectUri = encodeURIComponent(window.location.origin + '/ustawienia');
+    const url = `https://discord.com/oauth2/authorize?client_id=${clientId}&response_type=token&redirect_uri=${redirectUri}&scope=identify`;
+    window.location.href = url;
   };
 
   const unlinkDiscord = async () => {
     if (!window.confirm('Odłączyć konto Discord?')) return;
     try {
-      const { data: identitiesData, error: identitiesErr } = await supabase.auth.getUserIdentities();
-      if (identitiesErr) throw identitiesErr;
-      const discordIdentity = identitiesData.identities.find(id => id.provider === 'discord');
-      console.log('[unlink] all identities:', JSON.stringify(identitiesData.identities, null, 2));
-      if (!discordIdentity) throw new Error('Nie znaleziono połączenia Discord.');
-      console.log('[unlink] discord identity:', JSON.stringify(discordIdentity, null, 2));
-      console.log('[unlink] identity_id:', discordIdentity.identity_id);
-      const { error: unlinkError } = await supabase.auth.unlinkIdentity(discordIdentity);
-      if (unlinkError) throw unlinkError;
+      const { data: identitiesData } = await supabase.auth.getUserIdentities();
+      const discordIdentity = identitiesData?.identities?.find(id => id.provider === 'discord');
+      
+      if (discordIdentity) {
+        await supabase.auth.unlinkIdentity(discordIdentity);
+      }
+      
       await supabase.auth.updateUser({ data: { discord_profile: null } });
       setDiscordProfile(null);
-      setUser(prev => ({ ...prev, identities: prev.identities?.filter(id => id.provider !== 'discord') }));
+      setUser(prev => ({ 
+        ...prev, 
+        identities: prev.identities?.filter(id => id.provider !== 'discord'),
+        user_metadata: { ...prev.user_metadata, discord_profile: null }
+      }));
       flash('Konto Discord zostało odłączone.', 'success');
     } catch (e) {
       flash('Błąd odłączania: ' + e.message, 'error');
