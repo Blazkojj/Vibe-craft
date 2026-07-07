@@ -19,8 +19,9 @@ if (!API_KEY) {
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'poczta2666244.home.pl',
-  port: parseInt(process.env.SMTP_PORT || '465', 10),
-  secure: parseInt(process.env.SMTP_PORT || '465', 10) === 465,
+  port: 587,
+  secure: false,
+  requireTLS: true,
   name: 'zenexcode.pl',
   auth: {
     user: process.env.SMTP_USER || 'support@zenexcode.pl',
@@ -54,7 +55,7 @@ app.get('/health', async (req, res) => {
 app.get('/test-send', async (req, res) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Zenexcode Test" <${process.env.SMTP_USER || 'support@zenexcode.pl'}>`,
+      from: process.env.SMTP_USER || 'support@zenexcode.pl',
       to: process.env.SMTP_USER || 'support@zenexcode.pl',
       subject: 'Test SMTP — Zenexcode mail-server',
       text: 'To jest testowa wiadomość z serwera mailowego Zenexcode.',
@@ -162,7 +163,7 @@ ${orderId ? `Nr zamówienia: ${orderId}` : ''}
 
   try {
     const info = await transporter.sendMail({
-      from: `"Zenexcode" <${process.env.SMTP_USER || 'support@zenexcode.pl'}>`,
+      from: process.env.SMTP_USER || 'support@zenexcode.pl',
       to: email,
       subject: `Potwierdzenie zakupu — pakiet ${planName} | Zenexcode`,
       text,
