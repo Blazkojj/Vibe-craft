@@ -571,7 +571,7 @@ export default function Dashboard() {
         }]);
       }
 
-      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/zenexcode używając nicku: ${nick}\n\nZa chwilę otworzy się strona Suppi. Po otrzymaniu wpłaty administrator aktywuje Twój pakiet. Potwierdzenie otrzymasz mailem.`);
+      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/zenexcode używając nicku: ${nick}\n\nZa chwilę otworzy się strona Suppi. System automatycznie wykryje Twoją wpłatę w czasie rzeczywistym i w ułamku sekundy aktywuje pakiet na koncie! Potwierdzenie otrzymasz mailem.`);
       setCheckoutItem(null);
       setSuppiNick('');
       window.open('https://suppi.pl/zenexcode', '_blank');
