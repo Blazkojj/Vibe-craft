@@ -135,6 +135,9 @@ export default function Landing() {
                 <Link to="/dashboard" className="claude-btn-primary">
                   Otwórz środowisko <ArrowRight size={14}/>
                 </Link>
+                <a href="https://suppi.pl/zenexcode" target="_blank" rel="noopener noreferrer" className="claude-btn-secondary" style={{ background: 'linear-gradient(135deg, #FF6B00, #FF8C42)', color: '#fff', borderColor: 'transparent' }}>
+                  Kup na Suppi →
+                </a>
                 <a href="#cennik" className="claude-btn-secondary">Zobacz cennik</a>
               </div>
 
@@ -260,9 +263,14 @@ export default function Landing() {
           <div className="cta-content">
             <h2 className="cta-title">Gotowy, żeby stworzyć<br/>swój pierwszy plugin?</h2>
             <p className="cta-sub">Dołącz do tysięcy twórców. Zacznij za darmo — $10 kredytów na start.</p>
-            <Link to="/dashboard" className="cta-btn">
-              Zaczynaj <ArrowRight size={16}/>
-            </Link>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link to="/dashboard" className="cta-btn">
+                Zaczynaj <ArrowRight size={16}/>
+              </Link>
+              <a href="https://suppi.pl/zenexcode" target="_blank" rel="noopener noreferrer" className="cta-btn" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                Kup pakiet na Suppi →
+              </a>
+            </div>
           </div>
           <div className="cta-glow"/>
         </section>

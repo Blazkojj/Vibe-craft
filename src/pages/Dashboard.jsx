@@ -562,9 +562,10 @@ export default function Dashboard() {
         }]);
       }
 
-      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/wsparcie/vibecraft używając nicku: ${nick}\n\nPo otrzymaniu wpłaty administrator aktywuje Twój pakiet. Potwierdzenie otrzymasz mailem.`);
+      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/zenexcode używając nicku: ${nick}\n\nZa chwilę otworzy się strona Suppi. Po otrzymaniu wpłaty administrator aktywuje Twój pakiet. Potwierdzenie otrzymasz mailem.`);
       setCheckoutItem(null);
       setSuppiNick('');
+      window.open('https://suppi.pl/zenexcode', '_blank');
     } catch (e) {
       console.error(e);
       alert('Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
@@ -955,7 +956,7 @@ export default function Dashboard() {
                 <span style={{ background: '#EF4444', color: '#fff', fontSize: '0.72rem', fontWeight: '700', padding: '0.15rem 0.5rem', borderRadius: '999px', fontFamily: 'var(--mono)' }}>{pendingOrders.length}</span>
               )}
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Sprawdź wpłatę na <a href="https://suppi.pl/wsparcie/vibecraft" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Suppi</a> używając nicku wpisanego przez klienta, a następnie kliknij "Potwierdź i wyślij email".</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Sprawdź wpłatę na <a href="https://suppi.pl/zenexcode" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Suppi</a> używając nicku wpisanego przez klienta, a następnie kliknij "Potwierdź i wyślij email".</p>
 
             {pendingOrders.length === 0 ? (
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -984,7 +985,7 @@ export default function Dashboard() {
                           <td style={{ padding: '1rem', fontFamily: 'var(--mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{o.orderId}</td>
                           <td style={{ padding: '1rem', fontWeight: '600', color: 'var(--text)' }}>{o.email}</td>
                           <td style={{ padding: '1rem' }}>
-                            <a href={`https://suppi.pl/wsparcie/vibecraft`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: '700', textDecoration: 'none' }}>{o.suppiNick}</a>
+                            <a href={`https://suppi.pl/zenexcode`} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: '700', textDecoration: 'none' }}>{o.suppiNick}</a>
                           </td>
                           <td style={{ padding: '1rem' }}><span style={{ background: 'rgba(255,102,64,0.1)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '700' }}>{o.planName}</span></td>
                           <td style={{ padding: '1rem', fontFamily: 'var(--mono)', fontWeight: '700', color: 'var(--text)' }}>{o.price} zł</td>
