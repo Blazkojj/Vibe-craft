@@ -119,8 +119,7 @@ export default function Dashboard() {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [confirmingOrderId, setConfirmingOrderId] = useState(null);
 
-  const MAIL_SERVER_URL = import.meta.env.VITE_MAIL_SERVER_URL || '/api';
-  const MAIL_API_KEY = import.meta.env.VITE_MAIL_API_KEY || '';
+  const MAIL_SERVER_URL = '/api/send-mail';
 
   const fetchAdminUsers = async () => {
     setAdminLoading(true);
@@ -162,8 +161,8 @@ export default function Dashboard() {
   };
 
   const handleConfirmOrder = async (order) => {
-    if (!MAIL_SERVER_URL || !MAIL_API_KEY) {
-      alert('Brak konfiguracji VITE_MAIL_SERVER_URL lub VITE_MAIL_API_KEY w .env.local — email nie zostanie wysłany. Pakiet zostanie aktywowany bez maila.');
+    if (!MAIL_SERVER_URL) {
+      alert('Brak konfiguracji mail server.');
     }
     setConfirmingOrderId(order.orderId);
     try {
@@ -207,15 +206,16 @@ export default function Dashboard() {
 
       let mailOk = false;
       let mailErr = '';
-      if (MAIL_SERVER_URL && MAIL_API_KEY) {
+      if (MAIL_SERVER_URL) {
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 30000);
-          const resp = await fetch(`${MAIL_SERVER_URL}/send-order-email`, {
+          const { data: { session: mailSession } } = await supabase.auth.getSession();
+          const resp = await fetch(MAIL_SERVER_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-key': MAIL_API_KEY,
+              'Authorization': `Bearer ${mailSession?.access_token || ''}`,
             },
             body: JSON.stringify({
               email: order.email,

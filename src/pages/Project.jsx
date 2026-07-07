@@ -36,10 +36,14 @@ const generateWithBackend = async (model, systemPrompt, userPrompt, history, upd
     abortControllerRef.current = new AbortController();
   const url = '/api/chat';
   
+  const { data: { session } } = await (await import('../supabase')).supabase.auth.getSession();
+  const jwt = session?.access_token || '';
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${jwt}`
     },
     signal: abortControllerRef.current.signal,
       body: JSON.stringify({
@@ -738,9 +742,10 @@ ${projectData.prompt}
       if (messages.length > 6 && !projectData.conversation_summary) {
         try {
           const summaryPrompt = "Jesteś asystentem AI. Streść w max 5 zdaniach poniższą rozmowę, zachowując kluczowe decyzje architektoniczne i nazwy zaimplementowanych funkcji:\n\n" + messages.map(m => `${m.sender}: ${m.text}`).join('\n\n');
+          const { data: { session: sumSession } } = await supabase.auth.getSession();
           const summaryRes = await fetch('/api/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sumSession?.access_token || ''}` },
             body: JSON.stringify({
               model: 'gemini-2.0-flash',
               systemPrompt: '',
@@ -1014,9 +1019,10 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
     
     try {
       setBuildStatus('Kompilowanie klas Javy...');
+      const { data: { session: buildSession } } = await supabase.auth.getSession();
       const response = await fetch('/api/compile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${buildSession?.access_token || ''}` },
         body: JSON.stringify(filesToBuild)
       });
 

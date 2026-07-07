@@ -76,12 +76,73 @@ function chatPlugin() {
           }
         });
       });
+
+      server.middlewares.use('/api/send-mail', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        const authHeader = req.headers['authorization'] || '';
+        const jwt = authHeader.replace('Bearer ', '').trim();
+        if (!jwt) {
+          res.statusCode = 401;
+          return res.end('Unauthorized');
+        }
+        const verifyRes = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+          headers: { 'Authorization': `Bearer ${jwt}`, 'apikey': process.env.VITE_SUPABASE_ANON_KEY }
+        });
+        if (!verifyRes.ok) {
+          res.statusCode = 401;
+          return res.end('Invalid session');
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString() });
+        req.on('end', async () => {
+          try {
+            const mailServerUrl = process.env.MAIL_SERVER_URL || 'http://127.0.0.1:3001';
+            const mailResp = await fetch(`${mailServerUrl}/send-order-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.MAIL_API_KEY || ''
+              },
+              body
+            });
+            const text = await mailResp.text();
+            res.statusCode = mailResp.status;
+            res.end(text);
+          } catch (e) {
+            res.statusCode = 500;
+            res.end(e.message);
+          }
+        });
+      });
+
       server.middlewares.use('/api/chat', async (req, res) => {
         if (req.method === 'POST') {
           let body = '';
           req.on('data', chunk => { body += chunk.toString() });
           req.on('end', async () => {
             try {
+              const authHeader = req.headers['authorization'] || '';
+              const supabaseJwt = authHeader.replace('Bearer ', '').trim();
+              if (!supabaseJwt) {
+                res.statusCode = 401;
+                return res.end(JSON.stringify({ error: 'Unauthorized' }));
+              }
+              const verifyRes = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+                headers: { 'Authorization': `Bearer ${supabaseJwt}`, 'apikey': process.env.VITE_SUPABASE_ANON_KEY }
+              });
+              if (!verifyRes.ok) {
+                res.statusCode = 401;
+                return res.end(JSON.stringify({ error: 'Invalid session' }));
+              }
+              const verifiedUser = await verifyRes.json();
+              if (!verifiedUser?.id) {
+                res.statusCode = 401;
+                return res.end(JSON.stringify({ error: 'Invalid user' }));
+              }
+
               const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
@@ -98,11 +159,11 @@ function chatPlugin() {
 
                 if (isTrueClaude) {
                   url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
-                  if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = 'sk-f0d2a44153c70c1b33c972e2912b961e93db62db43cbb709f30ea2f633c440b9'; }
-                  if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = 'sk-a0f84134c115efb020ffcef5deae07328b726cc93b2d085dfc71479f0418bb91'; }
-                  if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = 'sk-fdd379c52685e84359a76380c1512707a0c7e3ee9c69d65b1a031b5a3814e79b'; }
-                  if (model === 'claude-haiku-4-5-20251001') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = 'sk-98b017735d702535bc9c3a15f481cfd581c1fec630edff6b52120fdc2ce0c0cf'; }
-                  if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = 'sk-d50fbe6f318d7d302f053d650d5cb25f425f9125f9df5466dd64484dcb0cb228'; }
+                  if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_8; }
+                  if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_7; }
+                  if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_4_6; }
+                  if (model === 'claude-haiku-4-5-20251001') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = process.env.AIAPIFLOW_KEY_HAIKU_4_5; }
+                  if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_5; }
                 }
 
                 if (!apiKey) throw new Error("Brak odpowiedniego klucza API w .env");
@@ -246,13 +307,38 @@ function compilePlugin() {
   return {
     name: 'compile-plugin',
     configureServer(server) {
-      server.middlewares.use('/api/compile', (req, res) => {
+      server.middlewares.use('/api/compile', async (req, res) => {
         if (req.method === 'POST') {
+          const authHeader = req.headers['authorization'] || '';
+          const supabaseJwt = authHeader.replace('Bearer ', '').trim();
+          if (!supabaseJwt) {
+            res.statusCode = 401;
+            return res.end('Unauthorized');
+          }
+          const verifyRes = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+            headers: { 'Authorization': `Bearer ${supabaseJwt}`, 'apikey': process.env.VITE_SUPABASE_ANON_KEY }
+          });
+          if (!verifyRes.ok) {
+            res.statusCode = 401;
+            return res.end('Invalid session');
+          }
           let body = '';
           req.on('data', chunk => { body += chunk.toString() });
           req.on('end', () => {
             try {
               const files = JSON.parse(body);
+
+              const DANGEROUS_PLUGINS = ['exec-maven-plugin', 'maven-antrun-plugin', 'groovy-maven-plugin', 'maven-invoker-plugin'];
+              const pomFile = files.find(f => f.path.endsWith('pom.xml'));
+              if (pomFile) {
+                for (const danger of DANGEROUS_PLUGINS) {
+                  if (pomFile.content.includes(danger)) {
+                    res.statusCode = 400;
+                    return res.end(`Niebezpieczny plugin Maven: ${danger}`);
+                  }
+                }
+              }
+
               const buildDir = path.join(process.cwd(), '.vibe-build');
               
               if (fs.existsSync(buildDir)) {
