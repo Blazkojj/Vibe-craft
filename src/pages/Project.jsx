@@ -189,10 +189,7 @@ const CodeBlock = ({ lang, className, children, ...props }) => {
     <div className="msg-code-block">
       <div className="msg-code-header">
         <span className="msg-code-lang">{lang}</span>
-        <button className="msg-code-copy" onClick={copy} title="Kopiuj kod">
-          {copied ? <Check size={12}/> : <Copy size={12}/>}
-          <span>{copied ? 'Skopiowano' : 'Kopiuj'}</span>
-        </button>
+
       </div>
       <code className={className} {...props}>{children}</code>
     </div>
@@ -216,9 +213,7 @@ const FileBlock = ({ fb }) => {
         <span className="cf-item-action">{fb.isEdit ? 'Edytuje' : 'Utworzono'}</span>
         <span className="cf-item-path" title={fb.path}>{fb.path}</span>
         <span className="cf-item-ext">.{ext}</span>
-        <span className="cf-item-copy" onClick={copy} title="Kopiuj zawartość">
-          {copied ? <Check size={11}/> : <Copy size={11}/>}
-        </span>
+
       </button>
       {open && (
         <pre className="cf-item-code"><code>{fb.code}</code></pre>
