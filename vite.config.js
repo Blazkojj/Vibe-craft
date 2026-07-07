@@ -352,7 +352,7 @@ function compilePlugin() {
           req.on('data', chunk => { body += chunk.toString() });
           req.on('end', () => {
             try {
-              const files = JSON.parse(body);
+              const files = JSON.parse(body).filter(f => !f.path.startsWith('.mvn') && !f.path.endsWith('maven.config') && !f.path.endsWith('settings.xml'));
 
               const DANGEROUS_PLUGINS = ['exec-maven-plugin', 'maven-antrun-plugin', 'groovy-maven-plugin', 'maven-invoker-plugin'];
               const pomFile = files.find(f => f.path.endsWith('pom.xml'));
