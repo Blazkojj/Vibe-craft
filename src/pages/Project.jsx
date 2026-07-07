@@ -831,7 +831,11 @@ Zanim wprowadzisz nową funkcjonalność, wykorzystaj swoją wiedzę o najpopula
    TUTAJ PEŁNY KOD PLIKU
    </file>
    NIGDY nie używaj zwykłych bloków markdown (np. \`\`\`java) do pisania kodu, bo zniszczy to nasz system! Zawsze używaj <file>. Generuj PEŁNY kod pliku, bez skracania.
-6. PROCES MYŚLOWY: Zanim cokolwiek wygenerujesz (kod lub tekst), absolutnie najpierw MUSISZ napisać swoje wewnętrzne przemyślenia otoczone tagami HTML. Musisz użyć ostrych nawiasów:
+6. ANTI-LAZINESS (KRYTYCZNE): 
+   - NIGDY nie używaj "..." jako ścieżki pliku (np. <file path="...">). ZAWSZE podawaj rzeczywistą ścieżkę.
+   - NIGDY nie skracaj zawartości pliku przy pomocy "..." ani komentarzy typu "// reszta kodu". Każdy generowany plik musi być W PEŁNI KOMPLETNY.
+   - Jeśli proszono o duży projekt, po prostu wygeneruj wszystkie najważniejsze pliki po kolei w osobnych tagach <file>.
+7. PROCES MYŚLOWY: Zanim cokolwiek wygenerujesz (kod lub tekst), absolutnie najpierw MUSISZ napisać swoje wewnętrzne przemyślenia otoczone tagami HTML. Musisz użyć ostrych nawiasów:
 <think>
 (MAKS 3-5 ZDAŃ — bądź zwięzły, przejdź od razu do rzeczy)
 </think>
