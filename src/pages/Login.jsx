@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Terminal, Lock, Mail, User } from 'lucide-react';
+import { useLang } from '../LangContext';
 import './Login.css';
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || '';
@@ -16,6 +17,8 @@ function Login() {
   const [turnstileToken, setTurnstileToken] = useState('');
   const turnstileRef = useRef(null);
   const navigate = useNavigate();
+  const { lang, t } = useLang();
+  const L = t.login;
 
   useEffect(() => {
     if (!TURNSTILE_ENABLED) return;
@@ -52,24 +55,24 @@ function Login() {
     setError('');
 
     if (!email || !password) {
-      setError('Błąd: Wszystkie pola są wymagane.');
+      setError(lang === 'en' ? 'Error: All fields are required.' : 'Błąd: Wszystkie pola są wymagane.');
       return;
     }
 
     if (password.length < 6) {
-      setError('Błąd: Hasło musi mieć co najmniej 6 znaków.');
+      setError(lang === 'en' ? 'Error: Password must be at least 6 characters.' : 'Błąd: Hasło musi mieć co najmniej 6 znaków.');
       return;
     }
 
     if (TURNSTILE_ENABLED && !turnstileToken) {
-      setError('Błąd: Potwierdź, że nie jesteś robotem (Cloudflare Turnstile).');
+      setError(lang === 'en' ? 'Error: Please confirm you are not a robot.' : 'Błąd: Potwierdź, że nie jesteś robotem (Cloudflare Turnstile).');
       return;
     }
 
     try {
       if (isRegistering) {
         if (!username.trim()) {
-          setError('Błąd: Nick jest wymagany do rejestracji.');
+          setError(lang === 'en' ? 'Error: Username is required for registration.' : 'Błąd: Nick jest wymagany do rejestracji.');
           return;
         }
 
@@ -94,7 +97,7 @@ function Login() {
       
       navigate('/dashboard');
     } catch (err) {
-      setError(`Błąd API: ${err.message}`);
+      setError(`${lang === 'en' ? 'API Error' : 'Błąd API'}: ${err.message}`);
       if (TURNSTILE_ENABLED && window.turnstile && turnstileRef.current) {
         window.turnstile.reset(turnstileRef.current);
         setTurnstileToken('');
@@ -116,10 +119,10 @@ function Login() {
 
         <div className="login-body">
           <h2 className="login-title">
-            {isRegistering ? 'UTWÓRZ KONTO //' : 'ZALOGUJ SIĘ //'}
+            {isRegistering ? (lang === 'en' ? 'CREATE ACCOUNT //' : 'UTWÓRZ KONTO //') : (lang === 'en' ? 'LOG IN //' : 'ZALOGUJ SIĘ //')}
           </h2>
           <p className="login-subtitle">
-            Dostęp do środowiska kompilacji wymaga autoryzacji.
+            {lang === 'en' ? 'Access to the compilation environment requires authorisation.' : 'Dostęp do środowiska kompilacji wymaga autoryzacji.'}
           </p>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -131,12 +134,12 @@ function Login() {
 
             {isRegistering && (
               <div className="form-group">
-                <label>NICK:</label>
+                <label>{lang === 'en' ? 'USERNAME:' : 'NICK:'}</label>
                 <div className="input-wrapper">
                   <User size={14} className="input-icon" />
                   <input
                     type="text"
-                    placeholder="Twój nick (np. Blazkoj)"
+                    placeholder={lang === 'en' ? 'Your username (e.g. Blazkoj)' : 'Twój nick (np. Blazkoj)'}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="login-input"
@@ -146,12 +149,12 @@ function Login() {
             )}
 
             <div className="form-group">
-              <label>EMAIL:</label>
+              <label>{lang === 'en' ? 'EMAIL:' : 'EMAIL:'}</label>
               <div className="input-wrapper">
                 <Mail size={14} className="input-icon" />
                 <input
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={L.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="login-input"
@@ -160,12 +163,12 @@ function Login() {
             </div>
 
             <div className="form-group">
-              <label>HASŁO:</label>
+              <label>{lang === 'en' ? 'PASSWORD:' : 'HASŁO:'}</label>
               <div className="input-wrapper">
                 <Lock size={14} className="input-icon" />
                 <input
                   type="password"
-                  placeholder="******"
+                  placeholder={L.passPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="login-input"
@@ -180,15 +183,15 @@ function Login() {
             )}
 
             <button type="submit" className="login-btn-submit" disabled={TURNSTILE_ENABLED && !turnstileToken}>
-              {isRegistering ? 'ZAREJESTRUJ ↗' : 'ZALOGUJ ↗'}
+              {isRegistering ? (lang === 'en' ? 'REGISTER ↗' : 'ZAREJESTRUJ ↗') : (lang === 'en' ? 'LOG IN ↗' : 'ZALOGUJ ↗')}
             </button>
           </form>
 
           <div className="login-footer-toggle">
             {isRegistering ? (
-              <span>Masz już konto? <button onClick={() => setIsRegistering(false)} className="toggle-mode-btn">Zaloguj się</button></span>
+              <span>{lang === 'en' ? 'Already have an account?' : 'Masz już konto?'} <button onClick={() => setIsRegistering(false)} className="toggle-mode-btn">{lang === 'en' ? 'Log in' : 'Zaloguj się'}</button></span>
             ) : (
-              <span>Nie masz konta? <button onClick={() => setIsRegistering(true)} className="toggle-mode-btn">Zarejestruj się</button></span>
+              <span>{lang === 'en' ? "Don't have an account?" : 'Nie masz konta?'} <button onClick={() => setIsRegistering(true)} className="toggle-mode-btn">{lang === 'en' ? 'Sign up' : 'Zarejestruj się'}</button></span>
             )}
           </div>
         </div>

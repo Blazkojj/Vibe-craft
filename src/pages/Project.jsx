@@ -1015,15 +1015,21 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
 
     const filesToBuild = Object.keys(filesMap).map(path => ({ path, content: filesMap[path] }));
     
+    const isMinecraftProject = ['paper', 'spigot', 'bukkit', 'fabric', 'forge'].includes(
+      (projectData?.engine || '').toLowerCase()
+    ) || filesToBuild.some(f => f.path.endsWith('pom.xml') || f.path.endsWith('plugin.yml'));
+
     if (filesToBuild.length === 0) {
-      alert("Najpierw poproś AI o wygenerowanie kodu (musi powstać kod Javy i plik pom.xml)!");
+      alert(isMinecraftProject
+        ? 'Najpierw poproś AI o wygenerowanie kodu (musi powstać kod Javy i plik pom.xml)!'
+        : 'Najpierw poproś AI o wygenerowanie kodu projektu!');
       setIsBuilding(false);
       setBuildStatus('');
       return;
     }
 
-    if (!filesToBuild.find(f => f.path.endsWith('pom.xml'))) {
-       alert("Brakuje pliku pom.xml! Poproś AI o wygenerowanie struktury Maven przed zbudowaniem pliku .jar.");
+    if (isMinecraftProject && !filesToBuild.find(f => f.path.endsWith('pom.xml'))) {
+       alert('Brakuje pliku pom.xml! Poproś AI o wygenerowanie struktury Maven przed zbudowaniem pliku .jar.');
        setIsBuilding(false);
        setBuildStatus('');
        return;
