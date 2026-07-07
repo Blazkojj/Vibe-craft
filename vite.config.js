@@ -145,22 +145,27 @@ function chatPlugin() {
 
               const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
               if (SUPA_SERVICE) {
-                const profileKey = `__user_profile:${verifiedUser.email}__`;
-                const profileRes = await fetch(
-                  `${process.env.VITE_SUPABASE_URL}/rest/v1/projects?title=eq.${encodeURIComponent(profileKey)}&select=messages`,
-                  { headers: { 'apikey': SUPA_SERVICE, 'Authorization': `Bearer ${SUPA_SERVICE}` } }
-                );
-                if (profileRes.ok) {
-                  const profiles = await profileRes.json();
-                  if (profiles && profiles.length > 0) {
-                    const pData = profiles[0].messages || {};
-                    const plan = pData.plan || 'Free';
-                    const balance = parseFloat(pData.balance || '0');
-                    if (plan !== 'Free' && balance <= 0) {
-                      res.statusCode = 402;
-                      return res.end(JSON.stringify({ error: 'Insufficient balance' }));
-                    }
-                  }
+                const { systemPrompt: sp, userPrompt: up, model: m } = JSON.parse(body);
+                const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
+                let estimatedCost = 0.01;
+                if (m?.includes('opus')) estimatedCost = 0.05;
+                else if (m?.includes('sonnet-5')) estimatedCost = 0.02;
+                else if (m?.includes('haiku')) estimatedCost = 0.005;
+                else if (m?.includes('glm')) estimatedCost = 0.002;
+
+                const rpcRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/deduct_balance`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPA_SERVICE,
+                    'Authorization': `Bearer ${SUPA_SERVICE}`
+                  },
+                  body: JSON.stringify({ user_email: verifiedUser.email, amount: estimatedCost })
+                });
+                const rpcResult = await rpcRes.json();
+                if (!rpcRes.ok || rpcResult?.success === false) {
+                  res.statusCode = 402;
+                  return res.end(JSON.stringify({ error: rpcResult?.error || 'Insufficient balance' }));
                 }
               }
 
