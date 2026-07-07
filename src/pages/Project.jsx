@@ -663,6 +663,11 @@ ${projectData.prompt}
         setStreamingMessageId(null);
         deductTokenCost(systemPrompt, userPrompt, fullText);
       } catch (error) {
+        fetch('/api/log-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: 'generateInitial', message: error.message, name: error.name, stack: error.stack })
+        }).catch(() => {});
         if (msgId) {
           // zachowaj częściową treść zamiast kasować wiadomość
           setMessages(prev => prev.map(m => {
@@ -677,7 +682,7 @@ ${projectData.prompt}
         if (error.message && error.message.includes('429')) {
            addMessage('System', `⚠️ **Limit zapytań API przekroczony!**\nOsiągnięto limit dla obecnego modelu. Poczekaj około minutę lub **zmień model na "Gemini 1.5 Flash"** w menu na dole czatu, który ma znacznie większe limity w darmowym planie.`);
         } else {
-           addMessage('System', `Błąd połączenia z modelem: ${error.message}`);
+           addMessage('System', `Błąd połączenia z modelem: ${error.message} (${error.name})\n\nStack:\n${error.stack}`);
         }
       } finally {
         isGeneratingRef.current = false;
@@ -931,6 +936,11 @@ ${userMsg}
       setStreamingMessageId(null);
       deductTokenCost(systemPrompt, userPrompt, fullText, formattedHistory);
     } catch(err) {
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context: 'handleSend', message: err.message, name: err.name, stack: err.stack })
+      }).catch(() => {});
       if (msgId) {
         // zachowaj częściową treść zamiast kasować wiadomość
         setMessages(prev => prev.map(m => {
@@ -945,7 +955,7 @@ ${userMsg}
       if (err.message && err.message.includes('429')) {
          addMessage('System', `⚠️ **Limit zapytań API przekroczony!**\nOsiągnięto limit dla obecnego modelu. Poczekaj około minutę lub **zmień model na "Gemini 1.5 Flash"** w menu na dole czatu, który ma znacznie większe limity w darmowym planie.`);
       } else {
-         addMessage('System', `Błąd: ${err.message}`);
+         addMessage('System', `Błąd: ${err.message} (${err.name})\n\nStack:\n${err.stack}`);
       }
     } finally {
       isGeneratingRef.current = false;

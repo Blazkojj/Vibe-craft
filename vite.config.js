@@ -237,6 +237,24 @@ function chatPlugin() {
         });
       });
 
+      server.middlewares.use('/api/log-error', (req, res) => {
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString() });
+          req.on('end', () => {
+            try {
+              const parsed = JSON.parse(body);
+              console.error('[CLIENT-SIDE ERROR LOGGED]:', parsed);
+            } catch (e) {
+              console.error('[CLIENT-SIDE ERROR RAW]:', body);
+            }
+            res.end('ok');
+          });
+        } else {
+          res.end('only post');
+        }
+      });
+
       server.middlewares.use('/api/chat', async (req, res) => {
         if (req.method === 'POST') {
           let body = '';
