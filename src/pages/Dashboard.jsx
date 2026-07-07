@@ -291,11 +291,24 @@ export default function Dashboard() {
     }
   };
 
+  const [refreshTick, setRefreshTick] = useState(0);
+
   useEffect(() => {
     if (activeView === 'admin') {
       fetchAdminUsers();
     }
-  }, [activeView]);
+  }, [activeView, refreshTick]);
+
+  useEffect(() => {
+    const sub = supabase.channel('dashboard_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        setRefreshTick(t => t + 1);
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(sub);
+    };
+  }, []);
 
   const handleUpdateUser = async (userRecordId, updatedFields) => {
     const userObj = adminUsers.find(u => u.recordId === userRecordId);
@@ -415,7 +428,7 @@ export default function Dashboard() {
       }
     };
     init();
-  }, []);
+  }, [refreshTick]);
 
   // odśwież usera (avatar/nick) gdy sesja się zmieni — np. po OAuth Discord
   useEffect(() => {
