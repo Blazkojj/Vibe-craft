@@ -1,6 +1,18 @@
-import { Client, GatewayIntentBits, EmbedBuilder, ActivityType } from 'discord.js';
+import { 
+  Client, 
+  GatewayIntentBits, 
+  EmbedBuilder, 
+  ActivityType, 
+  Partials,
+  ActionRowBuilder, 
+  ButtonBuilder, 
+  ButtonStyle, 
+  ChannelType, 
+  PermissionFlagsBits 
+} from 'discord.js';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
+import http from 'http';
 
 dotenv.config();
 
@@ -11,6 +23,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
   ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
 // Zmienne środowiskowe
@@ -20,7 +33,8 @@ const AI_API_URL = process.env.AI_API_URL || 'https://zenmux.ai/api/v1/chat/comp
 const AI_CHAT_CHANNEL_ID = process.env.AI_CHAT_CHANNEL_ID;
 const LOGS_CHANNEL_ID = process.env.LOGS_CHANNEL_ID;
 
-client.once('clientReady', () => {
+// Naprawiono event z 'clientReady' na 'ready'
+client.once('ready', () => {
   console.log(`[ZenexGuard] Pomyślnie zalogowano jako ${client.user.tag}`);
   
   client.user.setActivity('Zenexcode Platform', { type: ActivityType.Watching });
@@ -33,29 +47,25 @@ client.once('clientReady', () => {
   }
 });
 
-// Historia wiadomości do czatu AI (prosta implementacja w pamięci RAM)
+// Historia wiadomości do czatu AI
 const chatHistory = new Map();
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // Moduł: Chat z AI na kanale (każdy może używać)
+  // Moduł: Chat z AI na kanale
   if (message.channelId === AI_CHAT_CHANNEL_ID) {
-    // Pokazujemy że bot pisze
     await message.channel.sendTyping();
     const thinkingMsg = await message.reply('⏳ **Wysyłanie requesta do AI...**');
 
     try {
-      // Pobieranie historii (maksymalnie ostatnie 6 wiadomości dla kontekstu)
       if (!chatHistory.has(message.author.id)) {
         chatHistory.set(message.author.id, []);
       }
       
       const userHistory = chatHistory.get(message.author.id);
-      
       userHistory.push({ role: 'user', content: message.content });
 
-      // Ogranicz historię by nie zjadała za dużo tokenów
       if (userHistory.length > 6) userHistory.shift();
 
       const response = await fetch(AI_API_URL, {
@@ -65,7 +75,7 @@ client.on('messageCreate', async (message) => {
           'Authorization': `Bearer ${AI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'z-ai/glm-5.2', // WYMUSZAMY GLM 5.2 (ale udajemy Opusa)
+          model: 'z-ai/glm-5.2',
           messages: [
             { 
               role: 'system', 
@@ -82,10 +92,8 @@ client.on('messageCreate', async (message) => {
       const data = await response.json();
       const replyText = data.choices[0].message.content;
 
-      // Zapisujemy odp do historii
       userHistory.push({ role: 'assistant', content: replyText });
 
-      // Wysyłanie długich wiadomości
       if (replyText.length > 2000) {
         const chunks = replyText.match(/[\s\S]{1,1990}/g);
         await thinkingMsg.edit(chunks[0]);
@@ -95,28 +103,244 @@ client.on('messageCreate', async (message) => {
       } else {
         await thinkingMsg.edit(replyText);
       }
-
-
     } catch (error) {
       console.error('[Error AI]:', error);
       message.reply('❌ Przepraszam, moje obwody sztucznej inteligencji napotkały błąd połączenia. Spróbuj ponownie za chwilę.');
     }
   }
+
+  // Moduł: System Ticketów (setup)
+  if (message.content === '!ticket-setup') {
+    if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
+      return message.reply('❌ Tylko administrator może przygotować system ticketów.');
+    }
+    
+    const embed = new EmbedBuilder()
+      .setColor('#FF6B00')
+      .setTitle('🎫 Pomoc i Wsparcie | Support Tickets')
+      .setDescription(
+        'Potrzebujesz pomocy z zakupem, masz błędy w kodzie lub chcesz zgłosić problem?\n' +
+        'Kliknij poniższy przycisk, aby utworzyć prywatny kanał wsparcia.\n\n' +
+        'Need help with a purchase, have bugs in your code, or want to report an issue?\n' +
+        'Click the button below to create a private support ticket.'
+      )
+      .setFooter({ text: 'Zenexcode Support' });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('create_ticket')
+        .setLabel('🎫 Stwórz Ticket / Create Ticket')
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    await message.channel.send({ embeds: [embed], components: [row] });
+    try {
+      await message.delete();
+    } catch (err) {
+      console.warn('Nie udało się usunąć wiadomości setupu:', err.message);
+    }
+  }
 });
 
-// Własna funkcja - jak ktoś zasubskrybuje, możesz ją odpalać z innej części kodu
-export async function sendPurchaseLog(userDiscordId, planName) {
-  const purchaseChannelId = process.env.PURCHASE_CHANNEL_ID;
-  if (!purchaseChannelId) return;
+// Moduł: Interakcje z ticketami (przyciski)
+client.on('interactionCreate', async (interaction) => {
+  if (!interaction.isButton()) return;
 
+  if (interaction.customId === 'create_ticket') {
+    await interaction.deferReply({ ephemeral: true });
+    const guild = interaction.guild;
+    const user = interaction.user;
+
+    const channelName = `ticket-${user.username.toLowerCase()}`;
+    const existingChannel = guild.channels.cache.find(c => c.name === channelName);
+    if (existingChannel) {
+      return interaction.editReply(`❌ Masz już otwarty kanał wsparcia: <#${existingChannel.id}>`);
+    }
+
+    try {
+      let category = guild.channels.cache.find(c => c.name.toUpperCase() === 'TICKETS' && c.type === ChannelType.GuildCategory);
+      if (!category) {
+        category = guild.channels.cache.find(c => c.name.toUpperCase() === 'TICKETY' && c.type === ChannelType.GuildCategory);
+      }
+
+      const channel = await guild.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
+        parent: category ? category.id : null,
+        permissionOverwrites: [
+          {
+            id: guild.id,
+            deny: [PermissionFlagsBits.ViewChannel],
+          },
+          {
+            id: user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.AttachFiles,
+              PermissionFlagsBits.EmbedLinks
+            ],
+          },
+        ],
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor('#FF6B00')
+        .setTitle('🎫 Kanał Wsparcia | Support Ticket')
+        .setDescription(
+          `Witaj <@${user.id}>!\nOpisz tutaj swój problem najdokładniej jak potrafisz. Nasz zespół pomoże Ci najszybciej jak to możliwe.\n\n` +
+          `Welcome <@${user.id}>!\nPlease describe your issue in detail. Our support team will assist you shortly.`
+        )
+        .setFooter({ text: 'Zenexcode Support' });
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('close_ticket')
+          .setLabel('🔒 Zamknij / Close')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await channel.send({ content: `<@${user.id}>`, embeds: [embed], components: [row] });
+      await interaction.editReply(`✅ Utworzono kanał wsparcia: <#${channel.id}>`);
+    } catch (err) {
+      console.error('Błąd podczas tworzenia ticketa:', err);
+      await interaction.editReply('❌ Wystąpił błąd podczas tworzenia kanału wsparcia.');
+    }
+  }
+
+  if (interaction.customId === 'close_ticket') {
+    await interaction.reply('🔒 **Zamykanie ticketa za 5 sekund... / Closing ticket in 5 seconds...**');
+    setTimeout(async () => {
+      try {
+        await interaction.channel.delete();
+      } catch (err) {
+        console.error('Błąd usuwania kanału ticketa:', err);
+      }
+    }, 5000);
+  }
+});
+
+// Moduł: Przywitania na kanale 1522980018160926730 po angielsku
+client.on('guildMemberAdd', async (member) => {
+  const welcomeChannelId = '1522980018160926730';
   try {
-    const channel = client.channels.cache.get(purchaseChannelId);
+    const channel = member.guild.channels.cache.get(welcomeChannelId) || await member.guild.channels.fetch(welcomeChannelId);
+    if (channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF6B00')
+        .setTitle('👋 Welcome to Zenexcode!')
+        .setDescription(
+          `Hello <@${member.id}>, welcome to our community!\n\n` +
+          `🤖 **Zenexcode** is the ultimate AI Minecraft Plugin Generator.\n\n` +
+          `🌐 **Useful links:**\n` +
+          `• Website: [zenexcode.pl](https://zenexcode.pl)\n` +
+          `• Support: Click button in the ticket section for private help\n\n` +
+          `Feel free to speak in either **English** or **Polish**! Enjoy your stay! 🎉`
+        )
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+      
+      await channel.send({ content: `Welcome <@${member.id}>!`, embeds: [embed] });
+    }
+  } catch (err) {
+    console.error('Błąd wysyłania powitania:', err);
+  }
+});
+
+// Moduł: Logi serwerowe (naprawa i uruchomienie)
+client.on('messageDelete', async (message) => {
+  if (message.author?.bot) return;
+  if (!LOGS_CHANNEL_ID) return;
+  try {
+    const channel = client.channels.cache.get(LOGS_CHANNEL_ID) || await client.channels.fetch(LOGS_CHANNEL_ID);
+    if (channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('🗑️ Wiadomość usunięta')
+        .addFields(
+          { name: 'Autor', value: `${message.author?.tag || 'Nieznany'} (<@${message.author?.id || '?'}>)`, inline: true },
+          { name: 'Kanał', value: `<#${message.channelId}>`, inline: true },
+          { name: 'Treść', value: message.content || '*[Brak treści / załącznik]*' }
+        )
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.error('Błąd logowania usunięcia:', err);
+  }
+});
+
+client.on('messageUpdate', async (oldMessage, newMessage) => {
+  if (newMessage.author?.bot) return;
+  if (oldMessage.content === newMessage.content) return;
+  if (!LOGS_CHANNEL_ID) return;
+  try {
+    const channel = client.channels.cache.get(LOGS_CHANNEL_ID) || await client.channels.fetch(LOGS_CHANNEL_ID);
+    if (channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#FFFF00')
+        .setTitle('📝 Wiadomość edytowana')
+        .addFields(
+          { name: 'Autor', value: `${newMessage.author?.tag || 'Nieznany'} (<@${newMessage.author?.id || '?'}>)`, inline: true },
+          { name: 'Kanał', value: `<#${newMessage.channelId}>`, inline: true },
+          { name: 'Przed', value: oldMessage.content || '*[Pusta]*' },
+          { name: 'Po', value: newMessage.content || '*[Pusta]*' }
+        )
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.error('Błąd logowania edycji:', err);
+  }
+});
+
+client.on('guildMemberAdd', async (member) => {
+  if (!LOGS_CHANNEL_ID) return;
+  try {
+    const channel = client.channels.cache.get(LOGS_CHANNEL_ID) || await client.channels.fetch(LOGS_CHANNEL_ID);
+    if (channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#00FF00')
+        .setTitle('📥 Nowy użytkownik dołączył (Log)')
+        .setDescription(`${member.user.tag} (<@${member.id}>) dołączył do serwera.`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.error('Błąd logowania dołączenia:', err);
+  }
+});
+
+client.on('guildMemberRemove', async (member) => {
+  if (!LOGS_CHANNEL_ID) return;
+  try {
+    const channel = client.channels.cache.get(LOGS_CHANNEL_ID) || await client.channels.fetch(LOGS_CHANNEL_ID);
+    if (channel) {
+      const embed = new EmbedBuilder()
+        .setColor('#FF0000')
+        .setTitle('📤 Użytkownik opuścił serwer (Log)')
+        .setDescription(`${member.user.tag} (<@${member.id}>) opuścił serwer.`)
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
+    }
+  } catch (err) {
+    console.error('Błąd logowania wyjścia:', err);
+  }
+});
+
+// Moduł: Logowanie zakupów na kanale 1522994859621748827
+export async function sendPurchaseLog(userDiscordId, planName) {
+  const purchaseChannelId = '1522994859621748827';
+  try {
+    const channel = client.channels.cache.get(purchaseChannelId) || await client.channels.fetch(purchaseChannelId);
     if (!channel) return;
 
     const embed = new EmbedBuilder()
-      .setColor('#FF5500')
+      .setColor('#FF6B00')
       .setTitle('🎉 Nowy Klient Zenexcode!')
-      .setDescription(`<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!`)
+      .setDescription(userDiscordId ? `<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!` : `Użytkownik właśnie zakupił pakiet **${planName}**!`)
       .addFields(
         { name: 'Status', value: 'Aktywny', inline: true },
         { name: 'Dostęp', value: 'Odblokowany do panelu i ról', inline: true }
@@ -126,32 +350,59 @@ export async function sendPurchaseLog(userDiscordId, planName) {
 
     await channel.send({ embeds: [embed] });
 
-    // Nadawanie roli, jeśli zdefiniowano ID roli w env
-    const premiumRoleId = process.env.PREMIUM_ROLE_ID;
-    if (premiumRoleId) {
-      // Pobieranie usera (zakładamy, że bot i użytkownik dzielą jakiś główny serwer, więc weźmiemy pierwszy serwer z brzegu w którym jest użytkownik)
+    const premiumRoleId = process.env.PREMIUM_ROLE_ID || '1523690703509651456';
+    if (userDiscordId && premiumRoleId) {
       const guild = client.guilds.cache.first();
       if (guild) {
         try {
           const member = await guild.members.fetch(userDiscordId);
           if (member) {
             await member.roles.add(premiumRoleId);
-            
-            const logChannel = client.channels.cache.get(LOGS_CHANNEL_ID);
-            if (logChannel) {
-               logChannel.send(`✅ Nadano rolę Premium użytkownikowi <@${userDiscordId}>.`);
+            if (LOGS_CHANNEL_ID) {
+              const logChannel = client.channels.cache.get(LOGS_CHANNEL_ID);
+              if (logChannel) {
+                logChannel.send(`✅ Nadano rolę Premium użytkownikowi <@${userDiscordId}>.`);
+              }
             }
           }
         } catch(e) {
-          console.log("Nie można nadać roli, użytkownika nie ma na serwerze discord lub brak permisji:", e.message);
+          console.log("Nie można nadać roli, użytkownika nie ma na serwerze lub brak permisji:", e.message);
         }
       }
     }
-
   } catch (error) {
     console.error('Błąd podczas wysyłania powiadomienia o zakupie:', error);
   }
 }
+
+// Lokalny serwer HTTP na porcie 3002 pozwalający mail-serwerowi na wywoływanie akcji bota
+const server = http.createServer((req, res) => {
+  if (req.method === 'POST' && req.url === '/purchase') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const { userDiscordId, planName } = payload;
+        
+        await sendPurchaseLog(userDiscordId, planName);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+server.listen(3002, '127.0.0.1', () => {
+  console.log('[Bot HTTP] Serwer nasłuchuje na porcie 3002 (tylko localhost)');
+});
 
 if (!TOKEN || TOKEN === 'Twój_Token_Discord_Z_Portalu_Developera') {
   console.log('⚠️ Brak poprawnego tokenu Discord w pliku .env!');

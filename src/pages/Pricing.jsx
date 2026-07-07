@@ -78,6 +78,8 @@ function Pricing() {
         status: 'pending',
         createdAt,
         validUntil,
+        discordId: currentUser?.user_metadata?.discord_profile?.id || currentUser?.identities?.find(id => id.provider === 'discord')?.id || null,
+        discordTag: currentUser?.user_metadata?.discord_profile?.username || null
       };
 
       const profileKey = `__user_profile:${currentUser.email}__`;

@@ -28,6 +28,13 @@ echo "[*] Restart mail-server (jeśli zmiana)..."
 cd "$APP_DIR/mail-server"
 npm install --omit=dev 2>/dev/null || npm install
 pm2 restart zenex-mail || pm2 start "$APP_DIR/mail-server/index.js" --name zenex-mail
+
+echo "[*] Restart Discord bot (zenex-bot)..."
+cd "$APP_DIR/zenex-bot"
+npm install --omit=dev 2>/dev/null || npm install
+pm2 delete zenex-bot 2>/dev/null || true
+pm2 start "$APP_DIR/zenex-bot/index.js" --name zenex-bot
+
 pm2 save
 
 echo "[*] Reload Nginx..."

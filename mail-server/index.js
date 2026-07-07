@@ -2,6 +2,7 @@ import express from 'express';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import http from 'http';
 
 dotenv.config();
 
@@ -69,7 +70,7 @@ app.get('/test-send', async (req, res) => {
 
 app.post('/send-order-email', auth, async (req, res) => {
   const {
-    email, planName, price, creditsLabel, validUntil, nick, orderId
+    email, planName, price, creditsLabel, validUntil, nick, orderId, discordId, discordTag
   } = req.body || {};
 
   if (!email || !planName || !price) {
@@ -170,6 +171,35 @@ ${orderId ? `Nr zamówienia: ${orderId}` : ''}
       html,
     });
     console.log(`[MAIL] Wysłano do ${email} (msgid=${info.messageId})`);
+
+    // Notify Discord Bot locally (port 3002)
+    const botPayload = JSON.stringify({
+      userDiscordId: discordId,
+      planName: planName,
+    });
+
+    const options = {
+      hostname: '127.0.0.1',
+      port: 3002,
+      path: '/purchase',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(botPayload)
+      }
+    };
+
+    const botReq = http.request(options, (botRes) => {
+      console.log(`[BOT-NOTIFY] Bot response status: ${botRes.statusCode}`);
+    });
+
+    botReq.on('error', (e) => {
+      console.error(`[BOT-NOTIFY] Error notifying bot: ${e.message}`);
+    });
+
+    botReq.write(botPayload);
+    botReq.end();
+
     res.json({ ok: true, messageId: info.messageId });
   } catch (err) {
     console.error('[MAIL] Błąd wysyłki:', err);

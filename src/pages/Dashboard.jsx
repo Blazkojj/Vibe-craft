@@ -225,6 +225,8 @@ export default function Dashboard() {
               validUntil: validUntilPL,
               nick: order.suppiNick,
               orderId: order.orderId,
+              discordId: order.discordId || null,
+              discordTag: order.discordTag || null,
             }),
             signal: controller.signal,
           });
@@ -535,6 +537,8 @@ export default function Dashboard() {
         status: 'pending',
         createdAt,
         validUntil,
+        discordId: currentUser?.user_metadata?.discord_profile?.id || currentUser?.identities?.find(id => id.provider === 'discord')?.id || null,
+        discordTag: currentUser?.user_metadata?.discord_profile?.username || null
       };
 
       const profileKey = `__user_profile:${currentUser.email}__`;
