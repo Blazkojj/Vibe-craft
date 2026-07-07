@@ -1,54 +1,76 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { supabase } from '../supabase';
+import { useLang } from '../LangContext';
 import './Pricing.css';
 
-const tiers = [
+const PLN_TO_USD = 0.25;
+
+const tiersData = [
   {
     name: 'Basic',
-    price: '30',
+    pricePLN: 30,
     credits: '$200',
-    features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Szybki czas odpowiedzi'],
+    featuresPL: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Szybki czas odpowiedzi'],
+    featuresEN: ['Resets 1st of month at 02:00', 'API access', 'Fast response time'],
   },
   {
     name: 'Pro',
-    price: '50',
+    pricePLN: 50,
     credits: '$320',
-    badge: '⭐ Popularne',
+    badgePL: '⭐ Popularne',
+    badgeEN: '⭐ Popular',
     isPopular: true,
-    features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Priorytetowe wsparcie', 'Zwiększony limit RPM'],
+    featuresPL: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Priorytetowe wsparcie', 'Zwiększony limit RPM'],
+    featuresEN: ['Resets 1st of month at 02:00', 'API access', 'Priority support', 'Increased RPM limit'],
   },
   {
     name: 'Elite',
-    price: '100',
+    pricePLN: 100,
     credits: '$600',
-    badge: '★ Najlepsza wartość',
-    features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Dostęp do modeli Alpha', 'Wsparcie na Discordzie'],
+    badgePL: '★ Najlepsza wartość',
+    badgeEN: '★ Best value',
+    featuresPL: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Dostęp do modeli Alpha', 'Wsparcie na Discordzie'],
+    featuresEN: ['Resets 1st of month at 02:00', 'API access', 'Alpha model access', 'Discord support'],
   },
   {
     name: 'Ultimate',
-    price: '150',
+    pricePLN: 150,
     credits: '$900',
-    features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Dedykowany serwer', 'Brak limitu RPM'],
+    featuresPL: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Dedykowany serwer', 'Brak limitu RPM'],
+    featuresEN: ['Resets 1st of month at 02:00', 'API access', 'Dedicated server', 'No RPM limit'],
   },
   {
     name: 'Unlimited+',
-    price: '250',
-    credits: '∞ tokenów',
-    badge: '∞ Unlimited+',
-    features: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Fair Use Unlimited', 'Najwyższy priorytet SLA'],
-  }
+    pricePLN: 250,
+    credits: '∞ tokens',
+    badgePL: '∞ Unlimited+',
+    badgeEN: '∞ Unlimited+',
+    featuresPL: ['Reset 1. dnia mies. o 02:00', 'Dostęp do API', 'Fair Use Unlimited', 'Najwyższy priorytet SLA'],
+    featuresEN: ['Resets 1st of month at 02:00', 'API access', 'Fair Use Unlimited', 'Highest SLA priority'],
+  },
 ];
 
 function Pricing() {
+  const { lang } = useLang();
+  const isEN = lang === 'en';
+
   const [selectedTier, setSelectedTier] = useState(null);
   const [email, setEmail] = useState('');
   const [suppiNick, setSuppiNick] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const formatPrice = (pricePLN) => {
+    if (isEN) return `$${Math.round(pricePLN * PLN_TO_USD)}`;
+    return `${pricePLN}`;
+  };
+
+  const currency = isEN ? '' : 'PLN';
+  const period = isEN ? '/mo.' : '/mies.';
+
   const handleCheckout = async () => {
     if (!email || !suppiNick) {
-      alert("Proszę wypełnić wszystkie pola!");
+      alert(isEN ? 'Please fill in all fields!' : 'Proszę wypełnić wszystkie pola!');
       return;
     }
 
@@ -58,7 +80,9 @@ function Pricing() {
 
       const hasDiscord = currentUser?.identities?.some(id => id.provider === 'discord') || !!currentUser?.user_metadata?.discord_profile;
       if (!hasDiscord) {
-        alert('Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
+        alert(isEN
+          ? 'To make a purchase, please connect your Discord account in Settings!'
+          : 'Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
         return;
       }
 
@@ -67,19 +91,18 @@ function Pricing() {
       const validUntilDate = new Date(now);
       validUntilDate.setMonth(validUntilDate.getMonth() + 1);
       const validUntil = validUntilDate.toISOString().split('T')[0];
-      const createdAt = now.toISOString();
 
       const newOrder = {
         orderId,
         planName: selectedTier.name,
-        price: selectedTier.price,
+        price: selectedTier.pricePLN,
         creditsLabel: selectedTier.credits,
         suppiNick: suppiNick.trim(),
         status: 'pending',
-        createdAt,
+        createdAt: now.toISOString(),
         validUntil,
         discordId: currentUser?.user_metadata?.discord_profile?.id || currentUser?.identities?.find(id => id.provider === 'discord')?.id || null,
-        discordTag: currentUser?.user_metadata?.discord_profile?.username || null
+        discordTag: currentUser?.user_metadata?.discord_profile?.username || null,
       };
 
       const profileKey = `__user_profile:${currentUser.email}__`;
@@ -91,13 +114,9 @@ function Pricing() {
       if (profs && profs.length > 0) {
         const record = profs[0];
         const pData = record.messages || {};
-        const updatedProfile = {
-          ...pData,
-          pending_orders: [...(pData.pending_orders || []), newOrder],
-        };
         await supabase
           .from('projects')
-          .update({ messages: updatedProfile })
+          .update({ messages: { ...pData, pending_orders: [...(pData.pending_orders || []), newOrder] } })
           .eq('id', record.id);
       } else {
         await supabase.from('projects').insert([{
@@ -107,14 +126,21 @@ function Pricing() {
         }]);
       }
 
-      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${selectedTier.price} zł na https://suppi.pl/zenexcode używając nicku: ${suppiNick}\n\nZa chwilę otworzy się strona Suppi. System automatycznie wykryje Twoją wpłatę w czasie rzeczywistym i w ułamku sekundy aktywuje pakiet na koncie! Potwierdzenie otrzymasz mailem.`);
+      const priceDisplay = isEN
+        ? `$${Math.round(selectedTier.pricePLN * PLN_TO_USD)}`
+        : `${selectedTier.pricePLN} zł`;
+
+      alert(isEN
+        ? `Order placed! ID: ${orderId}\n\nPay ${priceDisplay} on https://suppi.pl/zenexcode using nick: ${suppiNick}\n\nSuppi will open now. The system will detect your payment in real time and activate the plan instantly!`
+        : `Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${selectedTier.pricePLN} zł na https://suppi.pl/zenexcode używając nicku: ${suppiNick}\n\nZa chwilę otworzy się strona Suppi. System automatycznie wykryje Twoją wpłatę w czasie rzeczywistym i w ułamku sekundy aktywuje pakiet na koncie!`);
+
       window.open('https://suppi.pl/zenexcode', '_blank');
       setSelectedTier(null);
       setSuppiNick('');
       setEmail('');
     } catch (e) {
       console.error(e);
-      alert('Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
+      alert(isEN ? 'An unexpected error occurred while placing the order.' : 'Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
     } finally {
       setSubmitting(false);
     }
@@ -123,46 +149,59 @@ function Pricing() {
   return (
     <div className="claude-pricing-container">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text)' }}>Wybierz plan</h2>
-        <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>Uwaga: To NIE jest subskrypcja. Kupujesz jednorazowy pakiet ważny przez 1 miesiąc.</p>
+        <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text)' }}>
+          {isEN ? 'Choose a plan' : 'Wybierz plan'}
+        </h2>
+        <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>
+          {isEN
+            ? 'Note: This is NOT a subscription. You buy a one-time package valid for 1 month.'
+            : 'Uwaga: To NIE jest subskrypcja. Kupujesz jednorazowy pakiet ważny przez 1 miesiąc.'}
+        </p>
+        {isEN && (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.35rem' }}>
+            Prices shown in USD (approx.). Payment is processed in PLN via Suppi.
+          </p>
+        )}
       </div>
+
       <div className="claude-pricing-grid">
-        {tiers.map((tier, index) => (
-          <div key={index} className={`claude-pricing-card ${tier.isPopular ? 'popular' : ''}`}>
-            {tier.badge && (
-              <div className="claude-badge">
-                {tier.badge}
+        {tiersData.map((tier, index) => {
+          const badge = isEN ? tier.badgeEN : tier.badgePL;
+          const features = isEN ? tier.featuresEN : tier.featuresPL;
+          return (
+            <div key={index} className={`claude-pricing-card ${tier.isPopular ? 'popular' : ''}`}>
+              {badge && <div className="claude-badge">{badge}</div>}
+
+              <h3 className="claude-tier-name">{tier.name}</h3>
+
+              <div className="claude-tier-price">
+                {formatPrice(tier.pricePLN)}{' '}
+                {currency && <span className="currency">{currency}</span>}
+                <span className="period">{period}</span>
               </div>
-            )}
 
-            <h3 className="claude-tier-name">{tier.name}</h3>
-            
-            <div className="claude-tier-price">
-              {tier.price} <span className="currency">PLN</span><span className="period">/mies.</span>
+              <div className="claude-tier-credits">
+                <span className="claude-credits-val">{tier.credits}</span>
+                <span className="claude-credits-label">
+                  {isEN ? 'for code generation' : 'na generowanie kodu'}
+                </span>
+              </div>
+
+              <ul className="claude-feature-list">
+                {features.map((feature, fIndex) => (
+                  <li key={fIndex} className="claude-feature-item">
+                    <Check size={18} className="claude-feature-icon" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button className="claude-pricing-btn" onClick={() => setSelectedTier(tier)}>
+                {isEN ? 'Choose plan' : 'Wybierz plan'}
+              </button>
             </div>
-
-            <div className="claude-tier-credits">
-              <span className="claude-credits-val">{tier.credits}</span>
-              <span className="claude-credits-label">na generowanie kodu</span>
-            </div>
-
-            <ul className="claude-feature-list">
-              {tier.features.map((feature, fIndex) => (
-                <li key={fIndex} className="claude-feature-item">
-                  <Check size={18} className="claude-feature-icon" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button 
-              className="claude-pricing-btn"
-              onClick={() => setSelectedTier(tier)}
-            >
-              Wybierz plan
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {selectedTier && (
@@ -171,31 +210,39 @@ function Pricing() {
             <button className="claude-modal-close" onClick={() => setSelectedTier(null)}>
               <X size={24} />
             </button>
-            
-            <h2 className="claude-modal-title">Subskrypcja: {selectedTier.name}</h2>
-            
-            <input 
-              type="email" 
-              placeholder="Twój adres E-mail"
+
+            <h2 className="claude-modal-title">
+              {isEN ? 'Subscribe:' : 'Subskrypcja:'} {selectedTier.name}
+            </h2>
+
+            <input
+              type="email"
+              placeholder={isEN ? 'Your e-mail address' : 'Twój adres E-mail'}
               className="claude-modal-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            
-            <input 
-              type="text" 
-              placeholder="Twój nick na suppi (do weryfikacji)"
+
+            <input
+              type="text"
+              placeholder={isEN ? 'Your Suppi nickname (for verification)' : 'Twój nick na suppi (do weryfikacji)'}
               className="claude-modal-input"
               value={suppiNick}
               onChange={(e) => setSuppiNick(e.target.value)}
             />
 
             <div className="claude-modal-warning" style={{ backgroundColor: 'rgba(224, 122, 95, 0.08)', border: '1px solid var(--accent)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
-              <strong>⚠️ Ważne!</strong> Podaj tutaj <u>dokładnie taki sam Nick oraz E-mail</u>, jakiego użyjesz przy płatności na portalu Suppi! Tylko na tej podstawie przypiszemy pakiet do Twojego konta.
+              {isEN
+                ? <><strong>⚠️ Important!</strong> Enter the <u>exact same nickname and e-mail</u> you will use when paying on Suppi. That is how we link the plan to your account.</>
+                : <><strong>⚠️ Ważne!</strong> Podaj tutaj <u>dokładnie taki sam Nick oraz E-mail</u>, jakiego użyjesz przy płatności na portalu Suppi! Tylko na tej podstawie przypiszemy pakiet do Twojego konta.</>}
             </div>
-            
+
             <button className="claude-checkout-btn" onClick={handleCheckout} disabled={submitting}>
-              {submitting ? 'Przetwarzanie...' : `Przejdź do płatności (${selectedTier.price} PLN)`}
+              {submitting
+                ? (isEN ? 'Processing...' : 'Przetwarzanie...')
+                : isEN
+                  ? `Proceed to payment ($${Math.round(selectedTier.pricePLN * PLN_TO_USD)})`
+                  : `Przejdź do płatności (${selectedTier.pricePLN} PLN)`}
             </button>
           </div>
         </div>
