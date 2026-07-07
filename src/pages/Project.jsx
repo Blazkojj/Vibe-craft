@@ -618,11 +618,11 @@ ${projectData.prompt}
              abortControllerRef
            );
            
-           const glmPrompt = systemPrompt + `\n\n[TRYB HYBRYDOWY]: Zignoruj tag <think>. Przejdź od razu do kodu na podstawie tego planu:\n${thoughtText}`;
+           const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania.`;
            const glmText = await generateWithBackend(
              'z-ai/glm-5.2',
-             glmPrompt,
-             userPrompt,
+             glmSystemPrompt,
+             `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${thoughtText}`,
              [],
              (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
              abortControllerRef
@@ -719,13 +719,13 @@ ${projectData.prompt}
         for (const [path, content] of Object.entries(currentFiles)) {
           // Token optimization: minify code by stripping comments and excess blank lines
           let minifiedContent = content
-            .replace(/\/\/.*$/gm, '')
+            .replace(/^[ \t]*\/\/.*$/gm, '')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/^\s+/gm, ' ')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
-          if (minifiedContent.length > 4000) {
-            minifiedContent = minifiedContent.substring(0, 4000) + '\n... [obcięto]';
+          if (minifiedContent.length > 6000) {
+            minifiedContent = minifiedContent.substring(0, 6000) + '\n... [obcięto]';
           }
           filesContext += `\n--- PLIK: ${path} ---\n${minifiedContent}\n`;
         }
@@ -875,11 +875,11 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmPrompt = systemPrompt + `\n\n[TRYB HYBRYDOWY]: Zignoruj tag <think>. Przejdź od razu do kodu na podstawie tego planu:\n${thoughtText}`;
+         const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania.`;
          const glmText = await generateWithBackend(
            'z-ai/glm-5.2',
-           glmPrompt,
-           userPrompt,
+           glmSystemPrompt,
+           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${thoughtText}`,
            formattedHistory,
            (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
            abortControllerRef

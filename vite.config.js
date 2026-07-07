@@ -388,33 +388,7 @@ function compilePlugin() {
                 return res.end('Brak pliku pom.xml! Poproś AI o wygenerowanie struktury Maven.');
               }
 
-              const settingsXml = `<settings>
-  <mirrors>
-    <mirror>
-      <id>central-only</id>
-      <mirrorOf>*</mirrorOf>
-      <url>https://repo.maven.apache.org/maven2</url>
-    </mirror>
-  </mirrors>
-  <profiles>
-    <profile>
-      <id>no-external-repos</id>
-      <activation><activeByDefault>true</activeByDefault></activation>
-      <repositories>
-        <repository>
-          <id>central</id>
-          <url>https://repo.maven.apache.org/maven2</url>
-          <releases><enabled>true</enabled></releases>
-          <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-      </repositories>
-    </profile>
-  </profiles>
-</settings>`;
-              const settingsPath = path.join(buildDir, 'mvn-settings.xml');
-              fs.writeFileSync(settingsPath, settingsXml);
-
-              exec(`mvn clean package -s ${settingsPath}`, { cwd: buildDir }, (error, stdout, stderr) => {
+              exec('mvn clean package', { cwd: buildDir }, (error, stdout, stderr) => {
                 if (error) {
                   res.statusCode = 500;
                   return res.end(`Błąd kompilacji Mavena:\n${stdout}\n${stderr}`);
