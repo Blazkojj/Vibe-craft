@@ -363,25 +363,22 @@ function Project() {
 
       const modelId = (projectData?.model || 'z-ai/glm-5.2').toLowerCase();
       
-      // Rates in USD per single token ($3/1M is 0.000003, $15/1M is 0.000015)
+      // Real AI API token costs (USD)
       let inputRate = 0.000003; 
       let outputRate = 0.000015;
       
-      if (modelId.includes('opus-4.7') || modelId.includes('opus-4-7')) {
-        inputRate = 0.000005;
-        outputRate = 0.000025;
-      } else if (modelId.includes('opus-4.8') || modelId.includes('opus-4-8')) {
-        inputRate = 0.000005;
-        outputRate = 0.000025;
-      } else if (modelId.includes('sonnet-4.6') || modelId.includes('sonnet-4-6')) {
+      if (modelId.includes('opus-4.7') || modelId.includes('opus-4-7') || modelId.includes('opus-4.8') || modelId.includes('opus-4-8')) {
+        // Opus: $15 / $75 per 1M
         inputRate = 0.000015;
         outputRate = 0.000075;
-      } else if (modelId.includes('sonnet-5') || modelId.includes('sonnet-5.0')) {
-        inputRate = 0.000002;
-        outputRate = 0.000010;
+      } else if (modelId.includes('sonnet-4.6') || modelId.includes('sonnet-4-6') || modelId.includes('sonnet-5') || modelId.includes('sonnet-5.0')) {
+        // Sonnet: $3 / $15 per 1M
+        inputRate = 0.000003;
+        outputRate = 0.000015;
       } else if (modelId.includes('haiku')) {
-        inputRate = 0.000001;
-        outputRate = 0.000005;
+        // Haiku: $0.25 / $1.25 per 1M
+        inputRate = 0.00000025;
+        outputRate = 0.00000125;
       } else if (modelId.includes('glm')) {
         inputRate = 0.000001;
         outputRate = 0.000003;
@@ -389,6 +386,15 @@ function Project() {
       
       let finalInputRate = inputRate;
       let finalOutputRate = outputRate;
+
+      // 1.4x profit margin for Claude, 2x for GLM
+      if (modelId.includes('claude') || modelId.includes('opus') || modelId.includes('sonnet') || modelId.includes('haiku')) {
+        finalInputRate *= 1.4;
+        finalOutputRate *= 1.4;
+      } else if (modelId.includes('glm')) {
+        finalInputRate *= 2.0;
+        finalOutputRate *= 2.0;
+      }
 
       const cachedCost = (cachedInputTokens * finalInputRate) + (normalOutputTokens * finalOutputRate);
       let normalCost = (normalInputTokens * finalInputRate) + (normalOutputTokens * finalOutputRate);
