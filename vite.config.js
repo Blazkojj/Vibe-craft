@@ -47,6 +47,99 @@ function chatPlugin() {
         return proc;
       }
 
+      server.middlewares.use('/api/enhance-prompt', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString() });
+        req.on('end', async () => {
+          try {
+            const authHeader = req.headers['authorization'] || '';
+            const supabaseJwt = authHeader.replace('Bearer ', '').trim();
+            if (!supabaseJwt) {
+              res.statusCode = 401;
+              return res.end(JSON.stringify({ error: 'Unauthorized' }));
+            }
+            const verifyRes = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+              headers: { 'Authorization': `Bearer ${supabaseJwt}`, 'apikey': process.env.VITE_SUPABASE_ANON_KEY }
+            });
+            if (!verifyRes.ok) {
+              res.statusCode = 401;
+              return res.end(JSON.stringify({ error: 'Invalid session' }));
+            }
+            const verifiedUser = await verifyRes.json();
+            if (!verifiedUser?.email) throw new Error("Invalid user");
+
+            const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
+            if (SUPA_SERVICE) {
+              const rpcRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/deduct_balance`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': SUPA_SERVICE,
+                  'Authorization': `Bearer ${SUPA_SERVICE}`
+                },
+                body: JSON.stringify({ user_email: verifiedUser.email, amount: 0.01 })
+              });
+              const rpcResult = await rpcRes.json();
+              if (!rpcRes.ok || rpcResult?.success === false) {
+                res.statusCode = 402;
+                return res.end(JSON.stringify({ error: rpcResult?.error || 'Insufficient balance' }));
+              }
+            }
+
+            const { prompt } = JSON.parse(body);
+            if (!prompt) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Prompt is required' }));
+            }
+            const apiKey = process.env.AIAPIFLOW_KEY_SONNET_4_6;
+            if (!apiKey) throw new Error("Missing API key");
+            
+            const WORKER_URL = process.env.CF_WORKER_URL || '';
+            const url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
+            
+            const systemPrompt = "Jesteś ekspertem inżynierii promptów. Twój cel: zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj wzmianki o dobrych praktykach (np. podział kodu, piękny UI). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.";
+            
+            const reqHeaders = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'User-Agent': 'Mozilla/5.0'
+            };
+            
+            const requestBody = JSON.stringify({
+              model: 'claude-sonnet-4-6',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: `Zamień ten pomysł na profesjonalny prompt (zwróć tylko prompt!):\n\n${prompt}` }
+              ],
+              stream: false,
+              max_tokens: 4096
+            });
+            
+            const apiRes = await fetch(url, {
+              method: 'POST',
+              headers: reqHeaders,
+              body: requestBody
+            });
+            
+            const data = await apiRes.json();
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ enhanced: data.choices[0].message.content }));
+            } else {
+              throw new Error(data.error?.message || "Invalid response from API");
+            }
+          } catch (e) {
+            console.error('Enhance prompt error:', e);
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      });
+
       server.middlewares.use('/api/verify-turnstile', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
@@ -144,14 +237,14 @@ function chatPlugin() {
               }
 
               const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
-              if (SUPA_SERVICE) {
-                const { systemPrompt: sp, userPrompt: up, model: m } = JSON.parse(body);
-                const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
+              const { systemPrompt: sp, userPrompt: up, model: m } = JSON.parse(body);
+              const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
+              
+              if (SUPA_SERVICE && isPaidModel) {
                 let estimatedCost = 0.01;
                 if (m?.includes('opus')) estimatedCost = 0.05;
                 else if (m?.includes('sonnet-5')) estimatedCost = 0.02;
                 else if (m?.includes('haiku')) estimatedCost = 0.005;
-                else if (m?.includes('glm')) estimatedCost = 0.002;
 
                 const rpcRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/deduct_balance`, {
                   method: 'POST',

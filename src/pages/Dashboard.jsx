@@ -18,7 +18,8 @@ import {
   LogOut,
   ArrowRight,
   Wallet,
-  X
+  X,
+  Wand2
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import './Dashboard.css';
@@ -104,6 +105,7 @@ export default function Dashboard() {
   const [activeUsersCount, setActiveUsersCount] = useState(0);
   const [usedCredits, setUsedCredits] = useState('0.00');
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const [projects, setProjects] = useState([]);
   const [user, setUser] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
@@ -497,7 +499,36 @@ export default function Dashboard() {
     navigate(`/project/${data[0].id}`);
   };
 
-  const handleDelete = async (id, e) => {
+  const handleEnhancePrompt = async () => {
+    if (!prompt.trim()) {
+      alert('Wpisz chociaż kilka słów pomysłu, abym wiedział co ulepszyć!');
+      return;
+    }
+    setIsEnhancing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`
+        },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      if (data.enhanced) {
+        setPrompt(data.enhanced);
+      } else {
+        alert('Błąd ulepszania: ' + (data.error || 'Nieznany błąd'));
+      }
+    } catch (e) {
+      alert('Błąd połączenia: ' + e.message);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleDeleteProject = async (id, e) => {
     e.stopPropagation();
     if (!window.confirm('Usunąć projekt bezpowrotnie?')) return;
     const { error } = await supabase.from('projects').delete().eq('id', id);
@@ -843,14 +874,27 @@ export default function Dashboard() {
 
                 </div>
 
-                <button
-                  className="dash-generate-btn"
-                  onClick={handleGenerate}
-                  disabled={!prompt.trim()}
-                >
-                  <span>Generuj</span>
-                  <Send size={12} />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="dash-selector-btn"
+                    onClick={handleEnhancePrompt}
+                    disabled={isEnhancing || !prompt.trim()}
+                    style={{ background: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
+                    title="Automatycznie ulepsz prompt używając AI (Claude Sonnet 4.6)"
+                  >
+                    <Wand2 size={12} className={isEnhancing ? "animate-pulse" : ""} />
+                    <span>{isEnhancing ? 'Magia działa...' : 'Ulepsz prompt'}</span>
+                  </button>
+
+                  <button
+                    className="dash-generate-btn"
+                    onClick={handleGenerate}
+                    disabled={!prompt.trim() || isEnhancing}
+                  >
+                    <span>Generuj</span>
+                    <Send size={12} />
+                  </button>
+                </div>
               </div>
             </div>
 
