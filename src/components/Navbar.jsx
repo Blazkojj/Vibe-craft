@@ -20,6 +20,21 @@ function Navbar() {
     navigate('/');
   };
 
+  const handleFreeStart = async () => {
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const hasDiscord = user?.identities?.some(id => id.provider === 'discord') || !!user?.user_metadata?.discord_profile;
+    if (!hasDiscord) {
+      alert('Aby korzystać z darmowego planu, musisz podpiąć Discorda!');
+      navigate('/ustawienia');
+      return;
+    }
+    window.location.href = 'https://free.zenexcode.pl/dashboard';
+  };
+
   if (location.pathname.startsWith('/dashboard') || location.pathname.startsWith('/project')) {
     return null;
   }
@@ -48,8 +63,9 @@ function Navbar() {
               Wyloguj <LogOut size={13} />
             </button>
           ) : (
-            <Link to="/login" className="btn-start">Start →</Link>
+            <Link to="/login" className="btn-start" style={{ background: '#1c1c1c', border: '1px solid #333' }}>Logowanie</Link>
           )}
+          <button onClick={handleFreeStart} className="btn-start">Zacznij za darmo →</button>
         </div>
       </div>
     </nav>

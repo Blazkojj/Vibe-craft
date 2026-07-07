@@ -8,7 +8,8 @@ import {
   ButtonBuilder, 
   ButtonStyle, 
   ChannelType, 
-  PermissionFlagsBits 
+  PermissionFlagsBits,
+  AttachmentBuilder
 } from 'discord.js';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
@@ -56,7 +57,21 @@ client.on('messageCreate', async (message) => {
   // Moduł: Chat z AI na kanale
   if (message.channelId === AI_CHAT_CHANNEL_ID) {
     await message.channel.sendTyping();
-    const thinkingMsg = await message.reply('⏳ **Wysyłanie requesta do AI...**');
+    const thinkingMsg = await message.reply('⏳ **Analyzing request...**');
+    
+    const animationSteps = [
+      '⏳ **Fetching context...**',
+      '⏳ **Generating response...**'
+    ];
+    let step = 0;
+    const animInterval = setInterval(() => {
+      if (step < animationSteps.length) {
+        thinkingMsg.edit(animationSteps[step]).catch(() => {});
+        step++;
+      } else {
+        clearInterval(animInterval);
+      }
+    }, 1500);
 
     try {
       if (!chatHistory.has(message.author.id)) {
@@ -79,7 +94,7 @@ client.on('messageCreate', async (message) => {
           messages: [
             { 
               role: 'system', 
-              content: 'Jesteś oficjalnym asystentem AI platformy Zenexcode o nazwie ZenexGuard. Pomagasz użytkownikom na serwerze Discord. Odpowiadaj profesjonalnie i precyzyjnie. KRYTYCZNE: 1. Nazywasz się Claude Opus 4.8. 2. ODPOWIADASZ NA: Pytania o Zenexcode, Minecraft (pluginy, komendy) oraz OGÓLNE PYTANIA PROGRAMISTYCZNE. 3. TWORZENIE PROMPTÓW: Jeśli użytkownik prosi o napisanie "promptu" do stworzenia pluginu, MUSISZ zachować TEN DOKŁADNY FORMAT:\n\nOto gotowy prompt do wklejenia w Zenexcode:\n\n---\n\nStwórz plugin Minecraft na wersję [WERSJA]...\n[TUTAJ WYPISZ KRÓTKO WSZYSTKIE WYMAGANIA W PUNKTACH]\n\n---\n\nWklej to do agenta, upewnij się że masz otwarty szablon pluginu i gotowe! 🎮\n\nNIGDY nie używaj tagów kodu (```) wokół promptu. Pisz zwięźle i krótko.'
+              content: 'Jesteś oficjalnym asystentem AI platformy Zenexcode o nazwie ZenexGuard. Pomagasz użytkownikom na serwerze Discord. Odpowiadaj profesjonalnie i precyzyjnie (w języku, w którym pisze użytkownik). KRYTYCZNE: 1. Nazywasz się Claude Opus 4.8. 2. ODPOWIADASZ NA: Pytania o Zenexcode, Minecraft (pluginy, komendy) oraz OGÓLNE PYTANIA PROGRAMISTYCZNE. 3. TWORZENIE PROMPTÓW: Jeśli użytkownik prosi o napisanie "promptu" do stworzenia pluginu, MUSISZ zachować TEN DOKŁADNY FORMAT:\n\nOto gotowy prompt do wklejenia w Zenexcode:\n\n---\n\nStwórz plugin Minecraft na wersję [WERSJA]...\n[TUTAJ WYPISZ KRÓTKO WSZYSTKIE WYMAGANIA W PUNKTACH]\n\n---\n\nWklej to do agenta, upewnij się że masz otwarty szablon pluginu i gotowe! 🎮\n\nNIGDY nie używaj tagów kodu (```) wokół promptu. Pisz zwięźle i krótko.'
             },
             ...userHistory
           ],
@@ -94,18 +109,19 @@ client.on('messageCreate', async (message) => {
 
       userHistory.push({ role: 'assistant', content: replyText });
 
+      clearInterval(animInterval);
+
       if (replyText.length > 2000) {
-        const chunks = replyText.match(/[\s\S]{1,1990}/g);
-        await thinkingMsg.edit(chunks[0]);
-        for (let i = 1; i < chunks.length; i++) {
-          await message.reply(chunks[i]);
-        }
+        const buffer = Buffer.from(replyText, 'utf-8');
+        const attachment = new AttachmentBuilder(buffer, { name: 'ai-response.txt' });
+        await thinkingMsg.edit({ content: '📝 **The response is too long, sending as a text file:**', files: [attachment] });
       } else {
         await thinkingMsg.edit(replyText);
       }
     } catch (error) {
+      clearInterval(animInterval);
       console.error('[Error AI]:', error);
-      message.reply('❌ Przepraszam, moje obwody sztucznej inteligencji napotkały błąd połączenia. Spróbuj ponownie za chwilę.');
+      thinkingMsg.edit('❌ Sorry, my AI circuits encountered a connection error. Please try again in a moment.').catch(() => {});
     }
   }
 
@@ -330,20 +346,24 @@ client.on('guildMemberRemove', async (member) => {
   }
 });
 
-// Moduł: Logowanie zakupów na kanale 1522994859621748827
-export async function sendPurchaseLog(userDiscordId, planName) {
-  const purchaseChannelId = '1522994859621748827';
+// Moduł: Logowanie zakupów na kanale 1523689991979663541
+export async function sendPurchaseLog(userDiscordId, planName, payload = {}) {
+  const purchaseChannelId = '1523689991979663541';
   try {
     const channel = client.channels.cache.get(purchaseChannelId) || await client.channels.fetch(purchaseChannelId);
     if (!channel) return;
 
     const embed = new EmbedBuilder()
       .setColor('#FF6B00')
-      .setTitle('🎉 Nowy Klient Zenexcode!')
+      .setTitle('🛒 Nowe zamówienie w Zenexcode!')
       .setDescription(userDiscordId ? `<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!` : `Użytkownik właśnie zakupił pakiet **${planName}**!`)
       .addFields(
-        { name: 'Status', value: 'Aktywny', inline: true },
-        { name: 'Dostęp', value: 'Odblokowany do panelu i ról', inline: true }
+        { name: 'Pakiet', value: planName || 'Nieznany', inline: true },
+        { name: 'Kwota', value: payload.price ? `${payload.price} PLN` : 'Brak danych', inline: true },
+        { name: 'Email', value: payload.email || 'Brak', inline: true },
+        { name: 'Discord Tag', value: payload.discordTag || 'Brak', inline: true },
+        { name: 'IP Kupującego', value: payload.clientIp || 'Brak (lokalne)', inline: true },
+        { name: 'ID Zamówienia', value: payload.orderId || 'Brak', inline: true }
       )
       .setFooter({ text: 'Dziękujemy za zaufanie! ~ Zespół Zenexcode' })
       .setTimestamp();
@@ -385,7 +405,7 @@ const server = http.createServer((req, res) => {
         const payload = JSON.parse(body);
         const { userDiscordId, planName } = payload;
         
-        await sendPurchaseLog(userDiscordId, planName);
+        await sendPurchaseLog(userDiscordId, planName, payload);
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));

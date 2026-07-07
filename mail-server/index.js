@@ -173,9 +173,15 @@ ${orderId ? `Nr zamówienia: ${orderId}` : ''}
     console.log(`[MAIL] Wysłano do ${email} (msgid=${info.messageId})`);
 
     // Notify Discord Bot locally (port 3002)
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const botPayload = JSON.stringify({
       userDiscordId: discordId,
       planName: planName,
+      price: price,
+      clientIp: clientIp,
+      discordTag: discordTag,
+      email: email,
+      orderId: orderId
     });
 
     const options = {

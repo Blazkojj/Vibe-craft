@@ -460,7 +460,9 @@ function Project() {
 
   const checkDailyLimit = async () => {
     if (!userProfile) return true;
-    if (userProfile.plan !== 'Free' && userProfile.plan) return true;
+    if (window.location.hostname !== 'free.zenexcode.pl') {
+      if (userProfile.plan !== 'Free' && userProfile.plan) return true;
+    }
     
     let newProfile = { ...userProfile };
     const today = new Date().toDateString();
@@ -589,7 +591,14 @@ ${projectData.prompt}
         let modelToUse = projectData.model;
         let isHybrid = userProfile?.hybrid_mode;
 
-        if (userProfile?.plan === 'Free' || !userProfile?.plan) {
+        if (window.location.hostname === 'free.zenexcode.pl') {
+           if (projectData.model !== 'claude-sonnet-4-6' && projectData.model !== 'z-ai/glm-5.2') {
+             modelToUse = 'claude-sonnet-4-6';
+           }
+           if (modelToUse.includes('claude')) {
+             isHybrid = true;
+           }
+        } else if (userProfile?.plan === 'Free' || !userProfile?.plan) {
            modelToUse = 'claude-sonnet-4-6';
            isHybrid = true;
         }
@@ -1304,7 +1313,9 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
               <div key={msg.id} className={`chat-msg ${msg.sender === 'You' ? 'user' : 'ai'}${grouped ? ' grouped' : ''}`}>
                 <div className="chat-msg-avatar">
                   {msg.sender === 'You'
-                    ? <span className="avatar-you">TY</span>
+                    ? (currentUser?.user_metadata?.discord_profile?.avatar 
+                        ? <img src={currentUser.user_metadata.discord_profile.avatar} alt="Ty" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                        : <span className="avatar-you">TY</span>)
                     : <span className={`avatar-ai ${projectData.model?.startsWith('claude') ? 'claude' : 'glm'}`}>
                         <ModelIcon modelId={projectData.model} size={12}/>
                       </span>
@@ -1369,11 +1380,6 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
             </div>
             <div className="chat-input-hint" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>MC {projectData.version} · {projectData.engine} · Enter = wyślij, Shift+Enter = nowa linia</span>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', color: showThinkingGlobal ? 'var(--accent)' : 'var(--text-muted)' }}>
-                <input type="checkbox" checked={showThinkingGlobal} onChange={e => setShowThinkingGlobal(e.target.checked)} style={{ display: 'none' }} />
-                <Sparkles size={12} />
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>Pokaż myślenie AI</span>
-              </label>
             </div>
           </div>
         </div>

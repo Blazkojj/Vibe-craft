@@ -455,7 +455,12 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate('/login'); return; }
 
-    if (planName === 'Free' && projects.length >= 2) {
+    if (window.location.hostname === 'free.zenexcode.pl') {
+      if (projects.length >= 3) {
+        alert('Osiągnąłeś limit 3 projektów na darmowej subdomenie! Usuń stary projekt, aby kontynuować.');
+        return;
+      }
+    } else if (planName === 'Free' && projects.length >= 2) {
       alert('W darmowym planie możesz mieć maksymalnie 2 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
       return;
     }
