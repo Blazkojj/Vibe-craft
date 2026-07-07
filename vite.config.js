@@ -57,10 +57,13 @@ function chatPlugin() {
               if (isZenmux) {
                 let apiKey = process.env.ZENMUX_API_KEY;
                 let backendModel = 'z-ai/glm-5.2';
+                // Worker proxy (omija Cloudflare bot-detection JA3)
+                const WORKER_URL = process.env.CF_WORKER_URL || '';
                 let url = 'https://zenmux.ai/api/v1/chat/completions';
+                if (WORKER_URL) url = WORKER_URL + '/zenmux/api/v1/chat/completions';
 
                 if (isTrueClaude) {
-                  url = 'https://aiapiflow.com/v1/chat/completions';
+                  url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
                   if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = 'sk-f0d2a44153c70c1b33c972e2912b961e93db62db43cbb709f30ea2f633c440b9'; }
                   if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = 'sk-a0f84134c115efb020ffcef5deae07328b726cc93b2d085dfc71479f0418bb91'; }
                   if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = 'sk-fdd379c52685e84359a76380c1512707a0c7e3ee9c69d65b1a031b5a3814e79b'; }

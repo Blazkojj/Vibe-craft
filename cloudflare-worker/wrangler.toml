@@ -1,0 +1,5 @@
+name = "zenexcode-ai-proxy"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# Brak dodatkowych ustawień — Worker jest publiczny, autoryzacja przez API key w nagłówku
