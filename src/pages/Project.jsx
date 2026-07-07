@@ -828,7 +828,7 @@ Zanim wprowadzisz nową funkcjonalność, wykorzystaj swoją wiedzę o najpopula
 # CORE RULES FOR OUTPUT GENERATION:
 1. ZABRONIONE UŻYWANIE NARZĘDZI (KRYTYCZNE): Pod żadnym pozorem nie generuj tagów <tool_use> ani nie próbuj wywoływać zewnętrznych funkcji/skryptów. Masz wczytany cały kontekst projektu i NIE MASZ dostępu do żadnych narzędzi. Odpowiadaj bezpośrednio.
 2. ZROZUMIENIE INTENCJI UŻYTKOWNIKA (KRYTYCZNE): Jeśli użytkownik zadał tylko zwykłe pytanie (np. "jak to działa?"), ODPOWIEDZ TYLKO TEKSTEM bez kodu.
-3. DOKŁADNY OPIS JEST WYMAGANY: Zawsze krótko opisuj co robisz ZANIM zaczniesz generować pliki.
+3. DOKŁADNY OPIS JEST WYMAGANY: Zawsze precyzyjnie opisuj w języku polskim, co dokładnie robisz, jak to działa i jakie komendy dodałeś, ZANIM zaczniesz generować pliki. Wyjaśnij mechanikę.
 4. NO FULL REWRITES: Zmieniaj tylko pliki, które wymagają edycji.
 5. FORMAT PLIKÓW (ABSOLUTNIE KRYTYCZNE): 
    KAŻDY generowany plik kodu (nawet HTML, JS, CSS, Java, cokolwiek) MUSI być zwrócony w tagu XML.
@@ -837,10 +837,11 @@ Zanim wprowadzisz nową funkcjonalność, wykorzystaj swoją wiedzę o najpopula
    TUTAJ PEŁNY KOD PLIKU
    </file>
    NIGDY nie używaj zwykłych bloków markdown (np. \`\`\`java) do pisania kodu, bo zniszczy to nasz system! Zawsze używaj <file>. Generuj PEŁNY kod pliku, bez skracania.
+   Dla pluginów Minecraft: ZAWSZE pamiętaj o wygenerowaniu pliku pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName> oraz pliku plugin.yml.
 6. ANTI-LAZINESS (KRYTYCZNE): 
-   - NIGDY nie używaj "..." jako ścieżki pliku (np. <file path="...">). ZAWSZE podawaj rzeczywistą ścieżkę.
+   - KATEGORYCZNY ZAKAZ używania znaków "..." (wielokropek) jako ścieżki pliku (np. <file path="...">). ZAWSZE, bez wyjątku, podawaj dokładną, rzeczywistą ścieżkę (np. src/App.tsx). Jeśli użyjesz "...", zniszczysz środowisko produkcyjne!
    - NIGDY nie skracaj zawartości pliku przy pomocy "..." ani komentarzy typu "// reszta kodu". Każdy generowany plik musi być W PEŁNI KOMPLETNY.
-   - Jeśli proszono o duży projekt, po prostu wygeneruj wszystkie najważniejsze pliki po kolei w osobnych tagach <file>.
+   - Jeśli proszono o duży projekt, NIE RÓB SKRÓTÓW. Wygeneruj wszystkie najważniejsze pliki po kolei w osobnych tagach <file>.
 7. PROCES MYŚLOWY: Zanim cokolwiek wygenerujesz (kod lub tekst), absolutnie najpierw MUSISZ napisać swoje wewnętrzne przemyślenia otoczone tagami HTML. Musisz użyć ostrych nawiasów:
 <think>
 (MAKS 3-5 ZDAŃ — bądź zwięzły, przejdź od razu do rzeczy)
@@ -891,7 +892,7 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. Nie używaj "..." jako ścieżki pliku. Dostosuj się do języka/technologii wskazanej w planie (Java, React, itp).`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName> oraz opisuj przed wygenerowaniem jak to działa. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
          const glmText = await generateWithBackend(
            'z-ai/glm-5.2',
            glmSystemPrompt,
@@ -1075,6 +1076,11 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
     if (cleanedText) {
       cleanedText = cleanedText.replace(/<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g, (match, path, code) => {
         if (path) {
+          // Skip placeholder paths like "..." that AI generates when being lazy
+          const isPlaceholder = path === '...' || path === '…' || /^\.{2,}$/.test(path) || path.length < 3;
+          if (isPlaceholder) {
+            return '⚠️ AI wygenerowało pusty plik — wpisz "kontynuuj" lub powtórz prośbę, żeby AI dokończyło kod.';
+          }
           let isEdit = false;
           if (msgIndex > 0) {
             for (let i = 0; i < msgIndex; i++) {
