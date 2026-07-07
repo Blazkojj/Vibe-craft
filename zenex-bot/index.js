@@ -387,18 +387,29 @@ export async function sendPurchaseLog(userDiscordId, planName, payload = {}) {
       await publicChannel.send({ embeds: [publicEmbed] });
     }
 
-    const premiumRoleId = process.env.PREMIUM_ROLE_ID || '1523690703509651456';
-    if (userDiscordId && premiumRoleId) {
+    // Mapowanie pakietów na ID ról
+    const roleMapping = {
+      'Basic': '1523690703509651456',
+      'Pro': '1524008102335352844',
+      'Elite': '1524008091488616498',
+      'Ultimate': '1524008073197518908',
+      'Unlimited+': '1524008084391989308'
+    };
+    
+    // Dodajemy główną rolę "Premium" (jeśli trzeba) oraz specyficzną dla pakietu
+    const planRole = roleMapping[planName];
+
+    if (userDiscordId && planRole) {
       const guild = client.guilds.cache.first();
       if (guild) {
         try {
           const member = await guild.members.fetch(userDiscordId);
           if (member) {
-            await member.roles.add(premiumRoleId);
+            await member.roles.add(planRole);
             if (LOGS_CHANNEL_ID) {
               const logChannel = client.channels.cache.get(LOGS_CHANNEL_ID);
               if (logChannel) {
-                logChannel.send(`✅ Nadano rolę Premium użytkownikowi <@${userDiscordId}>.`);
+                logChannel.send(`✅ Nadano rolę **${planName}** użytkownikowi <@${userDiscordId}>.`);
               }
             }
           }
