@@ -22,6 +22,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { useLang } from '../LangContext';
 import './Dashboard.css';
 
 const MC_VERSIONS = [
@@ -667,6 +668,9 @@ export default function Dashboard() {
     }
   };
 
+  const { t } = useLang();
+  const D = t.dashboard;
+
   return (
     <div className="dashboard-root">
       <div className="dashboard-grid-bg" />
@@ -682,20 +686,20 @@ export default function Dashboard() {
             className={`dash-tab${activeView === 'generator' ? ' active' : ''}`}
             onClick={() => setActiveView('generator')}
           >
-            Generator
+            {D.tabGenerator}
           </button>
           <button
             className={`dash-tab${activeView === 'cennik' ? ' active' : ''}`}
             onClick={() => setActiveView('cennik')}
           >
-            Cennik
+            {D.tabPricing}
           </button>
           {user?.email === 'froblaz@wp.pl' && (
             <button
               className={`dash-tab${activeView === 'admin' ? ' active' : ''}`}
               onClick={() => setActiveView('admin')}
             >
-              Panel Admina
+              {D.tabAdmin}
             </button>
           )}
         </div>
@@ -726,10 +730,10 @@ export default function Dashboard() {
             {isUserMenuOpen && (
               <div className="minimal-dropdown" style={{ right: 0, left: 'auto', top: 'calc(100% + 8px)' }}>
                 <button onClick={() => navigate('/ustawienia')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Settings size={14} /> Ustawienia
+                  <Settings size={14} /> {D.menuSettings}
                 </button>
                 <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--error)' }}>
-                  <LogOut size={14} /> Wyloguj się
+                  <LogOut size={14} /> {D.menuLogout}
                 </button>
               </div>
             )}
@@ -744,17 +748,15 @@ export default function Dashboard() {
             
             {/* HERO */}
             <div className="dash-hero">
-              <h1 className="dash-hero-title">Generuj pluginy Minecraft z AI</h1>
-              <p className="dash-hero-subtitle">
-                Opisz plugin, który chcesz stworzyć. AI wygeneruje kompletny kod gotowy do budowania.
-              </p>
+              <h1 className="dash-hero-title">{D.heroTitle}</h1>
+              <p className="dash-hero-subtitle">{D.heroSub}</p>
             </div>
 
             {/* STATS GRID */}
             <div className="dash-stats-grid">
               <div className="dash-stat-card">
                 <div className="dash-stat-header">
-                  <span className="dash-stat-label">Wygenerowane pluginy</span>
+                  <span className="dash-stat-label">{D.statPlugins}</span>
                   <FileCode size={14} className="dash-stat-icon" />
                 </div>
                 <span className="dash-stat-value">{totalSystemProjects}</span>
@@ -762,7 +764,7 @@ export default function Dashboard() {
 
               <div className="dash-stat-card">
                 <div className="dash-stat-header">
-                  <span className="dash-stat-label">Aktywni użytkownicy</span>
+                  <span className="dash-stat-label">{D.statUsers}</span>
                   <Users size={14} className="dash-stat-icon" />
                 </div>
                 <span className="dash-stat-value">{activeUsersCount}</span>
@@ -770,7 +772,7 @@ export default function Dashboard() {
 
               <div className="dash-stat-card">
                 <div className="dash-stat-header">
-                  <span className="dash-stat-label">Pozostałe pieniądze</span>
+                  <span className="dash-stat-label">{D.statCredits}</span>
                   <Wallet size={14} className="dash-stat-icon" />
                 </div>
                 {(() => {
@@ -780,13 +782,13 @@ export default function Dashboard() {
                   const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0;
                   return (
                     <>
-                      <span className="dash-stat-value" title={`Wydano $${spent.toFixed(2)} z $${total.toFixed(2)} kupionych`}>
+                      <span className="dash-stat-value" title={`${D.statSpent} $${spent.toFixed(2)} / $${total.toFixed(2)}`}>
                         ${spent.toFixed(2)} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ ${total.toFixed(2)}</span>
                       </span>
                       <div className="dash-stat-progress-bg">
                         <div className="dash-stat-progress-bar" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="dash-stat-sub" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>Pozostało ${remaining.toFixed(2)}</span>
+                      <span className="dash-stat-sub" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>{D.statRemaining} ${remaining.toFixed(2)}</span>
                     </>
                   );
                 })()}
@@ -797,7 +799,7 @@ export default function Dashboard() {
             <div className="dash-input-card" ref={dropdownRef}>
               <textarea
                 className="dash-textarea"
-                placeholder="Stwórz plugin do zarządzania ekonomią serwera z walutą, sklepem i aukcjami..."
+                placeholder={D.promptPlaceholder}
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
@@ -816,7 +818,7 @@ export default function Dashboard() {
                     </button>
                     {activeDropdown === 'model' && (
                       <div className="minimal-dropdown" style={{ minWidth: 200, bottom: 'calc(100% + 4px)', top: 'auto' }}>
-                        <div className="dropdown-label">Model AI</div>
+                        <div className="dropdown-label">{D.modelLabel}</div>
                         {MODELS.map(m => {
                           const isDisabled = planName === 'Free' && m.id !== 'claude-sonnet-4-6';
                           return (
@@ -849,7 +851,7 @@ export default function Dashboard() {
                     </button>
                     {activeDropdown === 'engine' && (
                       <div className="minimal-dropdown" style={{ minWidth: 150, bottom: 'calc(100% + 4px)', top: 'auto' }}>
-                        <div className="dropdown-label">Silnik</div>
+                        <div className="dropdown-label">{D.engineLabel}</div>
                         {ENGINES.map(eng => (
                           <button key={eng} onClick={() => { setEngine(eng); setActiveDropdown(null); }}>
                             {eng}
@@ -868,7 +870,7 @@ export default function Dashboard() {
                     </button>
                     {activeDropdown === 'version' && (
                       <div className="minimal-dropdown large-grid" style={{ minWidth: 240, bottom: 'calc(100% + 4px)', top: 'auto' }}>
-                        <div className="dropdown-label" style={{ gridColumn: '1/-1' }}>Wersja MC</div>
+                        <div className="dropdown-label" style={{ gridColumn: '1/-1' }}>{D.versionLabel}</div>
                         {MC_VERSIONS.map(v => (
                           <button key={v} onClick={() => { setMcVersion(v); setActiveDropdown(null); }}>
                             {v}
@@ -886,7 +888,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         const isPro = !['Free', 'Basic'].includes(planName);
                         if (!isPro) {
-                           alert('Głębokie myślenie (Deep Think) jest dostępne od planu Pro!');
+                           alert(D.deepThinkPro);
                            return;
                         }
                         setDeepThink(!deepThink);
@@ -898,7 +900,7 @@ export default function Dashboard() {
                       }}
                     >
                       <Sparkles size={11} />
-                      <span>{deepThink ? 'Myślenie: ON' : 'Myślenie: OFF'}</span>
+                      <span>{deepThink ? D.thinkOn : D.thinkOff}</span>
                     </button>
                   </div>
 
@@ -912,7 +914,7 @@ export default function Dashboard() {
                     title="Generator Promptów AI (tylko dla płatnych planów i testerów)"
                   >
                     <Wand2 size={12} />
-                    <span>AI Generator</span>
+                    <span>{D.aiGenerator}</span>
                   </button>
 
                   <button
@@ -920,7 +922,7 @@ export default function Dashboard() {
                     onClick={handleGenerate}
                     disabled={!prompt.trim() || isEnhancing}
                   >
-                    <span>Generuj</span>
+                    <span>{D.generate}</span>
                     <Send size={12} />
                   </button>
                 </div>
@@ -930,15 +932,15 @@ export default function Dashboard() {
             {/* PROJECTS SECTION */}
             <div className="dash-projects-list-area">
               <div className="dash-projects-header">
-                <h2 className="dash-projects-title">Twoje projekty</h2>
+                <h2 className="dash-projects-title">{D.projectsTitle}</h2>
                 <span className="dash-projects-count">
-                  {projects.length} / 2 aktywnych
+                  {projects.length} / 2 {D.projectsActive}
                 </span>
               </div>
 
               {projects.length === 0 ? (
                 <div className="dash-empty" style={{ marginTop: '1rem', maxWidth: 'none' }}>
-                  Brak projektów — wpisz opis pluginu powyżej i kliknij Generuj.
+                  {D.projectEmpty}
                 </div>
               ) : (
                 <div className="dash-projects-list-stack" style={{ marginTop: '1rem' }}>
@@ -961,14 +963,14 @@ export default function Dashboard() {
                         <div className="dash-proj-actions">
                           <button 
                             className="dash-proj-action-btn"
-                            title="Przejdź do projektu"
+                            title={D.openProject}
                             onClick={() => navigate(`/project/${proj.id}`)}
                           >
                             <ArrowRight size={13} />
                           </button>
                           <button 
                             className="dash-proj-action-btn delete"
-                            title="Usuń projekt"
+                            title={D.deleteProject}
                             onClick={e => handleDelete(proj.id, e)}
                           >
                             <Trash2 size={13} />
@@ -983,7 +985,7 @@ export default function Dashboard() {
                       <div className="dash-proj-bottom-bar">
                         <div className="dash-proj-status-badge">
                           <span className="dash-status-dot" />
-                          <span>Aktywny</span>
+                          <span>{D.projectActive}</span>
                         </div>
                         <span className="dash-proj-time">
                           {formatDate(proj.created_at)}
