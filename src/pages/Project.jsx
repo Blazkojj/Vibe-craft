@@ -891,7 +891,7 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania.`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. Nie używaj "..." jako ścieżki pliku. Dostosuj się do języka/technologii wskazanej w planie (Java, React, itp).`;
          const glmText = await generateWithBackend(
            'z-ai/glm-5.2',
            glmSystemPrompt,
