@@ -23,6 +23,11 @@ export default function Settings() {
   const [discordLoading, setDiscordLoading] = useState(false);
   const handledRedirect = useRef(false);
 
+  const [profileRecord, setProfileRecord] = useState(null);
+  const [customApiKey, setCustomApiKey] = useState('');
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
+  const [customModelName, setCustomModelName] = useState('');
+
   const flash = (text, type = 'info') => {
     setMsg(text);
     setMsgType(type);
@@ -72,7 +77,7 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user;
       setUser(u);
       if (u) {
@@ -81,6 +86,21 @@ export default function Settings() {
         setUsedTokens(u.user_metadata?.used_tokens_uncached || u.user_metadata?.used_tokens || '0');
         setPlanName(u.user_metadata?.plan || 'Free');
         setDiscordProfile(u.user_metadata?.discord_profile || null);
+        
+        // Pobierz ustawienia deweloperskie z Supabase
+        try {
+          const profileKey = `__user_profile:${u.email}__`;
+          const { data: profs, error } = await supabase.from('projects').select('*').eq('title', profileKey);
+          if (!error && profs && profs[0]) {
+            setProfileRecord(profs[0]);
+            const profileData = profs[0].messages || {};
+            setCustomApiKey(profileData.custom_api_key || '');
+            setCustomBaseUrl(profileData.custom_base_url || '');
+            setCustomModelName(profileData.custom_model_name || '');
+          }
+        } catch (e) {
+          console.error('Failed to load profile record:', e);
+        }
       }
     });
     handleDiscordRedirect();
@@ -106,6 +126,54 @@ export default function Settings() {
     else {
       flash('Nick zaktualizowany!', 'success');
       setUser(prev => ({ ...prev, user_metadata: { ...prev?.user_metadata, username: newUsername } }));
+    }
+  };
+
+  const handleSaveDeveloperSettings = async () => {
+    if (!user) return;
+    setSaving(true);
+    setSavingField('developer');
+    
+    try {
+      const profileKey = `__user_profile:${user.email}__`;
+      const currentMessages = profileRecord?.messages || {};
+      
+      const newMessages = {
+        ...currentMessages,
+        custom_api_key: customApiKey.trim(),
+        custom_base_url: customBaseUrl.trim(),
+        custom_model_name: customModelName.trim()
+      };
+      
+      if (profileRecord) {
+        const { error } = await supabase
+          .from('projects')
+          .update({ messages: newMessages })
+          .eq('id', profileRecord.id);
+        if (error) throw error;
+        setProfileRecord(prev => ({ ...prev, messages: newMessages }));
+      } else {
+        const { data, error } = await supabase
+          .from('projects')
+          .insert({
+            title: profileKey,
+            user_id: user.id,
+            messages: newMessages,
+            engine: 'Paper',
+            version: '1.21.4',
+            model: 'z-ai/glm-5.2'
+          })
+          .select();
+        if (error) throw error;
+        if (data && data[0]) setProfileRecord(data[0]);
+      }
+      
+      flash('Klucze API zostały pomyślnie zaktualizowane!', 'success');
+    } catch (e) {
+      flash('Błąd zapisu: ' + e.message, 'error');
+    } finally {
+      setSaving(false);
+      setSavingField('');
     }
   };
 
@@ -159,6 +227,9 @@ export default function Settings() {
           </button>
           <button className={`settings-nav-item${activeTab==='billing'?' active':''}`} onClick={() => setActiveTab('billing')}>
             <CreditCard size={14}/> <span>Rozliczenia</span>
+          </button>
+          <button className={`settings-nav-item${activeTab==='developer'?' active':''}`} onClick={() => setActiveTab('developer')}>
+            <Zap size={14}/> <span>Klucze API</span>
           </button>
         </nav>
       </aside>
@@ -302,6 +373,75 @@ export default function Settings() {
                 <div className="billing-rule"><span className="billing-rule-dot"/>Doładowania (top-up) nie wygasają nigdy</div>
                 <div className="billing-rule"><span className="billing-rule-dot"/>Jeden portfel działa ze wszystkimi modelami</div>
               </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'developer' && (
+          <div className="settings-section-list">
+            <section className="settings-card">
+              <div className="settings-card-title"><Zap size={14}/> Własne klucze API</div>
+              <p className="settings-card-desc">
+                Możesz podać swój własny klucz API oraz niestandardowy Base URL (np. <code>https://aiapiflow.com</code>, <code>https://api.openai.com</code> lub <code>https://openrouter.ai/api</code>), aby korzystać z dowolnego dostawcy LLM bez pobierania środków z salda.
+              </p>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
+                  Klucz API (Authorization Bearer Token)
+                </label>
+                <input
+                  className="settings-input"
+                  type="password"
+                  placeholder="sk-..."
+                  value={customApiKey}
+                  onChange={e => setCustomApiKey(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
+                  Niestandardowy Base URL (Opcjonalnie)
+                </label>
+                <input
+                  className="settings-input"
+                  type="text"
+                  placeholder="https://aiapiflow.com/v1"
+                  value={customBaseUrl}
+                  onChange={e => setCustomBaseUrl(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                  Pozostaw puste, aby domyślnie korzystać z serwera ZenMux.
+                </span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
+                  Niestandardowa nazwa modelu (Opcjonalnie)
+                </label>
+                <input
+                  className="settings-input"
+                  type="text"
+                  placeholder="claude-sonnet-4-6 lub gpt-4o"
+                  value={customModelName}
+                  onChange={e => setCustomModelName(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                  Wymuś konkretny model w żądaniu HTTP. Jeśli puste, wysłany zostanie model wybrany w czacie.
+                </span>
+              </div>
+
+              <button 
+                className="settings-btn-accent" 
+                onClick={handleSaveDeveloperSettings}
+                disabled={saving}
+                style={{ marginTop: '0.5rem' }}
+              >
+                {savingField === 'developer' ? <Loader2 size={13} className="spin" style={{ marginRight: '0.25rem' }}/> : null}
+                Zapisz ustawienia deweloperskie
+              </button>
             </section>
           </div>
         )}

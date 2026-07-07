@@ -280,11 +280,23 @@ function chatPlugin() {
                 return res.end(JSON.stringify({ error: 'Invalid user' }));
               }
 
+              // Fetch user profile from projects table
+              const profileKey = `__user_profile:${verifiedUser.email}__`;
+              const profileRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/projects?title=eq.${encodeURIComponent(profileKey)}`, {
+                headers: {
+                  'apikey': process.env.VITE_SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${supabaseJwt}`
+                }
+              });
+              const profiles = await profileRes.json();
+              const userProfile = (profiles && profiles[0]) ? (profiles[0].messages || {}) : {};
+
               const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
               const { systemPrompt: sp, userPrompt: up, model: m } = JSON.parse(body);
               const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
               
-              if (SUPA_SERVICE && isPaidModel) {
+              const hasCustomKey = !!userProfile?.custom_api_key;
+              if (SUPA_SERVICE && isPaidModel && !hasCustomKey) {
                 let estimatedCost = 0.01;
                 if (m?.includes('opus')) estimatedCost = 0.05;
                 else if (m?.includes('sonnet-5')) estimatedCost = 0.02;
@@ -311,23 +323,41 @@ function chatPlugin() {
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
               const isTrueClaude = ['claude-opus-4-8', 'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
-              const isZenmux = model === 'z-ai/glm-5.2' || isClaudeAlias || isTrueClaude;
+              const isZenmux = model === 'z-ai/glm-5.2' || isClaudeAlias || isTrueClaude || hasCustomKey;
 
               if (isZenmux) {
-                let apiKey = process.env.ZENMUX_API_KEY;
-                let backendModel = 'z-ai/glm-5.2';
+                let apiKey = userProfile.custom_api_key || process.env.ZENMUX_API_KEY;
+                let backendModel = userProfile.custom_model_name || 'z-ai/glm-5.2';
                 // Worker proxy (omija Cloudflare bot-detection JA3)
                 const WORKER_URL = process.env.CF_WORKER_URL || '';
                 let url = 'https://zenmux.ai/api/v1/chat/completions';
                 if (WORKER_URL) url = WORKER_URL + '/zenmux/api/v1/chat/completions';
 
-                if (isTrueClaude) {
+                if (isTrueClaude && !userProfile.custom_api_key) {
                   url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
                   if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_8; }
                   if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_7; }
                   if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_4_6; }
                   if (model === 'claude-haiku-4-5-20251001') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = process.env.AIAPIFLOW_KEY_HAIKU_4_5; }
                   if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_5; }
+                }
+
+                if (userProfile.custom_api_key) {
+                  backendModel = userProfile.custom_model_name || model;
+                  if (userProfile.custom_base_url) {
+                    let baseUrl = userProfile.custom_base_url.replace(/\/+$/, '');
+                    if (!baseUrl.endsWith('/chat/completions')) {
+                      if (baseUrl.endsWith('/v1')) {
+                        url = baseUrl + '/chat/completions';
+                      } else {
+                        url = baseUrl + '/v1/chat/completions';
+                      }
+                    } else {
+                      url = baseUrl;
+                    }
+                  } else {
+                    url = 'https://zenmux.ai/api/v1/chat/completions';
+                  }
                 }
 
                 console.log(`[chat] Target URL: ${url}, Backend model: ${backendModel}`);
