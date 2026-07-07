@@ -56,6 +56,12 @@ client.on('messageCreate', async (message) => {
 
   // Moduł: Chat z AI na kanale
   if (message.channelId === AI_CHAT_CHANNEL_ID) {
+    const BANNED_ROLE_ID = '1524023594575990814';
+    const member = message.guild?.members.cache.get(message.author.id) || await message.guild?.members.fetch(message.author.id).catch(() => null);
+    if (member?.roles.cache.has(BANNED_ROLE_ID)) {
+      await message.reply({ embeds: [new EmbedBuilder().setColor('#FF0000').setTitle('🚫 Brak dostępu').setDescription('Twój dostęp do AI na tym serwerze został **zablokowany**. Skontaktuj się z administratorem.')] });
+      return;
+    }
     await message.channel.sendTyping();
     const thinkingMsg = await message.reply('⏳ **Analyzing request...**');
     
