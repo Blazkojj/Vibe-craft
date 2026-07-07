@@ -510,14 +510,18 @@ export default function Dashboard() {
       alert('W darmowym planie możesz mieć maksymalnie 2 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
       return;
     }
-    const { data, error } = await supabase.from('projects').insert([{
-      user_id: user.id,
-      title: (typeof explicitPrompt === 'string' ? explicitPrompt : prompt).split(' ').slice(0, 5).join(' ') + '...',
-      prompt: p, version: mcVersion, engine, model, messages: [],
-    }]).select();
-    if (error) { alert(`Błąd: ${error.message}`); return; }
-    setPrompt('');
-    navigate(`/project/${data[0].id}`);
+    try {
+      const { data, error } = await supabase.from('projects').insert([{
+        user_id: user.id,
+        title: (typeof explicitPrompt === 'string' ? explicitPrompt : prompt).split(' ').slice(0, 5).join(' ') + '...',
+        prompt: p, version: mcVersion, engine, model, messages: [],
+      }]).select();
+      if (error) { alert(`Błąd: ${error.message}`); return; }
+      setPrompt('');
+      navigate(`/project/${data[0].id}`);
+    } catch (err) {
+      alert(`Błąd połączenia z bazą: ${err.message || 'Failed to fetch'}`);
+    }
   };
 
   const handleOpenEnhanceModal = () => {
