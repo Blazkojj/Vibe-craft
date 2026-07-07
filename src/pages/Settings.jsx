@@ -132,9 +132,10 @@ export default function Settings() {
   const unlinkDiscord = async () => {
     if (!window.confirm('Odłączyć konto Discord?')) return;
     try {
-      const { error: unlinkError } = await supabase.auth.unlinkIdentity(
-        user.identities.find(id => id.provider === 'discord').id
-      );
+      const discordIdentity = user.identities?.find(id => id.provider === 'discord');
+      if (!discordIdentity) throw new Error('Nie znaleziono połączenia Discord.');
+      const identityId = discordIdentity.identity_id || discordIdentity.id;
+      const { error: unlinkError } = await supabase.auth.unlinkIdentity(identityId);
       if (unlinkError) throw unlinkError;
       await supabase.auth.updateUser({ data: { discord_profile: null } });
       setDiscordProfile(null);
