@@ -3,6 +3,8 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import http from 'http';
+import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 
 dotenv.config();
 
@@ -222,3 +224,126 @@ ${orderId ? `Nr zamówienia: ${orderId}` : ''}
 app.listen(PORT, () => {
   console.log(`[mail-server] słucha na porcie ${PORT}`);
 });
+
+// =====================================
+// SUPPI / PATRONITE WEBSOCKET LISTENER
+// =====================================
+const SUPABASE_URL = 'https://rokblznsxbanockfiisv.supabase.co';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+function connectSuppi() {
+  const ws = new WebSocket("wss://widget.patronite.pl/websocket?context=7907c967-ca4c-405b-9dab-a09253b65b46");
+  
+  ws.on('open', () => {
+    console.log('[SUPPI] Polaczono z widgetem (nasluchiwanie wplat w czasie rzeczywistym)');
+  });
+  
+  ws.on('message', async (data) => {
+    try {
+      const parsed = JSON.parse(data.toString());
+      console.log('[SUPPI] Otrzymano zdarzenie:', parsed);
+      
+      if (parsed && parsed.name && parsed.amount) {
+         await processPayment(parsed);
+      }
+    } catch(e) {
+      console.error('[SUPPI] Blad parsowania wiadomosci:', e.message);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('[SUPPI] Rozlaczono z widgetem. Proba reconnectu za 5s...');
+    setTimeout(connectSuppi, 5000);
+  });
+  
+  ws.on('error', (err) => {
+    console.error('[SUPPI] Blad WebSocket:', err);
+  });
+}
+
+async function processPayment(payment) {
+  const { name, amount } = payment; // name to nick gracza z suppi
+  console.log(`[SUPPI] Przetwarzanie wpłaty od ${name} na kwotę ${amount} zł`);
+  
+  // Pobieramy wszystkie profile (tylko z pending_orders aby zaoszczędzić czasu, ale SQLite json querying w supabase jest specyficzne)
+  // Pobierzemy wszystko i przefiltrujemy w pamięci dla pewności.
+  const { data: users, error } = await supabase.from('projects').select('*').like('title', '__user_profile:%');
+  if (error || !users) {
+     console.error('[SUPPI] Błąd pobierania profili z Supabase:', error);
+     return;
+  }
+  
+  for (let record of users) {
+     const pData = record.messages || {};
+     const pending = pData.pending_orders || [];
+     
+     // Znajdz pasujace zamowienie (nick musi sie zgadzac i cena musi byc <= kwocie dotacji)
+     const orderIndex = pending.findIndex(o => 
+         o.suppiNick.toLowerCase().trim() === name.toLowerCase().trim() &&
+         parseFloat(o.price) <= parseFloat(amount)
+     );
+     
+     if (orderIndex !== -1) {
+       const order = pending[orderIndex];
+       console.log(`[SUPPI] ZNALEZIONO ZAMÓWIENIE! Użytkownik: ${pData.email}, Pakiet: ${order.planName}`);
+       
+       // Usuwamy z pending
+       pending.splice(orderIndex, 1);
+       
+       const updatedProfile = {
+          ...pData,
+          plan: order.planName,
+          plan_valid_until: order.validUntil,
+          plan_credits: order.creditsLabel,
+          pending_orders: pending
+       };
+       
+       // Aktualizacja profilu w Supabase
+       const { error: updError } = await supabase.from('projects').update({ messages: updatedProfile }).eq('id', record.id);
+       if (updError) {
+         console.error('[SUPPI] Blad aktualizacji profilu:', updError);
+         return;
+       }
+       console.log(`[SUPPI] Zaktualizowano profil w Supabase!`);
+       
+       // Wywolaj wlasny lokalny endpoint do wyslania maila i powiadomienia Discord Bota!
+       const postData = JSON.stringify({
+          email: pData.email,
+          nick: name,
+          planName: order.planName,
+          price: order.price, 
+          creditsLabel: order.creditsLabel,
+          validUntil: order.validUntil,
+          orderId: order.orderId,
+          discordId: order.discordId,
+          discordTag: order.discordTag
+       });
+       
+       const req = http.request({
+          hostname: '127.0.0.1',
+          port: PORT,
+          path: '/send-order-email',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY,
+            'Content-Length': Buffer.byteLength(postData),
+            'x-forwarded-for': '127.0.0.1'
+          }
+       }, (res) => {
+          console.log(`[SUPPI] Weryfikacja pomyslna, mail-server odpowiedzial: ${res.statusCode}`);
+       });
+       
+       req.on('error', (e) => console.error('[SUPPI] Blad przy wywolywaniu send-order-email:', e));
+       req.write(postData);
+       req.end();
+       
+       return; // Zakoncz, znalenlismy pasujace zamowienie.
+     }
+  }
+  
+  console.log(`[SUPPI] Nie znaleziono oczekujacego zamowienia dla nicku: ${name}`);
+}
+
+connectSuppi();
