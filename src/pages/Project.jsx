@@ -390,16 +390,16 @@ function Project() {
       let finalInputRate = inputRate;
       let finalOutputRate = outputRate;
 
-      if (modelId.includes('claude') || modelId.includes('opus') || modelId.includes('sonnet') || modelId.includes('haiku')) {
-        finalInputRate *= 1.4;
-        finalOutputRate *= 1.4;
-      } else if (modelId.includes('glm')) {
-        finalInputRate *= 2;
-        finalOutputRate *= 2;
-      }
-
       const cachedCost = (cachedInputTokens * finalInputRate) + (normalOutputTokens * finalOutputRate);
-      const normalCost = (normalInputTokens * finalInputRate) + (normalOutputTokens * finalOutputRate);
+      let normalCost = (normalInputTokens * finalInputRate) + (normalOutputTokens * finalOutputRate);
+      
+      let estimatedDeducted = 0;
+      if (modelId.includes('opus')) estimatedDeducted = 0.05;
+      else if (modelId.includes('sonnet-5')) estimatedDeducted = 0.02;
+      else if (modelId.includes('haiku')) estimatedDeducted = 0.005;
+      else if (modelId.includes('sonnet-4-6') || modelId.includes('sonnet-4.6') || modelId.includes('claude-sonnet-4-6') || modelId.includes('sonnet-4-8')) estimatedDeducted = 0.01;
+      
+      const additionalCost = normalCost - estimatedDeducted;
 
       console.log(`[Billing Debug] Model: ${modelId}`);
       console.log(`[Billing Debug] InputTokens: ${normalInputTokens}, OutputTokens: ${normalOutputTokens}`);
@@ -417,7 +417,7 @@ function Project() {
         const pData = record.messages || {};
 
         const currentBalance = parseFloat(pData.balance || '10.00');
-        const newBalance = Math.max(0, currentBalance - normalCost).toFixed(2);
+        const newBalance = Math.max(0, currentBalance - additionalCost).toFixed(2);
 
         const currentUsedCredits = parseFloat(pData.used_credits || '0.00');
         const newUsedCredits = (currentUsedCredits + normalCost).toFixed(2);
@@ -785,17 +785,17 @@ ${projectData.prompt}
       const identityInjection = getIdentityInjection(projectData.model);
       
       
-      const systemPrompt = `${identityInjection}Jesteś elitarnym, światowej klasy programistą Javy i ekspertem API Spigot/PaperMC dla silników Minecraft.
-Kontynuujemy pracę nad projektem pluginu. Wypełniaj polecenia w oparciu o poniższe reguły.
+      const systemPrompt = `${identityInjection}Jesteś elitarnym inżynierem oprogramowania i głównym architektem systemów. Twoją główną specjalizacją jest kodowanie w językach Java (Spigot/PaperMC), ale obsługujesz też inne technologie, jeśli użytkownik o nie prosi (np. React).
+Kontynuujemy pracę nad projektem. Wypełniaj polecenia w oparciu o poniższe reguły.
 
 # ZASADA ROZPOZNAWANIA INTENCJI UŻYTKOWNIKA (KRYTYCZNE ZABEZPIECZENIE):
-Jeśli nowa wiadomość użytkownika to zwykłe powitanie (np. "hej", "siema", "cześć", "witaj"), luźna rozmowa, podziękowanie lub krótkie zdanie/pytanie bez zlecenia nowej funkcjonalności pluginu:
+Jeśli nowa wiadomość użytkownika to zwykłe powitanie (np. "hej", "siema", "cześć", "witaj"), luźna rozmowa, podziękowanie lub krótkie zdanie/pytanie bez zlecenia nowej funkcjonalności:
 1. POD ŻADNYM POZOREM NIE GENERUJ kodu, plików ani struktury! ZABRANIA SIĘ generowania tagów <file path="...">.
-2. Odpowiedz wyłącznie krótkim, tekstowym zdaniem (np. "Cześć! W czym mogę pomóc w rozwoju Twojego pluginu?").
+2. Odpowiedz wyłącznie krótkim, tekstowym zdaniem (np. "Cześć! W czym mogę pomóc w rozwoju Twojego projektu?").
 
 # OBSŁUGA BŁĘDÓW [SYSTEM-AUTO-FIX]:
-- Jeśli wiadomość użytkownika zaczyna się od \`[SYSTEM-AUTO-FIX]\`, oznacza to błąd kompilacji Mavena/Gradla.
-- Przeanalizuj logi kompilacji bardzo dokładnie. Najczęstsze błędy:
+- Jeśli wiadomość użytkownika zaczyna się od \`[SYSTEM-AUTO-FIX]\`, oznacza to błąd kompilacji.
+- Przeanalizuj logi kompilacji bardzo dokładnie. Najczęstsze błędy (Minecraft):
   1. Użycie nieistniejących metod lub klas z nowszych/starszych wersji API (np. zmiana metod w klasie Material, Sound, Particle lub Component).
   2. Brak importów lub nieprawidłowe importy.
   3. Niezgodność typów (np. Adventure API Component vs Legacy String w PaperMC).
@@ -820,12 +820,18 @@ Zanim wprowadzisz nową funkcjonalność, wykorzystaj swoją wiedzę o najpopula
   4. Dodawaj uprawnienia (permissions) do wszystkich nowych komend i sprawdzaj je w kodzie.
 
 # CORE RULES FOR OUTPUT GENERATION:
-1. ZABRONIONE UŻYWANIE NARZĘDZI (KRYTYCZNE): Pod żadnym pozorem nie generuj tagów <tool_use> ani nie próbuj wywoływać zewnętrznych funkcji/skryptów (np. read_file, list_directory). Masz wczytany cały kontekst projektu i NIE MASZ dostępu do żadnych narzędzi. Odpowiadaj bezpośrednio.
-2. ZROZUMIENIE INTENCJI UŻYTKOWNIKA (KRYTYCZNE): Jeśli użytkownik zadał tylko zwykłe pytanie (np. "jak to działa?", "co to jest?"), ODPOWIEDZ TYLKO TEKSTEM. Pod żadnym pozorem nie generuj kodu ani tagów <file path="...">, jeśli nie poproszono cię o napisanie lub dodanie nowej funkcji.
-3. DOKŁADNY OPIS JEST WYMAGANY: Zawsze precyzyjnie opisuj w języku polskim, co dokładnie zmieniłeś w pluginie i jak nowa mechanika działa, ZANIM wygenerujesz zaktualizowany kod. Nie używaj pustych zwrotów.
-4. NO FULL REWRITES: Zmieniaj tylko pliki, które wymagają edycji. Nie przepisuj całego projektu, jeśli modyfikujesz tylko jedną klasę.
-5. OUTPUT FORMAT: Wygeneruj zaktualizowane pliki w tagach \`<file path="...">[KOD]</file>\`. Jeśli aktualizujesz pom.xml, upewnij się, że tag <finalName> to \${project.artifactId}-\${project.version}.
-5. PROCES MYŚLOWY: Zanim cokolwiek wygenerujesz (kod lub tekst), absolutnie najpierw MUSISZ napisać swoje wewnętrzne przemyślenia otoczone tagami HTML. Musisz użyć ostrych nawiasów:
+1. ZABRONIONE UŻYWANIE NARZĘDZI (KRYTYCZNE): Pod żadnym pozorem nie generuj tagów <tool_use> ani nie próbuj wywoływać zewnętrznych funkcji/skryptów. Masz wczytany cały kontekst projektu i NIE MASZ dostępu do żadnych narzędzi. Odpowiadaj bezpośrednio.
+2. ZROZUMIENIE INTENCJI UŻYTKOWNIKA (KRYTYCZNE): Jeśli użytkownik zadał tylko zwykłe pytanie (np. "jak to działa?"), ODPOWIEDZ TYLKO TEKSTEM bez kodu.
+3. DOKŁADNY OPIS JEST WYMAGANY: Zawsze krótko opisuj co robisz ZANIM zaczniesz generować pliki.
+4. NO FULL REWRITES: Zmieniaj tylko pliki, które wymagają edycji.
+5. FORMAT PLIKÓW (ABSOLUTNIE KRYTYCZNE): 
+   KAŻDY generowany plik kodu (nawet HTML, JS, CSS, Java, cokolwiek) MUSI być zwrócony w tagu XML.
+   UŻYWAJ TEGO FORMATU DLA KAŻDEGO PLIKU:
+   <file path="sciezka/do/pliku.rozszerzenie">
+   TUTAJ PEŁNY KOD PLIKU
+   </file>
+   NIGDY nie używaj zwykłych bloków markdown (np. \`\`\`java) do pisania kodu, bo zniszczy to nasz system! Zawsze używaj <file>. Generuj PEŁNY kod pliku, bez skracania.
+6. PROCES MYŚLOWY: Zanim cokolwiek wygenerujesz (kod lub tekst), absolutnie najpierw MUSISZ napisać swoje wewnętrzne przemyślenia otoczone tagami HTML. Musisz użyć ostrych nawiasów:
 <think>
 (MAKS 3-5 ZDAŃ — bądź zwięzły, przejdź od razu do rzeczy)
 </think>
@@ -865,7 +871,7 @@ ${userMsg}
 
       let fullText = '';
       if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
-         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY]: Wygeneruj TYLKO sekcję <think>...</think> ze swoim planem i NIC WIĘCEJ. ZAKOŃCZ ODPOWIEDŹ.";
+         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z planem działania. POD ŻADNYM POZOREM NIE GENERUJ KODU! Nie używaj tagów <file>. Użyj tylko <think>, napisz swój plan i NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
          const thoughtText = await generateWithBackend(
            modelToUse,
            hybridPrompt,

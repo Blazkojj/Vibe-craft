@@ -122,6 +122,8 @@ export default function Dashboard() {
   const [editingUser, setEditingUser] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [confirmingOrderId, setConfirmingOrderId] = useState(null);
+  const [viewingChatsUser, setViewingChatsUser] = useState(null);
+  const [userChats, setUserChats] = useState([]);
 
   const MAIL_SERVER_URL = '/api/send-mail';
 
@@ -336,6 +338,22 @@ export default function Dashboard() {
     } else {
       fetchAdminUsers();
       setEditingUser(null);
+    }
+  };
+
+  const handleViewChats = async (u) => {
+    setViewingChatsUser(u);
+    setUserChats([]);
+    try {
+      const { data } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', u.userId)
+        .not('title', 'like', '__user_profile:%')
+        .order('created_at', { ascending: false });
+      if (data) setUserChats(data);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -1137,12 +1155,20 @@ export default function Dashboard() {
                         </td>
                         <td style={{ padding: '1rem', color: '#22C55E', fontWeight: '700', fontFamily: 'var(--mono)' }}>{saved}%</td>
                         <td style={{ padding: '1rem', textAlign: 'right' }}>
-                          <button
-                            onClick={() => setEditingUser(u)}
-                            style={{ background: 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
-                          >
-                            Zarządzaj
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => handleViewChats(u)}
+                              style={{ background: 'var(--bg-hover)', color: 'var(--text)', border: '1px solid var(--border)', padding: '0.4rem 0.8rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                              Czaty
+                            </button>
+                            <button
+                              onClick={() => setEditingUser(u)}
+                              style={{ background: 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+                            >
+                              Zarządzaj
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1395,6 +1421,53 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL CZATÓW UŻYTKOWNIKA ─── */}
+      {viewingChatsUser && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setViewingChatsUser(null)}>
+          <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text)' }}>Projekty / Czaty: {viewingChatsUser.email}</h3>
+              <button onClick={() => setViewingChatsUser(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {userChats.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Ten użytkownik nie utworzył jeszcze żadnych projektów.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {userChats.map(chat => {
+                  const msgCount = Array.isArray(chat.messages) ? chat.messages.length : 0;
+                  return (
+                    <div key={chat.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '1.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h4 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.1rem' }}>{chat.title}</h4>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>Wiadomości: {msgCount}</span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '300px', overflowY: 'auto', background: 'var(--bg-main)', padding: '1rem', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                        {msgCount === 0 ? (
+                          <span style={{ color: 'var(--text-muted)' }}>Brak wiadomości w tym projekcie.</span>
+                        ) : (
+                          chat.messages.map((m, idx) => (
+                            <div key={idx} style={{ padding: '0.8rem', borderRadius: '8px', background: m.sender === 'user' ? 'rgba(255,102,64,0.1)' : 'var(--bg-input)', border: m.sender === 'user' ? '1px solid rgba(255,102,64,0.2)' : '1px solid var(--border)' }}>
+                              <strong style={{ display: 'block', marginBottom: '0.3rem', color: m.sender === 'user' ? 'var(--accent)' : 'var(--text-dim)', fontSize: '0.8rem' }}>{m.sender.toUpperCase()}</strong>
+                              <div style={{ color: 'var(--text)', fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {m.text?.substring(0, 1000)}{m.text?.length > 1000 ? '... (ucięte)' : ''}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
