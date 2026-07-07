@@ -358,8 +358,18 @@ export default function Dashboard() {
 
       if (profileData) {
         setBalance(profileData.balance || '10.00');
-        setPlanName(profileData.plan || 'Free');
+        const currentPlan = profileData.plan || 'Free';
+        setPlanName(currentPlan);
         setUsedCredits(profileData.used_credits_uncached || profileData.used_credits || '0.00');
+
+        if (currentPlan === 'Free' && !window.location.hostname.startsWith('free')) {
+          window.location.href = 'https://free.zenexcode.pl/dashboard';
+          return;
+        }
+        if (currentPlan !== 'Free' && window.location.hostname.startsWith('free')) {
+          window.location.href = 'https://zenexcode.pl/dashboard';
+          return;
+        }
 
         const meta = currentUser.user_metadata || {};
         if (
