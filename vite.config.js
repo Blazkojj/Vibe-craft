@@ -143,6 +143,27 @@ function chatPlugin() {
                 return res.end(JSON.stringify({ error: 'Invalid user' }));
               }
 
+              const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
+              if (SUPA_SERVICE) {
+                const profileKey = `__user_profile:${verifiedUser.email}__`;
+                const profileRes = await fetch(
+                  `${process.env.VITE_SUPABASE_URL}/rest/v1/projects?title=eq.${encodeURIComponent(profileKey)}&select=messages`,
+                  { headers: { 'apikey': SUPA_SERVICE, 'Authorization': `Bearer ${SUPA_SERVICE}` } }
+                );
+                if (profileRes.ok) {
+                  const profiles = await profileRes.json();
+                  if (profiles && profiles.length > 0) {
+                    const pData = profiles[0].messages || {};
+                    const plan = pData.plan || 'Free';
+                    const balance = parseFloat(pData.balance || '0');
+                    if (plan !== 'Free' && balance <= 0) {
+                      res.statusCode = 402;
+                      return res.end(JSON.stringify({ error: 'Insufficient balance' }));
+                    }
+                  }
+                }
+              }
+
               const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
@@ -337,6 +358,7 @@ function compilePlugin() {
                     return res.end(`Niebezpieczny plugin Maven: ${danger}`);
                   }
                 }
+                pomFile.content = pomFile.content.replace(/<pluginRepositories[\s\S]*?<\/pluginRepositories>/gi, '');
               }
 
               const buildDir = path.join(process.cwd(), '.vibe-build');
@@ -361,7 +383,33 @@ function compilePlugin() {
                 return res.end('Brak pliku pom.xml! Poproś AI o wygenerowanie struktury Maven.');
               }
 
-              exec('mvn clean package', { cwd: buildDir }, (error, stdout, stderr) => {
+              const settingsXml = `<settings>
+  <mirrors>
+    <mirror>
+      <id>central-only</id>
+      <mirrorOf>*</mirrorOf>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </mirror>
+  </mirrors>
+  <profiles>
+    <profile>
+      <id>no-external-repos</id>
+      <activation><activeByDefault>true</activeByDefault></activation>
+      <repositories>
+        <repository>
+          <id>central</id>
+          <url>https://repo.maven.apache.org/maven2</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+      </repositories>
+    </profile>
+  </profiles>
+</settings>`;
+              const settingsPath = path.join(buildDir, 'mvn-settings.xml');
+              fs.writeFileSync(settingsPath, settingsXml);
+
+              exec(`mvn clean package -s ${settingsPath}`, { cwd: buildDir }, (error, stdout, stderr) => {
                 if (error) {
                   res.statusCode = 500;
                   return res.end(`Błąd kompilacji Mavena:\n${stdout}\n${stderr}`);
