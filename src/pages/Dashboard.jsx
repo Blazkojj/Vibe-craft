@@ -669,7 +669,7 @@ export default function Dashboard() {
   };
 
   const { t } = useLang();
-  const D = t.dashboard;
+  const D = t.dashboard || {};
 
   return (
     <div className="dashboard-root">

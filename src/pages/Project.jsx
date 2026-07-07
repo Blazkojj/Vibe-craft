@@ -5,6 +5,7 @@ import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { saveAs } from 'file-saver';
+import { useLang } from '../LangContext';
 import './Project.css';
 
 const ClaudeIcon = ({size=14}) => (
@@ -210,7 +211,7 @@ const FileBlock = ({ fb }) => {
     <div className={`cf-item ${fb.isEdit ? 'edited' : 'created'} ${open ? 'open' : ''}`}>
       <button className="cf-item-toggle" onClick={() => setOpen(v => !v)}>
         <ChevronRight size={11} className={`cf-chevron${open ? ' open' : ''}`}/>
-        <span className="cf-item-action">{fb.isEdit ? 'Edytuje' : 'Utworzono'}</span>
+        <span className="cf-item-action">{fb.isEdit ? (isEN ? 'Edited' : 'Edytuje') : (isEN ? 'Created' : 'Utworzono')}</span>
         <span className="cf-item-path" title={fb.path}>{fb.path}</span>
         <span className="cf-item-ext">.{ext}</span>
 
@@ -224,6 +225,8 @@ const FileBlock = ({ fb }) => {
 
 function Project() {
   const { id } = useParams();
+  const { lang, t } = useLang();
+  const isEN = lang === 'en';
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
   const [projectData, setProjectData] = useState(null);
@@ -1154,10 +1157,10 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#F97316', marginBottom: '0.5rem', fontWeight: 600 }}>
               <Sparkles size={12} className={isStreaming && !cleanedText ? "animate-pulse" : ""} />
-              <span>{isStreaming ? "AI myśli..." : "Proces myślowy AI"}</span>
+              <span>{isStreaming ? (isEN ? "AI is thinking..." : "AI myśli...") : (isEN ? "AI Thought Process" : "Proces myślowy AI")}</span>
             </div>
             <div style={{ whiteSpace: 'pre-wrap' }}>
-              {thinkText || "Nawiązywanie połączenia i przetwarzanie..."}
+              {thinkText || (isEN ? "Connecting and processing..." : "Nawiązywanie połączenia i przetwarzanie...")}
               {isStreaming && !cleanedText && <span className="blinking-cursor">▋</span>}
             </div>
           </div>
@@ -1234,7 +1237,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
         </div>
 
         <div className="ps-user-footer">
-          <button className="ps-user-card" onClick={() => navigate('/ustawienia')} title="Ustawienia">
+          <button className="ps-user-card" onClick={() => navigate('/ustawienia')} title={isEN ? "Settings" : "Ustawienia"}>
             {currentUser?.user_metadata?.discord_profile?.avatar ? (
               <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="ps-user-avatar"/>
             ) : (
@@ -1296,7 +1299,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                 </div>
               )}
             </div>
-            <button className="chat-header-action" onClick={handleClearChat} title="Wyczyść historię">
+            <button className="chat-header-action" onClick={handleClearChat} title={isEN ? "Clear history" : "Wyczyść historię"}>
               <Trash2 size={13}/>
             </button>
           </div>
@@ -1310,10 +1313,9 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                     <ModelIcon modelId={projectData.model} size={20}/>
                   </span>
                 </div>
-                <h2 className="chat-empty-title">Witaj w projekcie <span className="grad">{projectData.title}</span></h2>
+                <h2 className="chat-empty-title">{isEN ? "Welcome to" : "Witaj w projekcie"} <span className="grad">{projectData.title}</span></h2>
                 <p className="chat-empty-sub">
-                  Opisz w pasku poniżej, jaki plugin chcesz stworzyć lub co zmienić.
-                  AI wygeneruje kompletne pliki Javy gotowe do kompilacji.
+                  {isEN ? "Describe below what plugin you want to create or change. AI will generate complete Java files ready to compile." : "Opisz w pasku poniżej, jaki plugin chcesz stworzyć lub co zmienić. AI wygeneruje kompletne pliki Javy gotowe do kompilacji."}
                 </p>
                 <div className="chat-empty-chips">
                   <button className="chat-chip" onClick={() => setChatInput('Dodaj komendę /heal leczącą gracza do pełna z dźwiękiem LEVEL_UP i uprawnieniem zenex.heal')}>
@@ -1353,7 +1355,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                 <div className="chat-msg-content">
                   <div className="chat-msg-meta">
                     <span className="chat-msg-name">
-                      {msg.sender === 'You' ? 'Ty' : getModelDisplayName(projectData.model)}
+                      {msg.sender === 'You' ? 'You' : getModelDisplayName(projectData.model)}
                     </span>
                     <span className="chat-msg-time">{msg.time}</span>
                   </div>
@@ -1389,7 +1391,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
               <div className="chat-input-box">
                 <textarea
                   className="chat-textarea"
-                  placeholder={isGenerating ? "AI generuje..." : "Opisz zmiany w pluginie..."}
+                  placeholder={isGenerating ? (isEN ? "AI is generating..." : "AI generuje...") : (isEN ? "Describe the changes you want..." : "Opisz zmiany w pluginie...")}
                   value={chatInput}
                   disabled={isGenerating}
                   onChange={e => setChatInput(e.target.value)}
@@ -1408,7 +1410,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
               )}
             </div>
             <div className="chat-input-hint" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>MC {projectData.version} · {projectData.engine} · Enter = wyślij, Shift+Enter = nowa linia</span>
+              <span>{isEN ? `MC ${projectData.version} · ${projectData.engine} · Enter = send, Shift+Enter = new line` : `MC ${projectData.version} · ${projectData.engine} · Enter = wyślij, Shift+Enter = nowa linia`}</span>
             </div>
           </div>
         </div>
@@ -1421,15 +1423,15 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
               {buildError
                 ? `Błąd: ${buildError.split('\n')[0].slice(0,90)}`
                 : buildStatus==='Zakończono sukcesem!'
-                  ? '✓ Plugin skompilowany pomyślnie'
-                  : isBuilding ? buildStatus : 'Gotowy do kompilacji'}
+                  ? isEN ? '✓ Plugin compiled successfully' : '✓ Plugin skompilowany pomyślnie'
+                  : isBuilding ? buildStatus : isEN ? 'Ready to compile' : 'Gotowy do kompilacji'}
             </span>
           </div>
           <button className="btn-download" onClick={handleBuild} disabled={isBuilding}>
-            {isBuilding ? 'Kompilowanie...' : 'Buduj JAR'}
+            {isBuilding ? (isEN ? 'Compiling...' : 'Kompilowanie...') : (isEN ? 'Build JAR' : 'Buduj JAR')}
           </button>
           {buildError && (
-            <button className="btn-autofix" onClick={handleAutoFix}>Auto-Naprawa</button>
+            <button className="btn-autofix" onClick={handleAutoFix}>{isEN ? 'Auto-Fix' : 'Auto-Naprawa'}</button>
           )}
         </div>
       </div>
