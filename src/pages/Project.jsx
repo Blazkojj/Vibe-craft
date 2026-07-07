@@ -1088,7 +1088,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
           // Skip placeholder paths like "..." that AI generates when being lazy
           const isPlaceholder = path === '...' || path === '…' || /^\.{2,}$/.test(path) || path.length < 3;
           if (isPlaceholder) {
-            return '⚠️ AI wygenerowało pusty plik — wpisz "kontynuuj" lub powtórz prośbę, żeby AI dokończyło kod.';
+            return isEN ? '⚠️ AI generated an empty file — type "continue" or repeat your prompt so AI finishes the code.' : '⚠️ AI wygenerowało pusty plik — wpisz "kontynuuj" lub powtórz prośbę, żeby AI dokończyło kod.';
           }
           let isEdit = false;
           if (msgIndex > 0) {
