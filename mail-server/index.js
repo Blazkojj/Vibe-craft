@@ -21,6 +21,7 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'poczta2666244.home.pl',
   port: parseInt(process.env.SMTP_PORT || '465', 10),
   secure: parseInt(process.env.SMTP_PORT || '465', 10) === 465,
+  name: 'zenexcode.pl',
   auth: {
     user: process.env.SMTP_USER || 'support@zenexcode.pl',
     pass: process.env.SMTP_PASS,
