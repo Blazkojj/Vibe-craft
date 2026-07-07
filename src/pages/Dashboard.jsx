@@ -106,6 +106,8 @@ export default function Dashboard() {
   const [usedCredits, setUsedCredits] = useState('0.00');
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
+  const [enhanceInput, setEnhanceInput] = useState('');
   const [projects, setProjects] = useState([]);
   const [user, setUser] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
@@ -499,8 +501,16 @@ export default function Dashboard() {
     navigate(`/project/${data[0].id}`);
   };
 
+  const handleOpenEnhanceModal = () => {
+    if (planName === 'Free') {
+      alert('Generator promptów AI jest dostępny tylko od planu Basic (oraz dla kont Tester).');
+      return;
+    }
+    setIsEnhanceModalOpen(true);
+  };
+
   const handleEnhancePrompt = async () => {
-    if (!prompt.trim()) {
+    if (!enhanceInput.trim()) {
       alert('Wpisz chociaż kilka słów pomysłu, abym wiedział co ulepszyć!');
       return;
     }
@@ -513,11 +523,13 @@ export default function Dashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || ''}`
         },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt: enhanceInput })
       });
       const data = await res.json();
       if (data.enhanced) {
         setPrompt(data.enhanced);
+        setIsEnhanceModalOpen(false);
+        setEnhanceInput('');
       } else {
         alert('Błąd ulepszania: ' + (data.error || 'Nieznany błąd'));
       }
@@ -877,13 +889,12 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     className="dash-selector-btn"
-                    onClick={handleEnhancePrompt}
-                    disabled={isEnhancing || !prompt.trim()}
+                    onClick={handleOpenEnhanceModal}
                     style={{ background: 'var(--bg-card)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}
-                    title="Automatycznie ulepsz prompt używając AI (Claude Sonnet 4.6)"
+                    title="Generator Promptów AI (tylko dla płatnych planów i testerów)"
                   >
-                    <Wand2 size={12} className={isEnhancing ? "animate-pulse" : ""} />
-                    <span>{isEnhancing ? 'Magia działa...' : 'Ulepsz prompt'}</span>
+                    <Wand2 size={12} />
+                    <span>AI Generator</span>
                   </button>
 
                   <button
@@ -1351,6 +1362,42 @@ export default function Dashboard() {
         </div>
       )}
 
+      {isEnhanceModalOpen && (
+        <div className="dash-modal-overlay" onClick={() => setIsEnhanceModalOpen(false)}>
+          <div className="dash-modal" onClick={e => e.stopPropagation()}>
+            <div className="dash-modal-header">
+              <h3>Generator Promptów AI</h3>
+              <button className="dash-close-btn" onClick={() => setIsEnhanceModalOpen(false)}><X size={16} /></button>
+            </div>
+            <div className="dash-modal-body">
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: '1.4' }}>
+                Opisz krótko swój pomysł własnymi słowami. Claude Sonnet 4.6 za chwilę przekształci go w profesjonalny, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego VibeCraft. (Koszt: 0.01 PLN)
+              </p>
+              <textarea 
+                value={enhanceInput} 
+                onChange={e => setEnhanceInput(e.target.value)} 
+                placeholder="Np. 'Chcę serwer survival gdzie gracze kopią bloki, żeby zdobywać levele i kupować itemy w gui, a do tego system gildii na chacie.'"
+                style={{ 
+                  width: '100%', minHeight: '120px', background: 'var(--bg-input)', 
+                  color: '#fff', border: '1px solid var(--border)', 
+                  borderRadius: '8px', padding: '1rem', resize: 'vertical',
+                  fontSize: '0.95rem'
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button 
+                  className="dash-generate-btn" 
+                  onClick={handleEnhancePrompt}
+                  disabled={isEnhancing || !enhanceInput.trim()}
+                >
+                  <span>{isEnhancing ? 'Magia działa...' : 'Wygeneruj Super Prompt'}</span>
+                  <Wand2 size={12} className={isEnhancing ? "animate-pulse" : ""} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

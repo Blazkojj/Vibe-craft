@@ -119,21 +119,44 @@ function chatPlugin() {
               max_tokens: 4096
             });
             
-            const apiRes = await fetch(url, {
-              method: 'POST',
-              headers: reqHeaders,
-              body: requestBody
-            });
-            
-            const data = await apiRes.json();
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ enhanced: data.choices[0].message.content }));
-            } else {
-              throw new Error(data.error?.message || "Invalid response from API");
+            const curlArgs = ['-s', '-N', '-X', 'POST', url];
+            for (const [k, v] of Object.entries(reqHeaders)) {
+              curlArgs.push('-H', `${k}: ${v}`);
             }
+            curlArgs.push('-d', requestBody);
+
+            const curlProc = spawn(curlBin, curlArgs);
+            let responseData = '';
+            let stderrData = '';
+            
+            curlProc.stdout.on('data', d => { responseData += d.toString(); });
+            curlProc.stderr.on('data', d => { stderrData += d.toString(); });
+            
+            curlProc.on('close', (code) => {
+              if (code !== 0 && stderrData) {
+                res.statusCode = 500;
+                return res.end(JSON.stringify({ error: `Curl failed: ${stderrData.slice(0, 500)}` }));
+              }
+              
+              try {
+                if (responseData.trimStart().startsWith('<!DOCTYPE') || responseData.trimStart().startsWith('<html')) {
+                  throw new Error("Cloudflare zablokował żądanie.");
+                }
+                const data = JSON.parse(responseData);
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  res.end(JSON.stringify({ enhanced: data.choices[0].message.content }));
+                } else {
+                  throw new Error(data.error?.message || "Invalid response from API");
+                }
+              } catch (e) {
+                console.error('Enhance prompt parse error:', e);
+                res.statusCode = 500;
+                res.end(JSON.stringify({ error: e.message }));
+              }
+            });
           } catch (e) {
-            console.error('Enhance prompt error:', e);
+            console.error('Enhance prompt setup error:', e);
             res.statusCode = 500;
             res.end(JSON.stringify({ error: e.message }));
           }
