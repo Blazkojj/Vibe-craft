@@ -144,6 +144,11 @@ const generateWithBackend = async (model, systemPrompt, userPrompt, history, upd
       }
     }
   }
+  if (hasStartedReasoning && !hasEndedReasoning) {
+    fullText += '\n</think>\n\n';
+    hasEndedReasoning = true;
+    updateMsgCb(fullText);
+  }
   return fullText;
 };
 
@@ -239,6 +244,7 @@ function Project() {
   const [currentUser, setCurrentUser] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [showThinkingGlobal, setShowThinkingGlobal] = useState(false);
+  const [expandedThoughts, setExpandedThoughts] = useState({});
   
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -1147,7 +1153,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
 
     return (
       <div className="message-render-container">
-        {((isStreaming && !cleanedText) || (hasThink && thinkText.trim() && isStreaming) || (showThinkingGlobal && hasThink && thinkText.trim())) && (
+        {((isStreaming && !cleanedText) || (hasThink && thinkText.trim())) ? (
           <div className="ai-thinking-stream-box fade-in" style={{
             color: 'rgba(255, 255, 255, 0.45)',
             fontSize: '0.8125rem',
@@ -1160,16 +1166,44 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
             marginBottom: '1rem',
             fontFamily: 'var(--font-main)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#F97316', marginBottom: '0.5rem', fontWeight: 600 }}>
-              <Sparkles size={12} className={isStreaming && !cleanedText ? "animate-pulse" : ""} />
-              <span>{isStreaming ? (isEN ? "AI is thinking..." : "AI myśli...") : (isEN ? "AI Thought Process" : "Proces myślowy AI")}</span>
+            <div 
+              onClick={() => {
+                if (!isStreaming) {
+                  setExpandedThoughts(prev => ({ ...prev, [msgIndex]: !prev[msgIndex] }));
+                }
+              }}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                cursor: isStreaming ? 'default' : 'pointer',
+                userSelect: 'none',
+                marginBottom: (expandedThoughts[msgIndex] || isStreaming || (showThinkingGlobal && hasThink)) ? '0.5rem' : '0'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#F97316', fontWeight: 600 }}>
+                <Sparkles size={12} className={isStreaming && !cleanedText ? "animate-pulse" : ""} />
+                <span>
+                  {isStreaming 
+                    ? (isEN ? "AI is thinking..." : "AI myśli...") 
+                    : (isEN ? "AI Thought Process" : "Proces myślowy AI")}
+                </span>
+              </div>
+              {!isStreaming && (
+                <div style={{ color: '#F97316', display: 'flex', alignItems: 'center' }}>
+                  {(expandedThoughts[msgIndex] || isStreaming || (showThinkingGlobal && hasThink)) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </div>
+              )}
             </div>
-            <div style={{ whiteSpace: 'pre-wrap' }}>
-              {thinkText || (isEN ? "Connecting and processing..." : "Nawiązywanie połączenia i przetwarzanie...")}
-              {isStreaming && !cleanedText && <span className="blinking-cursor">▋</span>}
-            </div>
+            
+            {(expandedThoughts[msgIndex] || isStreaming || (showThinkingGlobal && hasThink)) && (
+              <div style={{ whiteSpace: 'pre-wrap' }}>
+                {thinkText || (isEN ? "Connecting and processing..." : "Nawiązywanie połączenia i przetwarzanie...")}
+                {isStreaming && !cleanedText && <span className="blinking-cursor">▋</span>}
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
 
         {cleanedText && (
           <ReactMarkdown 

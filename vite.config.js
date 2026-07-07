@@ -289,6 +289,7 @@ function chatPlugin() {
               }
 
               const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
+              console.log(`[chat] Incoming request for model: ${model}`);
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
               const isTrueClaude = ['claude-opus-4-8', 'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
@@ -311,7 +312,11 @@ function chatPlugin() {
                   if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_5; }
                 }
 
-                if (!apiKey) throw new Error("Brak odpowiedniego klucza API w .env");
+                console.log(`[chat] Target URL: ${url}, Backend model: ${backendModel}`);
+                if (!apiKey) {
+                  console.error(`[chat] Error: Missing API key for model ${model}`);
+                  throw new Error("Brak odpowiedniego klucza API w .env");
+                }
 
                 let finalSystemPrompt = systemPrompt;
                 if (model === 'z-ai/glm-5.2') {
@@ -366,7 +371,9 @@ function chatPlugin() {
                   max_tokens: 8192
                 });
 
+                console.log(`[chat] Spawning curl stream for ${backendModel}. Body size: ${requestBody.length} bytes`);
                 const proc = curlStream(url, reqHeaders, requestBody, res, (errMsg) => {
+                  console.error(`[chat] curlStream error callback: ${errMsg}`);
                   if (!res.headersSent) {
                     res.statusCode = 500;
                     res.end(`Błąd curl: ${errMsg}`);
@@ -382,11 +389,14 @@ function chatPlugin() {
                   if (firstChunk) {
                     firstChunk = false;
                     buf = chunk.toString('utf8');
+                    console.log(`[chat] Received first chunk of length ${chunk.length}. Preview: ${buf.slice(0, 150)}`);
+                    
                     // Wykryj HTML (Cloudflare block) lub czysty JSON z błędem
                     if (buf.trimStart().startsWith('{')) {
                       try {
                         const j = JSON.parse(buf);
                         if (j.error || j.code || j.message) {
+                          console.error(`[chat] First chunk detected JSON error response: ${buf}`);
                           if (!res.headersSent) {
                             res.statusCode = 400;
                             res.end(buf);
@@ -397,6 +407,7 @@ function chatPlugin() {
                       } catch(e) {}
                     }
                     if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
+                      console.error(`[chat] First chunk detected Cloudflare HTML block`);
                       if (!res.headersSent) {
                         res.statusCode = 403;
                         res.end('Cloudflare zablokował request (HTML response). Spróbuj zainstalować curl-impersonate-chrome.');
@@ -419,6 +430,7 @@ function chatPlugin() {
                 });
 
                 proc.stdout.on('end', () => {
+                  console.log(`[chat] curl stream ended for ${backendModel}`);
                   if (!res.writableEnded) res.end();
                 });
               } else {
