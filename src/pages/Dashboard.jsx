@@ -466,8 +466,8 @@ export default function Dashboard() {
     if (!user) { navigate('/login'); return; }
 
     if (window.location.hostname === 'free.zenexcode.pl') {
-      if (projects.length >= 3) {
-        alert('Osiągnąłeś limit 3 projektów na darmowej subdomenie! Usuń stary projekt, aby kontynuować.');
+      if (projects.length >= 2) {
+        alert('Osiągnąłeś limit 2 projektów na darmowej subdomenie! Usuń stary projekt, aby kontynuować.');
         return;
       }
     } else if (planName === 'Free' && projects.length >= 2) {
