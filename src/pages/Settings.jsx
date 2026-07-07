@@ -132,14 +132,14 @@ export default function Settings() {
   const unlinkDiscord = async () => {
     if (!window.confirm('Odłączyć konto Discord?')) return;
     try {
-      const discordIdentity = user.identities?.find(id => id.provider === 'discord');
-      console.log('[unlink] identities:', JSON.stringify(user.identities, null, 2));
-      console.log('[unlink] discordIdentity:', JSON.stringify(discordIdentity, null, 2));
+      const { data: identitiesData, error: identitiesErr } = await supabase.auth.getUserIdentities();
+      if (identitiesErr) throw identitiesErr;
+      const discordIdentity = identitiesData.identities.find(id => id.provider === 'discord');
+      console.log('[unlink] all identities:', JSON.stringify(identitiesData.identities, null, 2));
       if (!discordIdentity) throw new Error('Nie znaleziono połączenia Discord.');
-      const identityId = discordIdentity.identity_id || discordIdentity.id;
-      console.log('[unlink] identityId:', identityId, 'type:', typeof identityId);
-      const { error: unlinkError, data: unlinkData } = await supabase.auth.unlinkIdentity(identityId);
-      console.log('[unlink] result:', { unlinkError, unlinkData });
+      console.log('[unlink] discord identity:', JSON.stringify(discordIdentity, null, 2));
+      console.log('[unlink] identity_id:', discordIdentity.identity_id);
+      const { error: unlinkError } = await supabase.auth.unlinkIdentity(discordIdentity);
       if (unlinkError) throw unlinkError;
       await supabase.auth.updateUser({ data: { discord_profile: null } });
       setDiscordProfile(null);
