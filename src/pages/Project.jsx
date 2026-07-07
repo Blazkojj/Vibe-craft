@@ -660,7 +660,7 @@ ${projectData.prompt}
             const errNote = error.message?.includes('429')
               ? '\n\n---\n⚠️ **Przerwano — limit zapytań API (429).** Poczekaj ~1 min lub zmień model.'
               : `\n\n---\n⚠️ **Przerwano — błąd połączenia:** ${error.message || 'nieznany'}`;
-            return { ...m, text: (partial || '') + (partial ? errNote : ''), isStreaming: false };
+            return { ...m, text: (partial || '') + errNote, isStreaming: false };
           }));
         }
         if (error.message && error.message.includes('429')) {
@@ -928,7 +928,7 @@ ${userMsg}
           const errNote = err.message?.includes('429')
             ? '\n\n---\n⚠️ **Przerwano — limit zapytań API (429).** Poczekaj ~1 min lub zmień model.'
             : `\n\n---\n⚠️ **Przerwano — błąd połączenia:** ${err.message || 'nieznany'}`;
-          return { ...m, text: (partial || '') + (partial ? errNote : ''), isStreaming: false };
+          return { ...m, text: (partial || '') + errNote, isStreaming: false };
         }));
       }
       if (err.message && err.message.includes('429')) {
