@@ -1122,6 +1122,7 @@ export default function Dashboard() {
                      d.setMonth(d.getMonth() + 1);
                      newDate = d.toISOString().split('T')[0];
                      
+                     if (selectedPlan === 'TESTER') newBal = '10.00';
                      if (selectedPlan === 'Basic') newBal = '200.00';
                      if (selectedPlan === 'Pro') newBal = '320.00';
                      if (selectedPlan === 'Elite') newBal = '600.00';
@@ -1133,6 +1134,7 @@ export default function Dashboard() {
                   style={{ width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '0.625rem', color: 'var(--text)', outline: 'none' }}
                 >
                   <option value="Free">Free</option>
+                  <option value="TESTER">TESTER ($10)</option>
                   <option value="Basic">Basic ($200)</option>
                   <option value="Pro">Pro ($320)</option>
                   <option value="Elite">Elite ($600)</option>
