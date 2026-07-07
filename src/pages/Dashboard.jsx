@@ -453,8 +453,8 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate('/login'); return; }
 
-    if (planName === 'Free' && projects.length >= 3) {
-      alert('W darmowym planie możesz mieć maksymalnie 3 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
+    if (planName === 'Free' && projects.length >= 2) {
+      alert('W darmowym planie możesz mieć maksymalnie 2 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
       return;
     }
     const { data, error } = await supabase.from('projects').insert([{
