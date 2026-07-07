@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { supabase } from '../supabase';
 import './Pricing.css';
 
 const tiers = [
@@ -43,13 +44,78 @@ function Pricing() {
   const [selectedTier, setSelectedTier] = useState(null);
   const [email, setEmail] = useState('');
   const [suppiNick, setSuppiNick] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!email || !suppiNick) {
       alert("Proszę wypełnić wszystkie pola!");
       return;
     }
-    window.open('https://suppi.pl/zenexcode', '_blank');
+
+    setSubmitting(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      const hasDiscord = currentUser?.identities?.some(id => id.provider === 'discord');
+      if (!hasDiscord) {
+        alert('Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
+        return;
+      }
+
+      const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      const now = new Date();
+      const validUntilDate = new Date(now);
+      validUntilDate.setMonth(validUntilDate.getMonth() + 1);
+      const validUntil = validUntilDate.toISOString().split('T')[0];
+      const createdAt = now.toISOString();
+
+      const newOrder = {
+        orderId,
+        planName: selectedTier.name,
+        price: selectedTier.price,
+        creditsLabel: selectedTier.credits,
+        suppiNick: suppiNick.trim(),
+        status: 'pending',
+        createdAt,
+        validUntil,
+      };
+
+      const profileKey = `__user_profile:${currentUser.email}__`;
+      const { data: profs } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('title', profileKey);
+
+      if (profs && profs.length > 0) {
+        const record = profs[0];
+        const pData = record.messages || {};
+        const updatedProfile = {
+          ...pData,
+          pending_orders: [...(pData.pending_orders || []), newOrder],
+        };
+        await supabase
+          .from('projects')
+          .update({ messages: updatedProfile })
+          .eq('id', record.id);
+      } else {
+        await supabase.from('projects').insert([{
+          user_id: currentUser.id,
+          title: profileKey,
+          messages: { email: currentUser.email, pending_orders: [newOrder] },
+        }]);
+      }
+
+      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${selectedTier.price} zł na https://suppi.pl/zenexcode używając nicku: ${suppiNick}\n\nPo otrzymaniu wpłaty administrator aktywuje Twój pakiet. Potwierdzenie otrzymasz mailem.`);
+      window.open('https://suppi.pl/zenexcode', '_blank');
+      setSelectedTier(null);
+      setSuppiNick('');
+      setEmail('');
+    } catch (e) {
+      console.error(e);
+      alert('Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -126,8 +192,8 @@ function Pricing() {
               <strong>⚠️ Ważne!</strong> Podaj tutaj <u>dokładnie taki sam Nick oraz E-mail</u>, jakiego użyjesz przy płatności na portalu Suppi! Tylko na tej podstawie przypiszemy pakiet do Twojego konta.
             </div>
             
-            <button className="claude-checkout-btn" onClick={handleCheckout}>
-              Przejdź do płatności ({selectedTier.price} PLN)
+            <button className="claude-checkout-btn" onClick={handleCheckout} disabled={submitting}>
+              {submitting ? 'Przetwarzanie...' : `Przejdź do płatności (${selectedTier.price} PLN)`}
             </button>
           </div>
         </div>
