@@ -346,29 +346,46 @@ client.on('guildMemberRemove', async (member) => {
   }
 });
 
-// Moduł: Logowanie zakupów na kanale 1523689991979663541
+// Moduł: Logowanie zakupów
 export async function sendPurchaseLog(userDiscordId, planName, payload = {}) {
-  const purchaseChannelId = '1523689991979663541';
+  const adminChannelId = '1523689991979663541';
+  const publicChannelId = '1522994859621748827';
   try {
-    const channel = client.channels.cache.get(purchaseChannelId) || await client.channels.fetch(purchaseChannelId);
-    if (!channel) return;
+    // 1. Admin Log
+    const adminChannel = client.channels.cache.get(adminChannelId) || await client.channels.fetch(adminChannelId);
+    if (adminChannel) {
+      const adminEmbed = new EmbedBuilder()
+        .setColor('#FF6B00')
+        .setTitle('🛒 Nowe zamówienie w Zenexcode! (Szczegóły)')
+        .setDescription(userDiscordId ? `<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!` : `Użytkownik właśnie zakupił pakiet **${planName}**!`)
+        .addFields(
+          { name: 'Pakiet', value: planName || 'Nieznany', inline: true },
+          { name: 'Kwota', value: payload.price ? `${payload.price} PLN` : 'Brak danych', inline: true },
+          { name: 'Email', value: payload.email || 'Brak', inline: true },
+          { name: 'Discord Tag', value: payload.discordTag || 'Brak', inline: true },
+          { name: 'IP Kupującego', value: payload.clientIp || 'Brak (lokalne)', inline: true },
+          { name: 'ID Zamówienia', value: payload.orderId || 'Brak', inline: true }
+        )
+        .setFooter({ text: 'Dziękujemy za zaufanie! ~ Zespół Zenexcode' })
+        .setTimestamp();
+      await adminChannel.send({ embeds: [adminEmbed] });
+    }
 
-    const embed = new EmbedBuilder()
-      .setColor('#FF6B00')
-      .setTitle('🛒 Nowe zamówienie w Zenexcode!')
-      .setDescription(userDiscordId ? `<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!` : `Użytkownik właśnie zakupił pakiet **${planName}**!`)
-      .addFields(
-        { name: 'Pakiet', value: planName || 'Nieznany', inline: true },
-        { name: 'Kwota', value: payload.price ? `${payload.price} PLN` : 'Brak danych', inline: true },
-        { name: 'Email', value: payload.email || 'Brak', inline: true },
-        { name: 'Discord Tag', value: payload.discordTag || 'Brak', inline: true },
-        { name: 'IP Kupującego', value: payload.clientIp || 'Brak (lokalne)', inline: true },
-        { name: 'ID Zamówienia', value: payload.orderId || 'Brak', inline: true }
-      )
-      .setFooter({ text: 'Dziękujemy za zaufanie! ~ Zespół Zenexcode' })
-      .setTimestamp();
-
-    await channel.send({ embeds: [embed] });
+    // 2. Public Log
+    const publicChannel = client.channels.cache.get(publicChannelId) || await client.channels.fetch(publicChannelId);
+    if (publicChannel) {
+      const publicEmbed = new EmbedBuilder()
+        .setColor('#FF6B00')
+        .setTitle('🎉 Nowy Klient Zenexcode!')
+        .setDescription(userDiscordId ? `<@${userDiscordId}> właśnie zakupił pakiet **${planName}**!` : `Użytkownik właśnie zakupił pakiet **${planName}**!`)
+        .addFields(
+          { name: 'Status', value: 'Aktywny', inline: true },
+          { name: 'Dostęp', value: 'Odblokowany do panelu i ról', inline: true }
+        )
+        .setFooter({ text: 'Dziękujemy za zaufanie! ~ Zespół Zenexcode' })
+        .setTimestamp();
+      await publicChannel.send({ embeds: [publicEmbed] });
+    }
 
     const premiumRoleId = process.env.PREMIUM_ROLE_ID || '1523690703509651456';
     if (userDiscordId && premiumRoleId) {
