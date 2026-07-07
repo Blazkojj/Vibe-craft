@@ -134,7 +134,12 @@ const generateWithBackend = async (model, systemPrompt, userPrompt, history, upd
           fullText += parsed.content;
           updateMsgCb(fullText);
         }
+        // Error from API during stream
+        else if (parsed.error) {
+          throw new Error(`API Error: ${parsed.error.message || JSON.stringify(parsed.error)}`);
+        }
       } catch(e) {
+        if (e.message && e.message.includes('API Error')) throw e;
         console.error("SSE JSON Parse Error for line:", dataStr, e);
       }
     }

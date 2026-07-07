@@ -382,7 +382,20 @@ function chatPlugin() {
                   if (firstChunk) {
                     firstChunk = false;
                     buf = chunk.toString('utf8');
-                    // Wykryj HTML (Cloudflare block) — zaczyna się od "<!DOCTYPE" lub "<html"
+                    // Wykryj HTML (Cloudflare block) lub czysty JSON z błędem
+                    if (buf.trimStart().startsWith('{')) {
+                      try {
+                        const j = JSON.parse(buf);
+                        if (j.error || j.code || j.message) {
+                          if (!res.headersSent) {
+                            res.statusCode = 400;
+                            res.end(buf);
+                          }
+                          proc.kill();
+                          return;
+                        }
+                      } catch(e) {}
+                    }
                     if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
                       if (!res.headersSent) {
                         res.statusCode = 403;

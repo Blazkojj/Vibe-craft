@@ -1,0 +1,1 @@
+{"model":"claude-sonnet-4-6","messages":[{"role":"system","content":[{"type":"text","text":"You are an expert Java programmer.","cache_control":{"type":"ephemeral"}}]},{"role":"user","content":"make a plugin for economy"}],"stream":true,"max_tokens":8192}
