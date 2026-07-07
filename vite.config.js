@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
-import { exec } from 'child_process'
+import { exec, execFile, execSync, spawn } from 'child_process'
 import dotenv from 'dotenv'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -13,6 +13,40 @@ function chatPlugin() {
   return {
     name: 'chat-plugin',
     configureServer(server) {
+      // Sprawdź które curl jest dostępne (preferuj curl-impersonate-chrome)
+      let curlBin = 'curl';
+      try {
+        execSync('which curl-impersonate-chrome', { stdio: 'ignore' });
+        curlBin = 'curl-impersonate-chrome';
+        console.log('[chat] using curl-impersonate-chrome for TLS bypass');
+      } catch {
+        console.log('[chat] using system curl');
+      }
+
+      // Stream POST przez curl (omija Cloudflare JA3 - curl ma OpenSSL, nie Node TLS)
+      function curlStream(targetUrl, headers, body, res, onError) {
+        const args = ['-s', '-N', '-X', 'POST', targetUrl];
+        for (const [k, v] of Object.entries(headers)) {
+          args.push('-H', `${k}: ${v}`);
+        }
+        args.push('-d', body);
+
+        const proc = spawn(curlBin, args);
+        let stderr = '';
+        proc.stderr.on('data', d => { stderr += d.toString(); });
+
+        proc.on('error', err => {
+          onError(`curl spawn failed: ${err.message}`);
+        });
+        proc.on('close', code => {
+          if (code !== 0 && stderr) {
+            onError(`curl exit ${code}: ${stderr.slice(0, 500)}`);
+          }
+        });
+
+        return proc;
+      }
+
       server.middlewares.use('/api/verify-turnstile', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
@@ -116,45 +150,58 @@ function chatPlugin() {
                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                   'Accept': 'text/event-stream, application/json',
                   'Accept-Language': 'en-US,en;q=0.9',
-                  'Accept-Encoding': 'gzip, deflate, br',
-                  'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                  'Sec-Ch-Ua-Mobile': '?0',
-                  'Sec-Ch-Ua-Platform': '"Windows"',
-                  'Sec-Fetch-Dest': 'empty',
-                  'Sec-Fetch-Mode': 'cors',
-                  'Sec-Fetch-Site': 'crosssite',
-                  'Origin': 'https://zenexcode.pl',
-                  'Referer': 'https://zenexcode.pl/'
                 };
                 if (isTrueClaude) reqHeaders['anthropic-beta'] = 'prompt-caching-2024-07-31';
 
-                const response = await fetch(url, {
-                  method: 'POST',
-                  headers: reqHeaders,
-                  body: JSON.stringify({
-                    model: backendModel,
-                    messages: messages,
-                    stream: true,
-                    max_tokens: 8192
-                  })
+                const requestBody = JSON.stringify({
+                  model: backendModel,
+                  messages: messages,
+                  stream: true,
+                  max_tokens: 8192
                 });
-                
-                if (!response.ok) {
-                  const errText = await response.text();
-                  res.statusCode = response.status;
-                  return res.end(errText);
-                }
-                
-                res.writeHead(200, {
-                  'Content-Type': 'text/event-stream',
-                  'Cache-Control': 'no-cache',
-                  'Connection': 'keep-alive'
+
+                const proc = curlStream(url, reqHeaders, requestBody, res, (errMsg) => {
+                  if (!res.headersSent) {
+                    res.statusCode = 500;
+                    res.end(`Błąd curl: ${errMsg}`);
+                  }
                 });
-                
-                for await (const chunk of response.body) {
-                  res.write(chunk);
-                }
-                res.end();
+
+                // Najpierw musimy wiedzieć czy HTTP status OK — curl -i daje headers,
+                // ale dla uproszczenia czytamy pierwsze bajty: jeśli zaczyna się od "<" to HTML (CF block)
+                let firstChunk = true;
+                let buf = '';
+
+                proc.stdout.on('data', (chunk) => {
+                  if (firstChunk) {
+                    firstChunk = false;
+                    buf = chunk.toString('utf8');
+                    // Wykryj HTML (Cloudflare block) — zaczyna się od "<!DOCTYPE" lub "<html"
+                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
+                      if (!res.headersSent) {
+                        res.statusCode = 403;
+                        res.end('Cloudflare zablokował request (HTML response). Spróbuj zainstalować curl-impersonate-chrome.');
+                      }
+                      proc.kill();
+                      return;
+                    }
+                    // OK — wyślij nagłówki i pierwszą porcję
+                    if (!res.headersSent) {
+                      res.writeHead(200, {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive'
+                      });
+                    }
+                    res.write(chunk);
+                  } else {
+                    res.write(chunk);
+                  }
+                });
+
+                proc.stdout.on('end', () => {
+                  if (!res.writableEnded) res.end();
+                });
               } else {
                 // Gemini API
                 const apiKey = process.env.GEMINI_API_KEY;
