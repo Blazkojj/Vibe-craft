@@ -594,12 +594,14 @@ ${projectData.prompt}
            
            const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD.`;
            
-           const strippedThought = thoughtText
+           let strippedThought = thoughtText
              .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
              .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
+           
+           strippedThought = strippedThought.replace(/<\/?(?:think|thinking|plan)>/gi, '');
 
            const glmText = await generateWithBackend(
-             'claude-sonnet-5',
+             'claude-opus-4-8',
              glmSystemPrompt,
              `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
              [],
@@ -827,12 +829,14 @@ ${userMsg}
          
          const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
          
-         const strippedThought = thoughtText
+         let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
            .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
+           
+         strippedThought = strippedThought.replace(/<\/?(?:think|thinking|plan)>/gi, '');
 
          const glmText = await generateWithBackend(
-           'claude-sonnet-5',
+           'claude-opus-4-8',
            glmSystemPrompt,
            `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
            formattedHistory,
