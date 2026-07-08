@@ -239,13 +239,7 @@
   scroll-behavior:smooth;
   position:relative;
 }
-.chat-messages::before{
-  content:"";position:absolute;inset:0;
-  background:
-    radial-gradient(circle at 15% 12%,rgba(255,107,0,0.045),transparent 38%),
-    radial-gradient(circle at 85% 92%,rgba(99,102,241,0.030),transparent 42%);
-  pointer-events:none;z-index:0;
-}
+
 .chat-messages > *{position:relative;z-index:1}
 .chat-msg{
   display:flex;gap:0.875rem;

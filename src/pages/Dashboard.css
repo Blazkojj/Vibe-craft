@@ -13,26 +13,15 @@
   position: relative;
 }
 
-/* ─── GRID BACKGROUND ─── */
+/* ─── GLOW BACKGROUND ─── */
 .dashboard-grid-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: 
-    radial-gradient(circle at 15% 50%, rgba(255, 107, 0, 0.06), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(139, 124, 246, 0.05), transparent 25%);
+    radial-gradient(circle at 15% 50%, rgba(255, 107, 0, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(255, 107, 0, 0.03), transparent 25%);
   z-index: 1;
   pointer-events: none;
-}
-.dashboard-grid-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 40px 40px;
-  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
-  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 80%);
 }
 
 /* ─── TOP BAR ─── */

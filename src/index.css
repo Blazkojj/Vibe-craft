@@ -4,15 +4,15 @@
    VIBECRAFT — DESIGN TOKENS (warm-dark / orange)
    ═══════════════════════════════════════════════ */
 :root {
-  --bg-canvas:      #1C1E24;
-  --bg-surface:     #1C1E24;
-  --bg-card:        #2A2D35;
-  --bg-card-hover:  #323640;
-  --bg-elevated:    #323640;
+  --bg-canvas:      #050505;
+  --bg-surface:     #0A0A0A;
+  --bg-card:        #121212;
+  --bg-card-hover:  #1A1A1A;
+  --bg-elevated:    #18181B;
 
-  --border:         #3A3E48;
-  --border-strong:  #4F5460;
-  --border-light:   rgba(255,255,255,0.06);
+  --border:         #27272A;
+  --border-strong:  #3F3F46;
+  --border-light:   rgba(255,255,255,0.04);
   --border-focus:   rgba(255,107,0,0.45);
 
   --accent:         #FF6B00;

@@ -111,7 +111,6 @@ export default function Landing() {
     <div className="dev-landing">
       {/* Background Orbs & Grid */}
       <div className="landing-bg" />
-      <div className="landing-grid" />
       <div className="glow-orb top-left" />
       <div className="glow-orb bottom-right" />
 
