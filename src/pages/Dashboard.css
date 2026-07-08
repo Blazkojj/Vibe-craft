@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--bg-canvas);
+  background-color: #000;
   color: var(--text);
   font-family: var(--font);
   overflow: hidden;
@@ -18,8 +18,7 @@
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: 
-    radial-gradient(circle at 15% 50%, rgba(255, 107, 0, 0.05), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(255, 107, 0, 0.03), transparent 25%);
+    transparent;
   z-index: 1;
   pointer-events: none;
 }
@@ -27,19 +26,21 @@
 /* ─── TOP BAR ─── */
 .dash-topbar {
   height: 64px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  background: rgba(28, 30, 36, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0 1.5rem;
+  background: rgba(12, 12, 12, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
   z-index: 10;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  width: calc(100% - 3rem);
 }
-
 .dash-topbar-brand {
   display: flex;
   align-items: center;
@@ -207,11 +208,7 @@
 }
 
 .dash-stat-card {
-  background: rgba(42, 45, 53, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--r-lg);
+  background: rgba(18, 18, 18, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px;
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -272,11 +269,7 @@
 
 /* GENERATOR CARD */
 .dash-input-card {
-  background: rgba(28, 30, 36, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--r-xl);
+  background: rgba(18, 18, 18, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -436,10 +429,7 @@
 }
 
 .dash-project-row-card {
-  background: rgba(28, 30, 36, 0.3);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: var(--r-md);
+  background: rgba(18, 18, 18, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px;
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -607,11 +597,7 @@
 }
 
 .dash-shop-card {
-  background: rgba(42, 45, 53, 0.3);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--r-xl);
+  background: rgba(18, 18, 18, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px;
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -704,10 +690,7 @@
 }
 
 .dash-inv-card {
-  background: rgba(42, 45, 53, 0.4);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--r-xl);
+  background: rgba(18, 18, 18, 0.5); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px;
   padding: 2.5rem;
   display: flex;
   flex-direction: column;
