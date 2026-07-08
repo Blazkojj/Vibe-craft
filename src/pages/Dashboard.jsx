@@ -41,35 +41,35 @@ const ENGINES = [
   'Paper', 'Spigot', 'Purpur', 'Velocity', 'BungeeCord'
 ];
 
-const MODELS = [
-  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', badge: 'Najlepszy' },
+const getModels = (isEN) => [
+  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', badge: isEN ? 'Best' : 'Najlepszy' },
   { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
-  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5.0', badge: 'Nowość' },
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', badge: 'Popularny' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', badge: 'Szybki' },
-  { id: 'z-ai/glm-5.2', label: 'GLM 5.2', badge: 'Darmowy' }
+  { id: 'claude-sonnet-5', label: 'Claude Sonnet 5.0', badge: isEN ? 'New' : 'Nowość' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', badge: isEN ? 'Popular' : 'Popularny' },
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', badge: isEN ? 'Fast' : 'Szybki' },
+  { id: 'z-ai/glm-5.2', label: 'GLM 5.2', badge: isEN ? 'Free' : 'Darmowy' }
 ];
 
-const getPLANS = (D) => [
+const getPLANS = (D, isEN) => [
   {
     name: 'Basic', price: '30', credits: '$200', color: '#3B82F6',
-    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureBaseModels || 'Podstawowe modele', D.planFeatureSupport || 'Standardowe wsparcie'],
+    features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureBaseModels || 'Basic models', D.planFeatureSupport || 'Standard support'],
   },
   {
     name: 'Pro', price: '50', credits: '$320', popular: true, color: '#FF6432',
-    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeaturePrioritySupport || 'Priorytetowe wsparcie', D.planFeatureRpm || 'Zwiększony limit RPM', D.planFeatureSonnetOpus || 'Claude Sonnet + Opus'],
+    features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeaturePrioritySupport || 'Priority support', D.planFeatureRpm || 'Increased RPM limit', D.planFeatureSonnetOpus || 'Claude Sonnet + Opus'],
   },
   {
     name: 'Elite', price: '100', credits: '$600', color: '#F59E0B',
-    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureAlpha || 'Dostęp do modeli Alpha', D.planFeatureDiscordSupport || 'Wsparcie Discord', D.planFeatureAllModels || 'Wszystkie modele'],
+    features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureAlpha || 'Access to Alpha models', D.planFeatureDiscordSupport || 'Discord support', D.planFeatureAllModels || 'All models'],
   },
   {
     name: 'Ultimate', price: '150', credits: '$900', color: '#22C55E',
-    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureDedicated || 'Dedykowany serwer', D.planFeatureNoRpm || 'Brak limitu RPM', D.planFeatureAllModels || 'Wszystkie modele'],
+    features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureDedicated || 'Dedicated server', D.planFeatureNoRpm || 'No RPM limit', D.planFeatureAllModels || 'All models'],
   },
   {
-    name: 'Unlimited+', price: '250', credits: '∞ tokenów', color: '#EF4444',
-    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureFairUse || 'Fair Use Unlimited', D.planFeatureSla || 'Najwyższy priorytet SLA', D.planFeatureAllModels || 'Wszystkie modele'],
+    name: 'Unlimited+', price: '250', credits: isEN ? '∞ tokens' : '∞ tokenów', color: '#EF4444',
+    features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureFairUse || 'Fair Use Unlimited', D.planFeatureSla || 'Highest priority SLA', D.planFeatureAllModels || 'All models'],
   }
 ];
 
@@ -103,6 +103,7 @@ export default function Dashboard() {
   const { lang, t } = useLang();
   const isEN = lang === 'en';
   const D = t.dashboard || {};
+  const MODELS = getModels(isEN);
   const dropdownRef = useRef(null);
   const [activeView, setActiveView] = useState('generator');
   const [prompt, setPrompt] = useState('');
@@ -523,11 +524,11 @@ export default function Dashboard() {
 
     if (window.location.hostname === 'free.zenexcode.pl') {
       if (projects.length >= 2) {
-        alert('Osiągnąłeś limit 2 projektów na darmowej subdomenie! Usuń stary projekt, aby kontynuować.');
+        alert(isEN ? 'You have reached the 2-project limit on the free subdomain! Delete an old project to continue.' : 'Osiągnąłeś limit 2 projektów na darmowej subdomenie! Usuń stary projekt, aby kontynuować.');
         return;
       }
     } else if (planName === 'Free' && projects.length >= 2) {
-      alert('W darmowym planie możesz mieć maksymalnie 2 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
+      alert(isEN ? 'On the free plan you can have up to 2 projects. Delete an old project or upgrade to create a new one.' : 'W darmowym planie możesz mieć maksymalnie 2 projekty. Usuń stary projekt lub przejdź na wyższy plan, aby utworzyć nowy.');
       return;
     }
     try {
@@ -536,17 +537,17 @@ export default function Dashboard() {
         title: (typeof explicitPrompt === 'string' ? explicitPrompt : prompt).split(' ').slice(0, 5).join(' ') + '...',
         prompt: p, version: mcVersion, engine, model, messages: [],
       }]).select();
-      if (error) { alert(`Błąd: ${error.message}`); return; }
+      if (error) { alert(isEN ? `Error: ${error.message}` : `Błąd: ${error.message}`); return; }
       setPrompt('');
       navigate(`/project/${data[0].id}`);
     } catch (err) {
-      alert(`Błąd połączenia z bazą: ${err.message || 'Failed to fetch'}`);
+      alert(isEN ? `Database connection error: ${err.message || 'Failed to fetch'}` : `Błąd połączenia z bazą: ${err.message || 'Failed to fetch'}`);
     }
   };
 
   const handleOpenEnhanceModal = () => {
     if (planName === 'Free') {
-      alert('Generator promptów AI jest dostępny tylko od planu Basic (oraz dla kont Tester).');
+      alert(isEN ? 'The AI prompt generator is only available from the Basic plan and above (or Tester accounts).' : 'Generator promptów AI jest dostępny tylko od planu Basic (oraz dla kont Tester).');
       return;
     }
     setIsEnhanceModalOpen(true);
@@ -554,7 +555,7 @@ export default function Dashboard() {
 
   const handleEnhancePrompt = async () => {
     if (!enhanceInput.trim()) {
-      alert('Wpisz chociaż kilka słów pomysłu, abym wiedział co ulepszyć!');
+      alert(isEN ? 'Enter at least a few words so I know what to enhance!' : 'Wpisz chociaż kilka słów pomysłu, abym wiedział co ulepszyć!');
       return;
     }
     setIsEnhancing(true);
@@ -574,10 +575,10 @@ export default function Dashboard() {
         setIsEnhanceModalOpen(false);
         setEnhanceInput('');
       } else {
-        alert('Błąd ulepszania: ' + (data.error || 'Nieznany błąd'));
+        alert((isEN ? 'Enhancement error: ' : 'Błąd ulepszania: ') + (data.error || (isEN ? 'Unknown error' : 'Nieznany błąd')));
       }
     } catch (e) {
-      alert('Błąd połączenia: ' + e.message);
+      alert((isEN ? 'Connection error: ' : 'Błąd połączenia: ') + e.message);
     } finally {
       setIsEnhancing(false);
     }
@@ -606,9 +607,9 @@ export default function Dashboard() {
   const formatDate = (iso) => {
     const d = new Date(iso);
     const diff = Date.now() - d.getTime();
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m temu`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h temu`;
-    return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}${isEN ? 'm ago' : 'm temu'}`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${isEN ? 'h ago' : 'h temu'}`;
+    return d.toLocaleDateString(isEN ? 'en-GB' : 'pl-PL', { day: 'numeric', month: 'short' });
   };
 
   const handleCheckoutConfirm = async () => {
@@ -619,7 +620,7 @@ export default function Dashboard() {
 
     const hasDiscord = currentUser?.identities?.some(id => id.provider === 'discord') || !!currentUser?.user_metadata?.discord_profile;
     if (!hasDiscord) {
-      alert('Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
+      alert(isEN ? 'To make a purchase, you must connect your Discord account in the Settings tab!' : 'Aby dokonać zakupu, musisz połączyć swoje konto z Discordem w zakładce Ustawienia!');
       setCheckoutItem(null);
       navigate('/ustawienia');
       return;
@@ -627,7 +628,7 @@ export default function Dashboard() {
 
     const nick = suppiNick.trim();
     if (!nick) {
-      alert('Podaj nick na Suppi, którego użyjesz przy wpłacie.');
+      alert(isEN ? 'Please enter your Suppi nickname that you will use when paying.' : 'Podaj nick na Suppi, którego użyjesz przy wpłacie.');
       return;
     }
 
@@ -680,13 +681,15 @@ export default function Dashboard() {
         }]);
       }
 
-      alert(`Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/zenexcode używając nicku: ${nick}\n\nZa chwilę otworzy się strona Suppi. System automatycznie wykryje Twoją wpłatę w czasie rzeczywistym i w ułamku sekundy aktywuje pakiet na koncie! Potwierdzenie otrzymasz mailem.`);
+      alert(isEN
+        ? `Order placed! ID: ${orderId}\n\nPay ${checkoutItem.price} at https://suppi.pl/zenexcode using nick: ${nick}\n\nSuppi will open now. The system will detect your payment in real time and activate the plan instantly! You will receive a confirmation by email.`
+        : `Zamówienie złożone! Nr: ${orderId}\n\nWpłać ${checkoutItem.price} zł na https://suppi.pl/zenexcode używając nicku: ${nick}\n\nZa chwilę otworzy się strona Suppi. System automatycznie wykryje Twoją wpłatę w czasie rzeczywistym i w ułamku sekundy aktywuje pakiet na koncie! Potwierdzenie otrzymasz mailem.`);
       setCheckoutItem(null);
       setSuppiNick('');
       window.open('https://suppi.pl/zenexcode', '_blank');
     } catch (e) {
       console.error(e);
-      alert('Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
+      alert(isEN ? 'An unexpected error occurred while placing the order.' : 'Wystąpił nieoczekiwany błąd podczas składania zamówienia.');
     } finally {
       setPaying(false);
     }
@@ -904,13 +907,13 @@ export default function Dashboard() {
 
   const handleDeleteMarketItem = async (itemId, e) => {
     e.stopPropagation();
-    if (!window.confirm('Czy na pewno chcesz usunąć tę ofertę z Marketplace?')) return;
+    if (!window.confirm(isEN ? 'Are you sure you want to remove this listing from the Marketplace?' : 'Czy na pewno chcesz usunąć tę ofertę z Marketplace?')) return;
     try {
       const { error } = await supabase.from('projects').delete().eq('id', itemId);
       if (error) {
-        alert(`Błąd: ${error.message}`);
+        alert(isEN ? `Error: ${error.message}` : `Błąd: ${error.message}`);
       } else {
-        alert('Oferta usunięta.');
+        alert(isEN ? 'Listing removed.' : 'Oferta usunięta.');
         fetchMarketplaceItems();
       }
     } catch (err) {
@@ -1229,7 +1232,7 @@ export default function Dashboard() {
                           </button>
                           <button 
                             className="dash-project-share-btn"
-                            title="Udostępnij w Marketplace"
+                            title={isEN ? 'Share on Marketplace' : 'Udostępnij w Marketplace'}
                             onClick={e => { e.stopPropagation(); handleOpenPublishModal(proj); }}
                           >
                             <Share2 size={13} />
@@ -1412,7 +1415,7 @@ export default function Dashboard() {
             <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>{D.pricingNotSub}</p>
           </div>
           <div className="claude-pricing-grid">
-            {getPLANS(D).map((plan) => (
+            {getPLANS(D, isEN).map((plan) => (
               <div key={plan.name} className={`claude-pricing-card ${plan.popular ? 'popular' : ''}`}>
                 {plan.popular && <div className="claude-badge">{D.pricingPopular}</div>}
                 <div className="claude-tier-name">{plan.name}</div>
