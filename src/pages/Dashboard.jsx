@@ -1025,7 +1025,7 @@ export default function Dashboard() {
               <h1 className="dash-hero-title">{D.heroTitle}</h1>
               
               {/* MASSIVE PROMPT BAR */}
-              <div className="dash-prompt-bar-bento" ref={dropdownRef}>
+              <div className="dash-prompt-bar-bento">
                 <div className="dash-prompt-icon-left">
                   <Terminal size={22} />
                 </div>
@@ -1045,7 +1045,7 @@ export default function Dashboard() {
                   <span>Generuj</span>
                 </button>
               </div>
-              <div className="dash-input-footer-row">
+              <div className="dash-input-footer-row" ref={dropdownRef}>
                 <div className="dash-dropdowns-group">
                   
                   {/* Model Selector */}
