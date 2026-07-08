@@ -100,6 +100,9 @@ const ModelIcon = ({ modelId, size = 12 }) => {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { lang, t } = useLang();
+  const isEN = lang === 'en';
+  const D = t.dashboard || {};
   const dropdownRef = useRef(null);
   const [activeView, setActiveView] = useState('generator');
   const [prompt, setPrompt] = useState('');
@@ -777,15 +780,15 @@ export default function Dashboard() {
       }]);
 
       if (error) {
-        alert(`Błąd publikacji: ${error.message}`);
+        alert(isEN ? `Publish error: ${error.message}` : `Błąd publikacji: ${error.message}`);
       } else {
-        alert('Projekt został udostępniony na Marketplace!');
+        alert(isEN ? 'Project has been shared on the Marketplace!' : 'Projekt został udostępniony na Marketplace!');
         setIsPublishModalOpen(false);
         fetchMarketplaceItems();
       }
     } catch (err) {
       console.error(err);
-      alert('Błąd podczas publikacji.');
+      alert(isEN ? 'Error during publication.' : 'Błąd podczas publikacji.');
     } finally {
       setPublishing(false);
     }
@@ -797,8 +800,12 @@ export default function Dashboard() {
 
     const priceVal = parseFloat(item.price || 0);
     const confirmMsg = priceVal > 0 
-      ? `Czy na pewno chcesz kupić i zaimportować projekt "${item.title}" za ${priceVal.toFixed(2)} PLN?`
-      : `Czy chcesz zaimportować darmowy projekt "${item.title}"?`;
+      ? (isEN 
+          ? `Are you sure you want to buy and import project "${item.title}" for ${priceVal.toFixed(2)} PLN?`
+          : `Czy na pewno chcesz kupić i zaimportować projekt "${item.title}" za ${priceVal.toFixed(2)} PLN?`)
+      : (isEN 
+          ? `Do you want to import the free project "${item.title}"?`
+          : `Czy chcesz zaimportować darmowy projekt "${item.title}"?`);
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -813,7 +820,7 @@ export default function Dashboard() {
       const buyerProfileKey = `__user_profile:${currentUser.email}__`;
       const { data: buyerProfs } = await supabase.from('projects').select('*').eq('title', buyerProfileKey);
       if (!buyerProfs || !buyerProfs[0]) {
-        alert('Nie odnaleziono profilu użytkownika.');
+        alert(isEN ? 'User profile not found.' : 'Nie odnaleziono profilu użytkownika.');
         return;
       }
 
@@ -822,7 +829,9 @@ export default function Dashboard() {
       const buyerBalance = parseFloat(buyerData.balance || '0.00');
 
       if (priceVal > 0 && buyerBalance < priceVal) {
-        alert(`Niewystarczające środki w portfelu! Koszt: ${priceVal.toFixed(2)} PLN. Twoje saldo: ${buyerBalance.toFixed(2)} PLN. Przejdź do zakładki Cennik lub Ustawienia, aby doładować konto.`);
+        alert(isEN 
+          ? `Insufficient funds in your wallet! Cost: ${priceVal.toFixed(2)} PLN. Your balance: ${buyerBalance.toFixed(2)} PLN. Go to the Pricing or Settings tab to top up your account.`
+          : `Niewystarczające środki w portfelu! Koszt: ${priceVal.toFixed(2)} PLN. Twoje saldo: ${buyerBalance.toFixed(2)} PLN. Przejdź do zakładki Cennik lub Ustawienia, aby doładować konto.`);
         return;
       }
 
@@ -880,14 +889,14 @@ export default function Dashboard() {
       }]).select();
 
       if (insertErr) {
-        alert(`Błąd tworzenia projektu: ${insertErr.message}`);
+        alert(isEN ? `Error creating project: ${insertErr.message}` : `Błąd tworzenia projektu: ${insertErr.message}`);
       } else {
-        alert('Projekt został pomyślnie zaimportowany!');
+        alert(isEN ? 'Project imported successfully!' : 'Projekt został pomyślnie zaimportowany!');
         navigate(`/project/${newProj[0].id}`);
       }
     } catch (err) {
       console.error(err);
-      alert('Wystąpił błąd podczas transakcji.');
+      alert(isEN ? 'An error occurred during the transaction.' : 'Wystąpił błąd podczas transakcji.');
     } finally {
       setBuyingItemId(null);
     }
@@ -914,9 +923,6 @@ export default function Dashboard() {
       fetchMarketplaceItems();
     }
   }, [activeView]);
-
-  const { t } = useLang();
-  const D = t.dashboard || {};
 
   return (
     <div className="dashboard-root">

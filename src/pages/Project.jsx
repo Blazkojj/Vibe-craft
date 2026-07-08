@@ -210,6 +210,8 @@ const CodeBlock = ({ lang, className, children, ...props }) => {
 const FileBlock = ({ fb }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { lang } = useLang();
+  const isEN = lang === 'en';
   const copy = (e) => {
     e.stopPropagation();
     navigator.clipboard?.writeText(fb.code);
@@ -969,7 +971,14 @@ ${userMsg}
     setActiveTab('chat');
     
     // Pass the actual project parameters, telling AI this is an automated system fix
-    const errorMsg = `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
+    const errorMsg = isEN 
+      ? `[SYSTEM-AUTO-FIX] A compilation error occurred while building the Java plugin. 
+Here is the error from the terminal:
+\`\`\`
+${buildError}
+\`\`\`
+Analyze the reason for the error. You must generate the corrected code file (or files) with the necessary changes. Return only what needs to be fixed. Remember pom.xml!`
+      : `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
 Oto treść błędu z terminala:
 \`\`\`
 ${buildError}
@@ -981,7 +990,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
   };
 
   const handleClearChat = async () => {
-    if (window.confirm('Czy na pewno chcesz wyczyścić historię czatu?')) {
+    if (window.confirm(isEN ? 'Are you sure you want to clear the chat history?' : 'Czy na pewno chcesz wyczyścić historię czatu?')) {
       setMessages([]);
       await supabase.from('projects').update({ messages: [] }).eq('id', id);
     }
@@ -996,7 +1005,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
   const handleBuild = async () => {
     if (isBuilding) return;
     setIsBuilding(true);
-    setBuildStatus('Inicjalizacja serwera Maven...');
+    setBuildStatus(isEN ? 'Initializing Maven server...' : 'Inicjalizacja serwera Maven...');
     
     // Gather all files from messages (keeping only the newest version of each file)
     const filesMap = {};
@@ -1045,22 +1054,28 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
 
     if (filesToBuild.length === 0) {
       alert(isMinecraftProject
-        ? 'Najpierw poproś AI o wygenerowanie kodu (musi powstać kod Javy i plik pom.xml)!'
-        : 'Najpierw poproś AI o wygenerowanie kodu projektu!');
+        ? (isEN 
+            ? 'Please ask AI to generate the code first (Java code and pom.xml must be created)!' 
+            : 'Najpierw poproś AI o wygenerowanie kodu (musi powstać kod Javy i plik pom.xml)!')
+        : (isEN 
+            ? 'Please ask AI to generate the project code first!' 
+            : 'Najpierw poproś AI o wygenerowanie kodu projektu!'));
       setIsBuilding(false);
       setBuildStatus('');
       return;
     }
 
     if (isMinecraftProject && !filesToBuild.find(f => f.path.endsWith('pom.xml'))) {
-       alert('Brakuje pliku pom.xml! Poproś AI o wygenerowanie struktury Maven przed zbudowaniem pliku .jar.');
+       alert(isEN 
+         ? 'Missing pom.xml! Please ask the AI to generate the Maven structure before building the .jar file.'
+         : 'Brakuje pliku pom.xml! Poproś AI o wygenerowanie struktury Maven przed zbudowaniem pliku .jar.');
        setIsBuilding(false);
        setBuildStatus('');
        return;
     }
     
     try {
-      setBuildStatus('Kompilowanie klas Javy...');
+      setBuildStatus(isEN ? 'Compiling Java classes...' : 'Kompilowanie klas Javy...');
       const { data: { session: buildSession } } = await supabase.auth.getSession();
       const response = await fetch('/api/compile', {
         method: 'POST',
@@ -1073,7 +1088,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
         throw new Error(errText);
       }
 
-      setBuildStatus('Pobieranie pliku .jar...');
+      setBuildStatus(isEN ? 'Downloading .jar file...' : 'Pobieranie pliku .jar...');
       const blob = await response.blob();
       
       const contentDisposition = response.headers.get('Content-Disposition');
@@ -1083,12 +1098,12 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
       }
 
       saveAs(blob, filename);
-      setBuildStatus('Zakończono sukcesem!');
+      setBuildStatus(isEN ? 'Finished successfully!' : 'Zakończono sukcesem!');
       setBuildError(null);
     } catch(err) {
       console.error(err);
       setBuildError(err.message);
-      setBuildStatus('Błąd budowania');
+      setBuildStatus(isEN ? 'Build error' : 'Błąd budowania');
     }
     
     setTimeout(() => {
@@ -1237,7 +1252,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
         {fileBlocks.length > 0 && (
           <div className="changed-files-box fade-in">
             <div className="cf-header">
-               <FileCode size={14} className="text-muted" /> ZMIENIONE PLIKI ({fileBlocks.length})
+               <FileCode size={14} className="text-muted" /> {isEN ? 'CHANGED FILES' : 'ZMIENIONE PLIKI'} ({fileBlocks.length})
             </div>
             <div className="cf-list">
                {fileBlocks.map((fb, idx) => (
@@ -1250,7 +1265,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
     );
   };
 
-  if (!projectData) return <div className="ide-loading">Ładowanie projektu...</div>;
+  if (!projectData) return <div className="ide-loading">{isEN ? 'Loading project...' : 'Ładowanie projektu...'}</div>;
 
   const MODELS_LIST = [
     {id:'claude-opus-4-8', label:'Claude Opus 4.8'},
@@ -1268,7 +1283,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
         <div className="ps-top">
           <button className="ps-back-btn" onClick={() => navigate('/dashboard')}>
             <ArrowLeft size={13}/>
-            <span>Projekty</span>
+            <span>{isEN ? 'Projects' : 'Projekty'}</span>
           </button>
         </div>
         <div className="ps-list">
@@ -1304,7 +1319,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
           </button>
           <div className="ps-balance">
             <Wallet size={11}/>
-            <span className="ps-balance-label">Wydano</span>
+            <span className="ps-balance-label">{isEN ? 'Spent' : 'Wydano'}</span>
             <span className="ps-balance-val">
               ${parseFloat(userProfile?.used_credits_uncached || userProfile?.used_credits || '0').toFixed(2)} / ${parseFloat(userProfile?.balance || '0').toFixed(2)}
             </span>
