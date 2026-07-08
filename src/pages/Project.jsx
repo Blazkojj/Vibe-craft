@@ -582,7 +582,7 @@ ${projectData.prompt}
 
         let fullText = '';
         if (isHybrid && modelToUse.includes('claude')) {
-           const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z listą plików i planem logiki. KATEGORYCZNY ZAKAZ PISANIA KODU! ŻADNYCH bloków ``` oraz tagów <file>! Jeśli napiszesz surowy kod, system ulegnie awarii. Po wygenerowaniu planu wewnątrz <think> NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
+           const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
            const thoughtText = await generateWithBackend(
              modelToUse,
              hybridPrompt,
@@ -817,7 +817,7 @@ ${userMsg}
 
       let fullText = '';
       if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
-         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z listą plików i planem logiki. KATEGORYCZNY ZAKAZ PISANIA KODU! ŻADNYCH bloków ``` oraz tagów <file>! Jeśli napiszesz surowy kod, system ulegnie awarii. Po wygenerowaniu planu wewnątrz <think> NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
+         const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
          const thoughtText = await generateWithBackend(
            modelToUse,
            hybridPrompt,
