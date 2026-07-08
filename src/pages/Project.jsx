@@ -582,7 +582,7 @@ ${projectData.prompt}
 
         let fullText = '';
         if (isHybrid && modelToUse.includes('claude')) {
-           const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY]: Wygeneruj TYLKO sekcję <think>...</think> ze swoim planem i NIC WIĘCEJ. ZAKOŃCZ ODPOWIEDŹ.";
+           const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z listą plików i planem logiki. KATEGORYCZNY ZAKAZ PISANIA KODU! ŻADNYCH bloków ``` oraz tagów <file>! Jeśli napiszesz surowy kod, system ulegnie awarii. Po wygenerowaniu planu wewnątrz <think> NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
            const thoughtText = await generateWithBackend(
              modelToUse,
              hybridPrompt,
@@ -592,15 +592,25 @@ ${projectData.prompt}
              abortControllerRef
            );
            
-           const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania.`;
+           const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD.`;
+           
+           const strippedThought = thoughtText
+             .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
+             .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
+
            const glmText = await generateWithBackend(
              'z-ai/glm-5.2',
              glmSystemPrompt,
-             `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${thoughtText}`,
+             `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
              [],
              (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
              abortControllerRef
            );
+           
+           if (!glmText || glmText.trim() === '') {
+              throw new Error("API Error 500: Model wykonawczy (GLM) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API z-ai jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+           }
+           
            fullText = thoughtText + '\n\n' + glmText;
         } else {
            fullText = await generateWithBackend(
@@ -805,7 +815,7 @@ ${userMsg}
 
       let fullText = '';
       if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
-         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z planem działania. POD ŻADNYM POZOREM NIE GENERUJ KODU! Nie używaj tagów <file>. Użyj tylko <think>, napisz swój plan i NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
+         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z listą plików i planem logiki. KATEGORYCZNY ZAKAZ PISANIA KODU! ŻADNYCH bloków ``` oraz tagów <file>! Jeśli napiszesz surowy kod, system ulegnie awarii. Po wygenerowaniu planu wewnątrz <think> NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
          const thoughtText = await generateWithBackend(
            modelToUse,
            hybridPrompt,
@@ -815,16 +825,16 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName> oraz opisuj przed wygenerowaniem jak to działa. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
          
          const strippedThought = thoughtText
-           .replace(/```[\s\S]*?(?:```|$)/g, '\n[... kod pominięto dla optymalizacji limitu tokenów ...]\n')
-           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[... plik pominięto dla optymalizacji limitu tokenów ...]\n');
+           .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
+           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
 
          const glmText = await generateWithBackend(
            'z-ai/glm-5.2',
            glmSystemPrompt,
-           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${strippedThought}`,
+           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
            formattedHistory,
            (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
            abortControllerRef
