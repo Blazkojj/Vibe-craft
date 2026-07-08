@@ -23,7 +23,8 @@ import {
   ShoppingBag,
   Download,
   Search,
-  Share2
+  Share2,
+  Terminal
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useLang } from '../LangContext';
