@@ -19,11 +19,16 @@ import {
   ArrowRight,
   Wallet,
   X,
-  Wand2
+  Wand2,
+  ShoppingBag,
+  Download,
+  Search,
+  Share2
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useLang } from '../LangContext';
 import './Dashboard.css';
+import './Marketplace.css';
 
 const MC_VERSIONS = [
   '1.21.4', '1.21.1', '1.21',
@@ -45,26 +50,26 @@ const MODELS = [
   { id: 'z-ai/glm-5.2', label: 'GLM 5.2', badge: 'Darmowy' }
 ];
 
-const PLANS = [
+const getPLANS = (D) => [
   {
     name: 'Basic', price: '30', credits: '$200', color: '#3B82F6',
-    features: ['Reset 1. dnia miesiąca', 'Dostęp do API', 'Podstawowe modele', 'Standardowe wsparcie'],
+    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureBaseModels || 'Podstawowe modele', D.planFeatureSupport || 'Standardowe wsparcie'],
   },
   {
     name: 'Pro', price: '50', credits: '$320', popular: true, color: '#FF6432',
-    features: ['Reset 1. dnia miesiąca', 'Dostęp do API', 'Priorytetowe wsparcie', 'Zwiększony limit RPM', 'Claude Sonnet + Opus'],
+    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeaturePrioritySupport || 'Priorytetowe wsparcie', D.planFeatureRpm || 'Zwiększony limit RPM', D.planFeatureSonnetOpus || 'Claude Sonnet + Opus'],
   },
   {
     name: 'Elite', price: '100', credits: '$600', color: '#F59E0B',
-    features: ['Reset 1. dnia miesiąca', 'Dostęp do API', 'Dostęp do modeli Alpha', 'Wsparcie Discord', 'Wszystkie modele'],
+    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureAlpha || 'Dostęp do modeli Alpha', D.planFeatureDiscordSupport || 'Wsparcie Discord', D.planFeatureAllModels || 'Wszystkie modele'],
   },
   {
     name: 'Ultimate', price: '150', credits: '$900', color: '#22C55E',
-    features: ['Reset 1. dnia miesiąca', 'Dostęp do API', 'Dedykowany serwer', 'Brak limitu RPM', 'Wszystkie modele'],
+    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureDedicated || 'Dedykowany serwer', D.planFeatureNoRpm || 'Brak limitu RPM', D.planFeatureAllModels || 'Wszystkie modele'],
   },
   {
     name: 'Unlimited+', price: '250', credits: '∞ tokenów', color: '#EF4444',
-    features: ['Reset 1. dnia miesiąca', 'Dostęp do API', 'Fair Use Unlimited', 'Najwyższy priorytet SLA', 'Wszystkie modele'],
+    features: [D.planFeatureReset || 'Reset 1. dnia miesiąca', D.planFeatureApi || 'Dostęp do API', D.planFeatureFairUse || 'Fair Use Unlimited', D.planFeatureSla || 'Najwyższy priorytet SLA', D.planFeatureAllModels || 'Wszystkie modele'],
   }
 ];
 
@@ -125,6 +130,18 @@ export default function Dashboard() {
   const [confirmingOrderId, setConfirmingOrderId] = useState(null);
   const [viewingChatsUser, setViewingChatsUser] = useState(null);
   const [userChats, setUserChats] = useState([]);
+  const [marketplaceItems, setMarketplaceItems] = useState([]);
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [searchMarketQuery, setSearchMarketQuery] = useState('');
+  const [selectedMarketCategory, setSelectedMarketCategory] = useState('all');
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [projectToPublish, setProjectToPublish] = useState(null);
+  const [publishPrice, setPublishPrice] = useState('0.00');
+  const [publishTitle, setPublishTitle] = useState('');
+  const [publishDesc, setPublishDesc] = useState('');
+  const [publishCategory, setPublishCategory] = useState('Minecraft Plugin');
+  const [publishing, setPublishing] = useState(false);
+  const [buyingItemId, setBuyingItemId] = useState(null);
 
   const MAIL_SERVER_URL = '/api/send-mail';
 
@@ -435,17 +452,17 @@ export default function Dashboard() {
         .from('projects').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
       
       if (!error && data) {
-        const userProjects = data.filter(p => !p.title?.startsWith('__user_profile:'));
+        const userProjects = data.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:'));
         setProjects(userProjects);
       }
 
       const { data: allProj } = await supabase.from('projects').select('user_id, title');
       if (allProj) {
-        const realProjects = allProj.filter(p => !p.title?.startsWith('__user_profile:'));
+        const realProjects = allProj.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:'));
         setTotalSystemProjects(realProjects.length);
         setActiveUsersCount(new Set(realProjects.map(p => p.user_id)).size);
       } else if (data) {
-        const realProjects = data.filter(p => !p.title?.startsWith('__user_profile:'));
+        const realProjects = data.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:'));
         setTotalSystemProjects(realProjects.length);
         setActiveUsersCount(1);
       }
@@ -565,7 +582,7 @@ export default function Dashboard() {
 
   const handleDeleteProject = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Usunąć projekt bezpowrotnie?')) return;
+    if (!window.confirm(D.confirmDelete || 'Usunąć projekt bezpowrotnie?')) return;
     const { error } = await supabase.from('projects').delete().eq('id', id);
     if (!error) setProjects(projects.filter(p => p.id !== id));
   };
@@ -672,6 +689,232 @@ export default function Dashboard() {
     }
   };
 
+  const fetchMarketplaceItems = async () => {
+    setMarketplaceLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .like('title', '__marketplace:%')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const items = data.map(record => {
+          const meta = record.messages || {};
+          return {
+            id: record.id,
+            user_id: record.user_id,
+            title: record.title.replace('__marketplace:', ''),
+            prompt: record.prompt,
+            version: record.version,
+            engine: record.engine,
+            model: record.model,
+            price: meta.price || '0.00',
+            category: meta.category || 'Minecraft Plugin',
+            author_email: meta.author_email || '',
+            author_name: meta.author_name || 'Anonim',
+            downloads: meta.downloads || 0,
+            original_project_id: meta.original_project_id || '',
+            original_messages: meta.original_messages || []
+          };
+        });
+        setMarketplaceItems(items);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMarketplaceLoading(false);
+    }
+  };
+
+  const handleOpenPublishModal = (proj) => {
+    setProjectToPublish(proj);
+    setPublishTitle(proj.title);
+    setPublishDesc(proj.prompt || '');
+    setPublishPrice('0.00');
+    setPublishCategory('Minecraft Plugin');
+    setIsPublishModalOpen(true);
+  };
+
+  const handlePublishToMarketplace = async () => {
+    if (!projectToPublish || !publishTitle.trim()) return;
+    setPublishing(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data: fullProj, error: fetchErr } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectToPublish.id)
+        .single();
+
+      if (fetchErr || !fullProj) {
+        alert('Nie udało się pobrać kodu projektu do udostępnienia.');
+        return;
+      }
+
+      const marketRecordTitle = `__marketplace:${publishTitle.trim()}`;
+      const payload = {
+        type: 'marketplace_item',
+        price: parseFloat(publishPrice || 0).toFixed(2),
+        category: publishCategory,
+        author_email: currentUser.email,
+        author_name: currentUser.user_metadata?.discord_profile?.global_name || currentUser.user_metadata?.discord_profile?.username || currentUser.user_metadata?.username || currentUser.email.split('@')[0],
+        downloads: 0,
+        original_project_id: projectToPublish.id,
+        original_messages: fullProj.messages || []
+      };
+
+      const { error } = await supabase.from('projects').insert([{
+        user_id: currentUser.id,
+        title: marketRecordTitle,
+        prompt: publishDesc.trim(),
+        version: projectToPublish.version,
+        engine: projectToPublish.engine,
+        model: projectToPublish.model || 'claude-sonnet-4-6',
+        messages: payload
+      }]);
+
+      if (error) {
+        alert(`Błąd publikacji: ${error.message}`);
+      } else {
+        alert('Projekt został udostępniony na Marketplace!');
+        setIsPublishModalOpen(false);
+        fetchMarketplaceItems();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Błąd podczas publikacji.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleBuyItem = async (item) => {
+    const isOwner = user?.id === item.user_id;
+    if (isOwner) return;
+
+    const priceVal = parseFloat(item.price || 0);
+    const confirmMsg = priceVal > 0 
+      ? `Czy na pewno chcesz kupić i zaimportować projekt "${item.title}" za ${priceVal.toFixed(2)} PLN?`
+      : `Czy chcesz zaimportować darmowy projekt "${item.title}"?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setBuyingItemId(item.id);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        navigate('/login');
+        return;
+      }
+
+      const buyerProfileKey = `__user_profile:${currentUser.email}__`;
+      const { data: buyerProfs } = await supabase.from('projects').select('*').eq('title', buyerProfileKey);
+      if (!buyerProfs || !buyerProfs[0]) {
+        alert('Nie odnaleziono profilu użytkownika.');
+        return;
+      }
+
+      const buyerRecord = buyerProfs[0];
+      const buyerData = buyerRecord.messages || {};
+      const buyerBalance = parseFloat(buyerData.balance || '0.00');
+
+      if (priceVal > 0 && buyerBalance < priceVal) {
+        alert(`Niewystarczające środki w portfelu! Koszt: ${priceVal.toFixed(2)} PLN. Twoje saldo: ${buyerBalance.toFixed(2)} PLN. Przejdź do zakładki Cennik lub Ustawienia, aby doładować konto.`);
+        return;
+      }
+
+      if (priceVal > 0) {
+        const sellerProfileKey = `__user_profile:${item.author_email}__`;
+        const { data: sellerProfs } = await supabase.from('projects').select('*').eq('title', sellerProfileKey);
+        
+        if (sellerProfs && sellerProfs[0]) {
+          const sellerRecord = sellerProfs[0];
+          const sellerData = sellerRecord.messages || {};
+          const sellerBalance = parseFloat(sellerData.balance || '0.00');
+          const newSellerBalance = (sellerBalance + priceVal).toFixed(2);
+          
+          await supabase
+            .from('projects')
+            .update({ messages: { ...sellerData, balance: newSellerBalance } })
+            .eq('id', sellerRecord.id);
+        }
+
+        const newBuyerBalance = (buyerBalance - priceVal).toFixed(2);
+        await supabase
+          .from('projects')
+          .update({ messages: { ...buyerData, balance: newBuyerBalance } })
+          .eq('id', buyerRecord.id);
+
+        setBalance(newBuyerBalance);
+      }
+
+      const { data: marketRecord, error: marketErr } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', item.id)
+        .single();
+
+      if (marketRecord) {
+        const currentMeta = marketRecord.messages || {};
+        const updatedMeta = {
+          ...currentMeta,
+          downloads: (currentMeta.downloads || 0) + 1
+        };
+        await supabase
+          .from('projects')
+          .update({ messages: updatedMeta })
+          .eq('id', item.id);
+      }
+
+      const { data: newProj, error: insertErr } = await supabase.from('projects').insert([{
+        user_id: currentUser.id,
+        title: `${item.title} (Import)`,
+        prompt: item.prompt,
+        version: item.version,
+        engine: item.engine,
+        model: item.model || 'claude-sonnet-4-6',
+        messages: item.original_messages || []
+      }]).select();
+
+      if (insertErr) {
+        alert(`Błąd tworzenia projektu: ${insertErr.message}`);
+      } else {
+        alert('Projekt został pomyślnie zaimportowany!');
+        navigate(`/project/${newProj[0].id}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Wystąpił błąd podczas transakcji.');
+    } finally {
+      setBuyingItemId(null);
+    }
+  };
+
+  const handleDeleteMarketItem = async (itemId, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Czy na pewno chcesz usunąć tę ofertę z Marketplace?')) return;
+    try {
+      const { error } = await supabase.from('projects').delete().eq('id', itemId);
+      if (error) {
+        alert(`Błąd: ${error.message}`);
+      } else {
+        alert('Oferta usunięta.');
+        fetchMarketplaceItems();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'marketplace') {
+      fetchMarketplaceItems();
+    }
+  }, [activeView]);
+
   const { t } = useLang();
   const D = t.dashboard || {};
 
@@ -691,6 +934,12 @@ export default function Dashboard() {
             onClick={() => setActiveView('generator')}
           >
             {D.tabGenerator}
+          </button>
+          <button
+            className={`dash-tab${activeView === 'marketplace' ? ' active' : ''}`}
+            onClick={() => setActiveView('marketplace')}
+          >
+            {D.tabMarketplace || 'Marketplace'}
           </button>
           <button
             className={`dash-tab${activeView === 'cennik' ? ' active' : ''}`}
@@ -973,9 +1222,16 @@ export default function Dashboard() {
                             <ArrowRight size={13} />
                           </button>
                           <button 
+                            className="dash-project-share-btn"
+                            title="Udostępnij w Marketplace"
+                            onClick={e => { e.stopPropagation(); handleOpenPublishModal(proj); }}
+                          >
+                            <Share2 size={13} />
+                          </button>
+                          <button 
                             className="dash-proj-action-btn delete"
                             title={D.deleteProject}
-                            onClick={e => handleDelete(proj.id, e)}
+                            onClick={e => handleDeleteProject(proj.id, e)}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1005,26 +1261,161 @@ export default function Dashboard() {
         </div>
       )}
 
+      {activeView === 'marketplace' && (
+        <div className="dash-gen-view">
+          <div className="dash-gen-container">
+            <div className="market-view">
+              <div className="market-header-card">
+                <div className="market-header-glow" />
+                <h1 className="market-header-title">{D.marketTitle}</h1>
+                <p className="market-header-subtitle">
+                  {D.marketSubtitle}
+                </p>
+              </div>
+
+              <div className="market-controls">
+                <div className="market-search-wrapper">
+                  <Search size={16} className="market-search-icon" />
+                  <input
+                    type="text"
+                    className="market-search-input"
+                    placeholder={D.marketSearchPlaceholder}
+                    value={searchMarketQuery}
+                    onChange={e => setSearchMarketQuery(e.target.value)}
+                  />
+                </div>
+                <div className="market-categories">
+                  {[
+                    { id: 'all', label: D.marketCatAll },
+                    { id: 'Minecraft Plugin', label: D.marketCatPlugins },
+                    { id: 'Discord Bot', label: D.marketCatBots },
+                    { id: 'Inne', label: D.marketCatOther }
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      className={`market-cat-btn${selectedMarketCategory === cat.id ? ' active' : ''}`}
+                      onClick={() => setSelectedMarketCategory(cat.id)}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {marketplaceLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+                  <div className="dash-stat-progress-bar" style={{ width: '40px', height: '4px', background: 'var(--accent)', animation: 'pulse 1.5s infinite' }} />
+                </div>
+              ) : (() => {
+                const filtered = marketplaceItems.filter(item => {
+                  const matchQuery = item.title.toLowerCase().includes(searchMarketQuery.toLowerCase()) || 
+                                     item.prompt.toLowerCase().includes(searchMarketQuery.toLowerCase());
+                  const matchCat = selectedMarketCategory === 'all' || item.category === selectedMarketCategory;
+                  return matchQuery && matchCat;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="market-empty-state">
+                      <ShoppingBag size={48} />
+                      <div className="market-empty-title">{D.marketEmptyTitle}</div>
+                      <div className="market-empty-desc">
+                        {D.marketEmptyDesc}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="market-grid">
+                    {filtered.map(item => {
+                      const isOwner = user?.id === item.user_id;
+                      const priceVal = parseFloat(item.price || 0);
+                      const isPaid = priceVal > 0;
+                      return (
+                        <div key={item.id} className="market-card">
+                          <div className="market-card-glow" />
+                          <div className="market-card-header">
+                            <div className="market-card-meta">
+                              <span className="market-card-title">{item.title}</span>
+                              <span className="market-author-label">
+                                {D.marketAuthorLabel} <span className="market-author-name">{item.author_name}</span>
+                              </span>
+                            </div>
+                            <span className={`market-card-price-badge${isPaid ? ' paid' : ''}`}>
+                              {isPaid ? `${priceVal.toFixed(2)} PLN` : D.marketFree}
+                            </span>
+                          </div>
+
+                          <p className="market-card-desc">{item.prompt}</p>
+
+                          <div className="market-card-tags">
+                            <span className="market-tag engine">{item.engine}</span>
+                            <span className="market-tag">MC {item.version}</span>
+                            <span className="market-tag">{item.category}</span>
+                          </div>
+
+                          <div className="market-card-footer">
+                            <div className="market-card-stats">
+                              <span className="market-stat-item">
+                                <Download size={14} />
+                                <span>{item.downloads} {D.marketDownloads}</span>
+                              </span>
+                            </div>
+                            {isOwner ? (
+                              <button
+                                className="market-action-btn owned"
+                                onClick={e => handleDeleteMarketItem(item.id, e)}
+                              >
+                                {D.marketWithdraw}
+                              </button>
+                            ) : (
+                              <button
+                                className="market-action-btn"
+                                onClick={() => handleBuyItem(item)}
+                                disabled={buyingItemId === item.id}
+                              >
+                                {buyingItemId === item.id ? (
+                                  D.marketImporting
+                                ) : isPaid ? (
+                                  <>{D.marketBuyImport}</>
+                                ) : (
+                                  <>{D.marketImport}</>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── CENNIK VIEW ─── */}
       {activeView === 'cennik' && (
         <div className="claude-pricing-container" style={{ padding: '2rem 1rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div style={{ marginBottom: '0.5rem', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>// plany i kredyty</div>
-            <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text)' }}>Wybierz plan</h2>
-            <p style={{ color: 'var(--text-muted)' }}>Kredyty resetują się 1. dnia każdego miesiąca. Doładowania nie wygasają.</p>
-            <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>Uwaga: To NIE jest subskrypcja. Kupujesz jednorazowy pakiet ważny przez 1 miesiąc.</p>
+            <div style={{ marginBottom: '0.5rem', fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{D.pricingComment}</div>
+            <h2 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text)' }}>{D.pricingTitle}</h2>
+            <p style={{ color: 'var(--text-muted)' }}>{D.pricingSub}</p>
+            <p style={{ color: 'var(--accent)', fontWeight: '600', marginTop: '0.5rem', fontSize: '0.9rem' }}>{D.pricingNotSub}</p>
           </div>
           <div className="claude-pricing-grid">
-            {PLANS.map((plan) => (
+            {getPLANS(D).map((plan) => (
               <div key={plan.name} className={`claude-pricing-card ${plan.popular ? 'popular' : ''}`}>
-                {plan.popular && <div className="claude-badge">Popularny</div>}
+                {plan.popular && <div className="claude-badge">{D.pricingPopular}</div>}
                 <div className="claude-tier-name">{plan.name}</div>
                 <div className="claude-tier-price">
-                  {plan.price} <span className="currency">PLN</span><span className="period">/mies.</span>
+                  {plan.price} <span className="currency">PLN</span><span className="period">{D.pricingPeriod}</span>
                 </div>
                 <div className="claude-tier-credits">
                   <span className="claude-credits-val">{plan.credits}</span>
-                  <span className="claude-credits-label">kredytów API</span>
+                  <span className="claude-credits-label">{D.pricingCreditsLabel}</span>
                 </div>
                 <ul className="claude-feature-list">
                   {plan.features.map((f, i) => (
@@ -1043,7 +1434,7 @@ export default function Dashboard() {
                   })}
                   className="claude-pricing-btn"
                 >
-                  Kup plan →
+                  {D.pricingBuyBtn}
                 </button>
               </div>
             ))}
@@ -1055,19 +1446,19 @@ export default function Dashboard() {
       {activeView === 'admin' && user?.email === 'froblaz@wp.pl' && (
         <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', zIndex: 2, position: 'relative', overflowY: 'auto', flex: 1, width: '100%' }}>
           <div style={{ marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>Panel Administratora Zenexcode</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Zarządzaj użytkownikami, saldem, pakietami oraz limitami kredytów i śledź statystyki oszczędności tokenów.</p>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>{D.adminPanelTitle}</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{D.adminPanelDesc}</p>
           </div>
 
           {/* ─── ZAMÓWIENIA OCZEKUJĄCE ─── */}
           <div style={{ marginBottom: '2.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text)', margin: 0 }}>Zamówienia oczekujące</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text)', margin: 0 }}>{D.adminPendingOrders}</h3>
               {pendingOrders.length > 0 && (
                 <span style={{ background: '#EF4444', color: '#fff', fontSize: '0.72rem', fontWeight: '700', padding: '0.15rem 0.5rem', borderRadius: '999px', fontFamily: 'var(--mono)' }}>{pendingOrders.length}</span>
               )}
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Sprawdź wpłatę na <a href="https://suppi.pl/zenexcode" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>Suppi</a> używając nicku wpisanego przez klienta, a następnie kliknij "Potwierdź i wyślij email".</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>{D.adminPendingDesc}</p>
 
             {pendingOrders.length === 0 ? (
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -1078,13 +1469,13 @@ export default function Dashboard() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'rgba(255,255,255,0.02)' }}>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Nr zamówienia</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Email</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Nick Suppi</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Pakiet</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Kwota</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Złożono</th>
-                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem', textAlign: 'right' }}>Akcje</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColOrder}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColEmail}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColNick}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColPlan}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColAmount}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColDate}</th>
+                      <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem', textAlign: 'right' }}>{D.adminColActions}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1108,7 +1499,7 @@ export default function Dashboard() {
                                 disabled={isConfirming}
                                 style={{ background: isConfirming ? 'var(--border)' : 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.9rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: isConfirming ? 'not-allowed' : 'pointer' }}
                               >
-                                {isConfirming ? '...' : 'Potwierdź i wyślij email'}
+                                {isConfirming ? '...' : D.adminConfirmBtn}
                               </button>
                               <button
                                 onClick={() => handleCancelOrder(o)}
@@ -1116,7 +1507,7 @@ export default function Dashboard() {
                                 title="Anuluj zamówienie"
                                 style={{ background: 'transparent', color: '#EF4444', border: '1px solid rgba(239,68,68,0.4)', padding: '0.4rem 0.7rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: isConfirming ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                               >
-                                <X size={13} /> Anuluj
+                                <X size={13} /> {D.adminCancelBtn}
                               </button>
                             </div>
                           </td>
@@ -1130,19 +1521,19 @@ export default function Dashboard() {
           </div>
 
           {adminLoading ? (
-            <div style={{ color: 'var(--text-muted)' }}>Ładowanie użytkowników...</div>
+            <div style={{ color: 'var(--text-muted)' }}>{D.adminLoadingUsers}</div>
           ) : (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border-strong)', background: 'rgba(255,255,255,0.02)' }}>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Email</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Pakiet</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Saldo (PLN)</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Limit wydatków</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Tokeny (Normal / Optimized)</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>Zaoszczędzone</th>
-                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem', textAlign: 'right' }}>Akcje</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColEmail}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColPlan}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColBalance}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColLimit}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColTokens}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem' }}>{D.adminColSaved}</th>
+                    <th style={{ padding: '1rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)', textTransform: 'uppercase', fontSize: '0.7rem', textAlign: 'right' }}>{D.adminColActions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1166,13 +1557,13 @@ export default function Dashboard() {
                               onClick={() => handleViewChats(u)}
                               style={{ background: 'var(--bg-hover)', color: 'var(--text)', border: '1px solid var(--border)', padding: '0.4rem 0.8rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
                             >
-                              Czaty
+                              {D.adminChatsBtn}
                             </button>
                             <button
                               onClick={() => setEditingUser(u)}
                               style={{ background: 'var(--accent)', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: 'var(--r-md)', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
                             >
-                              Zarządzaj
+                              {D.adminManageBtn}
                             </button>
                           </div>
                         </td>
@@ -1181,7 +1572,7 @@ export default function Dashboard() {
                   })}
                   {adminUsers.length === 0 && (
                     <tr>
-                      <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Brak zarejestrowanych profili użytkowników w bazie.</td>
+                      <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>{D.adminNoUsers}</td>
                     </tr>
                   )}
                 </tbody>
@@ -1190,12 +1581,12 @@ export default function Dashboard() {
           )}
 
           <div style={{ marginTop: '3rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>Kody rabatowe (Promo Codes)</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Generuj i zarządzaj kodami zniżkowymi dla użytkowników.</p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>{D.adminPromoTitle}</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{D.adminPromoDesc}</p>
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Moduł kodów rabatowych jest w trakcie wdrażania (wymaga nowej tabeli promo_codes w bazie danych). 
+              {D.adminPromoWip} 
               <br/><br/>
-              <button style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '0.5rem 1rem', borderRadius: 'var(--r-md)', cursor: 'pointer', fontWeight: '600' }} onClick={() => alert('Wkrótce dostępne! Wymaga aktualizacji schematu bazy.')}>+ Wygeneruj kod rabatowy</button>
+              <button style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '0.5rem 1rem', borderRadius: 'var(--r-md)', cursor: 'pointer', fontWeight: '600' }} onClick={() => alert(D.adminPromoSoon)}>{D.adminPromoBtn}</button>
             </div>
           </div>
         </div>
@@ -1205,12 +1596,12 @@ export default function Dashboard() {
       {editingUser && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--r-xl)', width: '100%', maxWidth: '440px', padding: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.5)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>Zarządzaj: {editingUser.email}</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem' }}>Modyfikuj saldo, pakiet i limit wydatków użytkownika.</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--text)', marginBottom: '0.5rem' }}>{D.adminManageModalTitle} {editingUser.email}</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem' }}>{D.adminManageModalDesc}</p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Pakiet (Plan)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>{D.adminPlanLabel}</label>
                 <select
                   value={editingUser.plan || 'Free'}
                   onChange={(e) => {
@@ -1246,16 +1637,16 @@ export default function Dashboard() {
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)', fontSize: '0.8rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editingUser.fair_use || false} onChange={e => setEditingUser({...editingUser, fair_use: e.target.checked})} />
-                  Fair Use (wymuś GLM 5.2 w tle)
+                  {D.adminFairUse}
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text)', fontSize: '0.8rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editingUser.hybrid_mode || false} onChange={e => setEditingUser({...editingUser, hybrid_mode: e.target.checked})} />
-                  Hybryda (Claude myśli, GLM koduje)
+                  {D.adminHybrid}
                 </label>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Saldo (kredyty w $)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>{D.adminBalanceLabel}</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="number"
@@ -1286,7 +1677,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Limit wydatków ($)</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>{D.adminLimitLabel}</label>
                 <input
                   type="number"
                   step="1"
@@ -1297,7 +1688,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Koniec subskrypcji</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>{D.adminSubEndLabel}</label>
                 <input
                   type="date"
                   value={editingUser.subscription_end || ''}
@@ -1312,7 +1703,7 @@ export default function Dashboard() {
                 onClick={() => setEditingUser(null)}
                 style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', padding: '0.625rem 1.25rem', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: '0.85rem' }}
               >
-                Anuluj
+                {D.adminCancelModalBtn}
               </button>
               <button
                 onClick={() => handleUpdateUser(editingUser.recordId, {
@@ -1325,7 +1716,7 @@ export default function Dashboard() {
                 })}
                 style={{ background: 'var(--accent)', border: 'none', color: '#fff', padding: '0.625rem 1.5rem', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
               >
-                Zapisz zmiany
+                {D.adminSaveBtn}
               </button>
             </div>
           </div>
@@ -1336,7 +1727,7 @@ export default function Dashboard() {
       <footer className="dash-footer">
         <span>Zenexcode © 2026</span>
         <span>·</span>
-        <a href="#regulamin" className="dash-footer-link">Regulamin</a>
+        <a href="#regulamin" className="dash-footer-link">{D.footerTos}</a>
       </footer>
 
       {checkoutItem && (
@@ -1347,20 +1738,20 @@ export default function Dashboard() {
             </button>
             
             <h2 className="claude-modal-title" style={{ fontSize: '1.375rem', fontWeight: '700', marginBottom: '1.5rem', color: 'var(--text)', letterSpacing: '-0.025em' }}>
-              Doładuj konto
+              {D.checkoutTitle}
             </h2>
 
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--mono)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Wybrany produkt</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontFamily: 'var(--mono)', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>{D.checkoutProduct}</div>
               <div style={{ fontSize: '1.05rem', fontWeight: '600', color: 'var(--text)' }}>{checkoutItem.name}</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Cena:</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{D.checkoutPriceLabel}</span>
                 <span style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--accent)' }}>{checkoutItem.price}</span>
               </div>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontFamily: 'var(--mono)' }}>E-MAIL DO DOŁADOWANIA</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontFamily: 'var(--mono)' }}>{D.checkoutEmailLabel}</label>
               <input 
                 type="email" 
                 readOnly
@@ -1371,10 +1762,10 @@ export default function Dashboard() {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontFamily: 'var(--mono)' }}>NICK DO WERYFIKACJI</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontFamily: 'var(--mono)' }}>{D.checkoutNickLabel}</label>
               <input 
                 type="text" 
-                placeholder="Twój nick na suppi"
+                placeholder={D.checkoutNickPlaceholder}
                 value={suppiNick} 
                 onChange={(e) => setSuppiNick(e.target.value)}
                 className="claude-modal-input" 
@@ -1388,7 +1779,7 @@ export default function Dashboard() {
               disabled={paying || !suppiNick.trim()}
               style={{ width: '100%', background: paying ? 'var(--border)' : 'var(--accent)', color: '#fff', border: 'none', padding: '0.9rem', borderRadius: 'var(--r-md)', fontSize: '0.9375rem', fontWeight: '600', cursor: paying || !suppiNick.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
-              {paying ? 'Przetwarzanie...' : `Zapłać (${checkoutItem.price})`}
+              {paying ? D.checkoutProcessing : `${D.checkoutPayBtn} (${checkoutItem.price})`}
             </button>
           </div>
         </div>
@@ -1398,17 +1789,17 @@ export default function Dashboard() {
         <div className="dash-modal-overlay" onClick={() => setIsEnhanceModalOpen(false)}>
           <div className="dash-modal" onClick={e => e.stopPropagation()}>
             <div className="dash-modal-header">
-              <h3>Generator Promptów AI</h3>
+              <h3>{D.enhanceTitle}</h3>
               <button className="dash-close-btn" onClick={() => setIsEnhanceModalOpen(false)}><X size={16} /></button>
             </div>
             <div className="dash-modal-body">
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: '1.4' }}>
-                Opisz krótko swój pomysł własnymi słowami. Claude Sonnet 4.6 za chwilę przekształci go w profesjonalny, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego VibeCraft. (Koszt: 0.01 PLN)
+                {D.enhanceModalDesc}
               </p>
               <textarea 
                 value={enhanceInput} 
                 onChange={e => setEnhanceInput(e.target.value)} 
-                placeholder="Np. 'Chcę serwer survival gdzie gracze kopią bloki, żeby zdobywać levele i kupować itemy w gui, a do tego system gildii na chacie.'"
+                placeholder={D.enhancePlaceholder}
                 style={{ 
                   width: '100%', minHeight: '120px', background: 'var(--bg-input)', 
                   color: '#fff', border: '1px solid var(--border)', 
@@ -1422,7 +1813,7 @@ export default function Dashboard() {
                   onClick={handleEnhancePrompt}
                   disabled={isEnhancing || !enhanceInput.trim()}
                 >
-                  <span>{isEnhancing ? 'Magia działa...' : 'Wygeneruj Super Prompt'}</span>
+                  <span>{isEnhancing ? D.enhanceMagicWorking : D.enhanceGenerateBtn}</span>
                   <Wand2 size={12} className={isEnhancing ? "animate-pulse" : ""} />
                 </button>
               </div>
@@ -1436,14 +1827,14 @@ export default function Dashboard() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setViewingChatsUser(null)}>
           <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text)' }}>Projekty / Czaty: {viewingChatsUser.email}</h3>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text)' }}>{D.adminChatsModalTitle} {viewingChatsUser.email}</h3>
               <button onClick={() => setViewingChatsUser(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
             {userChats.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>Ten użytkownik nie utworzył jeszcze żadnych projektów.</p>
+              <p style={{ color: 'var(--text-muted)' }}>{D.adminNoChats}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {userChats.map(chat => {
@@ -1452,18 +1843,18 @@ export default function Dashboard() {
                     <div key={chat.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '1.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h4 style={{ color: 'var(--accent)', margin: 0, fontSize: '1.1rem' }}>{chat.title}</h4>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>Wiadomości: {msgCount}</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{D.adminMsgCount} {msgCount}</span>
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '300px', overflowY: 'auto', background: 'var(--bg-main)', padding: '1rem', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
                         {msgCount === 0 ? (
-                          <span style={{ color: 'var(--text-muted)' }}>Brak wiadomości w tym projekcie.</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{D.adminNoMsgs}</span>
                         ) : (
                           chat.messages.map((m, idx) => (
                             <div key={idx} style={{ padding: '0.8rem', borderRadius: '8px', background: m.sender === 'user' ? 'rgba(255,102,64,0.1)' : 'var(--bg-input)', border: m.sender === 'user' ? '1px solid rgba(255,102,64,0.2)' : '1px solid var(--border)' }}>
                               <strong style={{ display: 'block', marginBottom: '0.3rem', color: m.sender === 'user' ? 'var(--accent)' : 'var(--text-dim)', fontSize: '0.8rem' }}>{m.sender.toUpperCase()}</strong>
                               <div style={{ color: 'var(--text)', fontSize: '0.9rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                                {m.text?.substring(0, 1000)}{m.text?.length > 1000 ? '... (ucięte)' : ''}
+                                {m.text?.substring(0, 1000)}{m.text?.length > 1000 ? D.adminMsgTruncated : ''}
                               </div>
                             </div>
                           ))
@@ -1474,6 +1865,74 @@ export default function Dashboard() {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {isPublishModalOpen && (
+        <div className="market-modal-overlay">
+          <div className="market-modal">
+            <div className="market-modal-header">
+              <span className="market-modal-title">{D.publishModalTitle}</span>
+              <button className="market-modal-close" onClick={() => setIsPublishModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="market-modal-body">
+              <div className="market-form-group">
+                <label className="market-form-label">{D.publishNameLabel}</label>
+                <input
+                  type="text"
+                  className="market-form-input"
+                  value={publishTitle}
+                  onChange={e => setPublishTitle(e.target.value)}
+                  placeholder={D.publishNamePlaceholder}
+                />
+              </div>
+              <div className="market-form-group">
+                <label className="market-form-label">{D.publishCategoryLabel}</label>
+                <select
+                  className="market-form-select"
+                  value={publishCategory}
+                  onChange={e => setPublishCategory(e.target.value)}
+                >
+                  <option value="Minecraft Plugin">Minecraft Plugin</option>
+                  <option value="Discord Bot">Discord Bot</option>
+                  <option value="Inne">Inne</option>
+                </select>
+              </div>
+              <div className="market-form-group">
+                <label className="market-form-label">{D.publishPriceLabel}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="market-form-input"
+                  value={publishPrice}
+                  onChange={e => setPublishPrice(e.target.value)}
+                />
+              </div>
+              <div className="market-form-group">
+                <label className="market-form-label">{D.publishDescLabel}</label>
+                <textarea
+                  className="market-form-textarea"
+                  value={publishDesc}
+                  onChange={e => setPublishDesc(e.target.value)}
+                  placeholder={D.publishDescPlaceholder}
+                />
+              </div>
+            </div>
+            <div className="market-modal-footer">
+              <button className="market-btn-secondary" onClick={() => setIsPublishModalOpen(false)}>
+                {D.publishCancelBtn}
+              </button>
+              <button
+                className="market-btn-primary"
+                onClick={handlePublishToMarketplace}
+                disabled={publishing || !publishTitle.trim()}
+              >
+                {publishing ? D.publishingBtn : D.publishSubmitBtn}
+              </button>
+            </div>
           </div>
         </div>
       )}

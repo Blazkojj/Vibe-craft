@@ -303,7 +303,7 @@ function Project() {
         .order('created_at', { ascending: false });
         
       if (allProjects) {
-        setProjectsList(allProjects.filter(p => !p.title?.startsWith('__user_profile:')));
+        setProjectsList(allProjects.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:')));
       }
       
       const profileKey = `__user_profile:${user.email}__`;

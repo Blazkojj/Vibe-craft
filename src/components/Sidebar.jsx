@@ -90,7 +90,7 @@ function Sidebar() {
         <div className="recents-title">Ostatnie</div>
         <div className="recents-list">
           {projects
-            .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:') && p.title.toLowerCase().includes(searchQuery.toLowerCase()))
             .map(p => (
               <Link 
                 key={p.id} 
