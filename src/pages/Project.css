@@ -141,14 +141,14 @@
 
 /* ─── CHAT PANEL ─── */
 .chat-panel {
-  --bg-card: #ffffff;
-  --bg-surface: #f9fafb;
-  --bg-elevated: #f3f4f6;
-  --text: #111827;
-  --text-muted: #374151;
-  --text-dim: #6b7280;
-  --border: #e5e7eb;
-  --border-strong: #d1d5db;
+  --bg-card: #2B2D31;
+  --bg-surface: #313338;
+  --bg-elevated: #232428;
+  --text: #F2F3F5;
+  --text-muted: #B5BAC1;
+  --text-dim: #949BA4;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.12);
   
   flex: 1; display: flex; flex-direction: column; height: 100%; position: relative;
   background: var(--bg-surface);
@@ -158,7 +158,7 @@
 /* ─── HEADER ─── */
 .chat-header {
   flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: 1.25rem 2rem; background: rgba(255,255,255,0.8);
+  padding: 1.25rem 2rem; background: rgba(43,45,49,0.85);
   border-bottom: 1px solid var(--border); position: relative; z-index: 10;
   backdrop-filter: blur(10px);
 }
@@ -301,7 +301,7 @@
 }
 .chat-msg-body{
   color: var(--text); font-size: 0.95rem; line-height: 1.6;
-  background: #ffffff;
+  background: #2B2D31;
   padding: 1rem 1.5rem;
   border-radius: 4px 20px 20px 20px;
   border: 1px solid var(--border);
