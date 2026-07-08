@@ -599,7 +599,10 @@ ${projectData.prompt}
              hybridPrompt,
              hybridUserPrompt,
              [],
-             (text) => updateMessage(msgId, text, true),
+             (text) => {
+              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
+              updateMessage(msgId, finalText, true);
+            },
              abortControllerRef
            );
            
@@ -634,7 +637,10 @@ ${projectData.prompt}
              systemPrompt,
              userPrompt,
              [],
-             (text) => updateMessage(msgId, text, true),
+             (text) => {
+              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
+              updateMessage(msgId, finalText, true);
+            },
              abortControllerRef
            );
         }
@@ -839,7 +845,10 @@ ${userMsg}
            hybridPrompt,
            hybridUserPrompt,
            formattedHistory,
-           (text) => updateMessage(msgId, text, true),
+           (text) => {
+              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
+              updateMessage(msgId, finalText, true);
+            },
            abortControllerRef
          );
          
@@ -871,7 +880,10 @@ ${userMsg}
            systemPrompt,
            userPrompt,
            formattedHistory,
-           (text) => updateMessage(msgId, text, true),
+           (text) => {
+              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
+              updateMessage(msgId, finalText, true);
+            },
            abortControllerRef
          );
       }
