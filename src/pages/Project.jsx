@@ -808,7 +808,8 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 </file>
 6. Zawsze zacznij od <think>krótki proces myślowy</think>.
 7. Zmieniaj tylko pliki, które wymagają edycji (generuj zmodyfikowane pliki lub opisz zmiany tekstowo, nie zwracaj całości jeśli to drobnostka).
-8. ZAWSZE na końcu wiadomości napisz dla użytkownika bogate, tekstowe podsumowanie po polsku, w którym opiszesz wygenerowany kod, komendy, permissje i instrukcje użycia.
+8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
+9. ZAWSZE na końcu wiadomości napisz dla użytkownika bogate, tekstowe podsumowanie po polsku, w którym opiszesz wygenerowany kod, komendy, permissje i instrukcje użycia.
 8. Nie powtarzaj kodu. Przechodź od razu do rzeczy.`;
       
       msgId = addMessage('Claude', '', true);
@@ -853,7 +854,7 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. KRYTYCZNE: Zawsze na początku wiadomości napisz krótki tekst do użytkownika (np. "Oto wygenerowane pliki:"). Na końcu ZAWSZE napisz bardzo szczegółowe, tekstowe podsumowanie po polsku: opisz dokładnie jak działa wygenerowany kod, wypisz wszystkie komendy, uprawnienia (permissions) i instrukcje konfiguracji. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. KRYTYCZNE: Masz OD RAZU wygenerować PEŁNY KOD, nie wolno Ci pytać "czy chcesz żebym wygenerował kod?". Zawsze na początku wiadomości napisz krótki tekst do użytkownika (np. "Oto wygenerowane pliki:"). Na końcu ZAWSZE napisz bardzo szczegółowe, tekstowe podsumowanie po polsku: opisz dokładnie jak działa wygenerowany kod, wypisz wszystkie komendy, uprawnienia (permissions) i instrukcje konfiguracji. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
