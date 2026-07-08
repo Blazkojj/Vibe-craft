@@ -583,10 +583,12 @@ ${projectData.prompt}
         let fullText = '';
         if (isHybrid && modelToUse.includes('claude')) {
            const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
+           const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Jeśli teraz zaczniesz pisać kod, zabraknie Ci tokenów. Bądź krótki i zwięzły.";
+           
            const thoughtText = await generateWithBackend(
              modelToUse,
              hybridPrompt,
-             userPrompt,
+             hybridUserPrompt,
              [],
              (text) => updateMessage(msgId, text, true),
              abortControllerRef
@@ -818,10 +820,12 @@ ${userMsg}
       let fullText = '';
       if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
          const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
+         const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Jeśli teraz zaczniesz pisać kod, zabraknie Ci tokenów. Bądź krótki i zwięzły.";
+         
          const thoughtText = await generateWithBackend(
            modelToUse,
            hybridPrompt,
-           userPrompt,
+           hybridUserPrompt,
            formattedHistory,
            (text) => updateMessage(msgId, text, true),
            abortControllerRef
