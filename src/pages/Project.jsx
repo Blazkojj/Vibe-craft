@@ -816,14 +816,24 @@ ${userMsg}
          );
          
          const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName> oraz opisuj przed wygenerowaniem jak to działa. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         
+         const strippedThought = thoughtText
+           .replace(/```[\s\S]*?(?:```|$)/g, '\n[... kod pominięto dla optymalizacji limitu tokenów ...]\n')
+           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[... plik pominięto dla optymalizacji limitu tokenów ...]\n');
+
          const glmText = await generateWithBackend(
            'z-ai/glm-5.2',
            glmSystemPrompt,
-           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${thoughtText}`,
+           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${strippedThought}`,
            formattedHistory,
            (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
            abortControllerRef
          );
+         
+         if (!glmText || glmText.trim() === '') {
+            throw new Error("API Error 500: Model wykonawczy (GLM) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API z-ai jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+         }
+         
          fullText = thoughtText + '\n\n' + glmText;
       } else {
          fullText = await generateWithBackend(
@@ -1049,24 +1059,25 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
     let hasThink = false;
     let thinkText = '';
     if (cleanedText) {
-      // Find the first <think>, <thinking>, or <plan> tag and extract contents
       const thinkRegex = /(?:<(?:think|thinking|plan|antml:thinking)>|\[(?:think|thinking|plan|antml:thinking)\]|\{?antml:thinking\}?|&lt;(?:think|thinking|plan|antml:thinking)&gt;)\s*([\s\S]*?)(?:<\/(?:think|thinking|plan|antml:thinking)>|\[\/(?:think|thinking|plan|antml:thinking)\]|\{?\/antml:thinking\}?|&lt;\/(?:think|thinking|plan|antml:thinking)&gt;|$)/i;
       const match = thinkRegex.exec(cleanedText);
       if (match) {
         thinkText = match[1];
         hasThink = true;
-        // Clean out the think tags/content from main message
+        thinkText = thinkText.replace(/```[\s\S]*?(?:```|$)/g, '\n*[... kod ukryty dla czytelności ...]*\n');
+        thinkText = thinkText.replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n*[... plik ukryty dla czytelności ...]*\n');
         cleanedText = cleanedText.replace(thinkRegex, '').trim();
       }
       
-      // Awaryjne usuwanie ewentualnych podwójnych tagów
       cleanedText = cleanedText.replace(/(?:<(?:think|thinking|plan|antml:thinking)>|\[(?:think|thinking|plan|antml:thinking)\]|\{?antml:thinking\}?|&lt;(?:think|thinking|plan|antml:thinking)&gt;)([\s\S]*?)(?:<\/(?:think|thinking|plan|antml:thinking)>|\[\/(?:think|thinking|plan|antml:thinking)\]|\{?\/antml:thinking\}?|&lt;\/(?:think|thinking|plan|antml:thinking)&gt;|$)/gi, (m, content) => {
         if (!hasThink) {
           thinkText = content;
           hasThink = true;
         } else {
-          thinkText += "\\n" + content;
+          thinkText += "\n" + content;
         }
+        thinkText = thinkText.replace(/```[\s\S]*?(?:```|$)/g, '\n*[... kod ukryty dla czytelności ...]*\n');
+        thinkText = thinkText.replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n*[... plik ukryty dla czytelności ...]*\n');
         return '';
       }).trim();
     }
