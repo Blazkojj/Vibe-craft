@@ -799,3 +799,15 @@
     flex-direction: column;
   }
 }
+
+.dash-hero-bento { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4rem 0 2rem; position: relative; }
+.dash-hero-title { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 800; letter-spacing: -0.04em; color: #fff; margin-bottom: 0.5rem; }
+.dash-glow-orb { position: absolute; width: 400px; height: 400px; background: rgba(255,107,0,0.15); filter: blur(100px); top: -100px; z-index: -1; pointer-events: none; }
+.dash-prompt-bar-bento { display: flex; align-items: center; background: rgba(20,20,20,0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); padding: 0.5rem; border-radius: 999px; width: 100%; max-width: 750px; margin: 2rem auto; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+.dash-prompt-icon-left { padding: 0 1rem; color: var(--text-dim); }
+.dash-textarea-bento { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 1.05rem; resize: none; height: 26px; line-height: 26px; font-family: var(--font); }
+.dash-textarea-bento::placeholder { color: var(--text-dim); }
+.dash-submit-btn-bento { display: flex; align-items: center; gap: 0.5rem; background: var(--accent); color: #000; font-weight: 800; border: none; padding: 0.8rem 1.8rem; border-radius: 999px; cursor: pointer; transition: 0.2s; margin-left: 0.5rem; }
+.dash-submit-btn-bento:hover { transform: scale(1.02); background: var(--accent-dark); box-shadow: 0 0 20px rgba(255,107,0,0.4); }
+.dash-submit-btn-bento:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
+.dash-input-footer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; max-width: 800px; margin: 0 auto 3rem; }

@@ -1009,63 +1009,31 @@ export default function Dashboard() {
           <div className="dash-gen-container">
             
             {/* HERO */}
-            <div className="dash-hero">
+            <div className="dash-hero-bento">
+              <div className="dash-glow-orb"></div>
               <h1 className="dash-hero-title">{D.heroTitle}</h1>
-              <p className="dash-hero-subtitle">{D.heroSub}</p>
-            </div>
-
-            {/* STATS GRID */}
-            <div className="dash-stats-grid">
-              <div className="dash-stat-card">
-                <div className="dash-stat-header">
-                  <span className="dash-stat-label">{D.statPlugins}</span>
-                  <FileCode size={14} className="dash-stat-icon" />
+              
+              {/* MASSIVE PROMPT BAR */}
+              <div className="dash-prompt-bar-bento" ref={dropdownRef}>
+                <div className="dash-prompt-icon-left">
+                  <Terminal size={22} />
                 </div>
-                <span className="dash-stat-value">{totalSystemProjects}</span>
+                <textarea
+                  className="dash-textarea-bento"
+                  placeholder={D.promptPlaceholder}
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
+                />
+                <button 
+                  className="dash-submit-btn-bento"
+                  disabled={!prompt.trim()}
+                  onClick={handleGenerate}
+                >
+                  <Sparkles size={16} />
+                  <span>Generuj</span>
+                </button>
               </div>
-
-              <div className="dash-stat-card">
-                <div className="dash-stat-header">
-                  <span className="dash-stat-label">{D.statUsers}</span>
-                  <Users size={14} className="dash-stat-icon" />
-                </div>
-                <span className="dash-stat-value">{activeUsersCount}</span>
-              </div>
-
-              <div className="dash-stat-card">
-                <div className="dash-stat-header">
-                  <span className="dash-stat-label">{D.statCredits}</span>
-                  <Wallet size={14} className="dash-stat-icon" />
-                </div>
-                {(() => {
-                  const spent = parseFloat(usedCredits || '0');
-                  const total = parseFloat(balance || '0');
-                  const remaining = Math.max(total - spent, 0);
-                  const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0;
-                  return (
-                    <>
-                      <span className="dash-stat-value" title={`${D.statSpent} $${spent.toFixed(2)} / $${total.toFixed(2)}`}>
-                        ${spent.toFixed(2)} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ ${total.toFixed(2)}</span>
-                      </span>
-                      <div className="dash-stat-progress-bg">
-                        <div className="dash-stat-progress-bar" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="dash-stat-sub" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>{D.statRemaining} ${remaining.toFixed(2)}</span>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* INPUT CARD */}
-            <div className="dash-input-card" ref={dropdownRef}>
-              <textarea
-                className="dash-textarea"
-                placeholder={D.promptPlaceholder}
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }}
-              />
               <div className="dash-input-footer-row">
                 <div className="dash-dropdowns-group">
                   
@@ -1188,6 +1156,50 @@ export default function Dashboard() {
                     <Send size={12} />
                   </button>
                 </div>
+              </div>
+            </div>
+
+            
+            {/* STATS GRID */}
+            <div className="dash-stats-grid">
+              <div className="dash-stat-card">
+                <div className="dash-stat-header">
+                  <span className="dash-stat-label">{D.statPlugins}</span>
+                  <FileCode size={14} className="dash-stat-icon" />
+                </div>
+                <span className="dash-stat-value">{totalSystemProjects}</span>
+              </div>
+
+              <div className="dash-stat-card">
+                <div className="dash-stat-header">
+                  <span className="dash-stat-label">{D.statUsers}</span>
+                  <Users size={14} className="dash-stat-icon" />
+                </div>
+                <span className="dash-stat-value">{activeUsersCount}</span>
+              </div>
+
+              <div className="dash-stat-card">
+                <div className="dash-stat-header">
+                  <span className="dash-stat-label">{D.statCredits}</span>
+                  <Wallet size={14} className="dash-stat-icon" />
+                </div>
+                {(() => {
+                  const spent = parseFloat(usedCredits || '0');
+                  const total = parseFloat(balance || '0');
+                  const remaining = Math.max(total - spent, 0);
+                  const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0;
+                  return (
+                    <>
+                      <span className="dash-stat-value" title={`${D.statSpent} ${spent.toFixed(2)} / ${total.toFixed(2)}`}>
+                        ${spent.toFixed(2)} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ ${total.toFixed(2)}</span>
+                      </span>
+                      <div className="dash-stat-progress-bg">
+                        <div className="dash-stat-progress-bar" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="dash-stat-sub" style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'var(--mono)' }}>{D.statRemaining} ${remaining.toFixed(2)}</span>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
