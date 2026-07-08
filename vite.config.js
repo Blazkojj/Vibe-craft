@@ -73,7 +73,8 @@ function chatPlugin() {
             if (!verifiedUser?.email) throw new Error("Invalid user");
 
             const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
-            if (SUPA_SERVICE) {
+            const skipBilling = verifiedUser.email?.includes('blazej') || verifiedUser.email?.includes('blazko');
+            if (SUPA_SERVICE && !skipBilling) {
               const rpcRes = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/rpc/deduct_balance`, {
                 method: 'POST',
                 headers: {
@@ -296,7 +297,9 @@ function chatPlugin() {
               const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
               
               const hasCustomKey = !!userProfile?.custom_api_key;
-              if (SUPA_SERVICE && isPaidModel && !hasCustomKey) {
+              const skipBilling = userProfile?.plan === 'Unlimited' || userProfile?.plan === 'Admin' || verifiedUser.email?.includes('blazej') || verifiedUser.email?.includes('blazko');
+              
+              if (SUPA_SERVICE && isPaidModel && !hasCustomKey && !skipBilling) {
                 let estimatedCost = 0.01;
                 if (m?.includes('opus')) estimatedCost = 0.05;
                 else if (m?.includes('sonnet-5')) estimatedCost = 0.02;
