@@ -64,7 +64,7 @@ const getPLANS = (D, isEN) => [
     features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureAlpha || 'Access to Alpha models', D.planFeatureDiscordSupport || 'Discord support', D.planFeatureAllModels || 'All models'],
   },
   {
-    name: 'Ultimate', price: '150', credits: '$900', color: '#22C55E',
+    name: 'Ultimate', price: '150', credits: '$900', color: '#FF6B00',
     features: [D.planFeatureReset || 'Resets on the 1st of every month', D.planFeatureApi || 'API access', D.planFeatureDedicated || 'Dedicated server', D.planFeatureNoRpm || 'No RPM limit', D.planFeatureAllModels || 'All models'],
   },
   {
@@ -1557,9 +1557,9 @@ export default function Dashboard() {
                         <td style={{ padding: '1rem', fontFamily: 'var(--mono)' }}>${parseFloat(u.balance || '0.00').toFixed(2)}</td>
                         <td style={{ padding: '1rem', fontFamily: 'var(--mono)' }}>${parseFloat(u.credits_limit || '10.00').toFixed(2)}</td>
                         <td style={{ padding: '1rem', fontFamily: 'var(--mono)' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>{uncached.toLocaleString()}</span> / <span style={{ color: '#22C55E' }}>{cached.toLocaleString()}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{uncached.toLocaleString()}</span> / <span style={{ color: '#FF6B00' }}>{cached.toLocaleString()}</span>
                         </td>
-                        <td style={{ padding: '1rem', color: '#22C55E', fontWeight: '700', fontFamily: 'var(--mono)' }}>{saved}%</td>
+                        <td style={{ padding: '1rem', color: '#FF6B00', fontWeight: '700', fontFamily: 'var(--mono)' }}>{saved}%</td>
                         <td style={{ padding: '1rem', textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                             <button

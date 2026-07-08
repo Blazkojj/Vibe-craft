@@ -56,8 +56,8 @@ function TerminalSim({ lines }) {
     <div className="mockup-terminal">
       {lines.slice(0, lineIdx).map((line, i) => (
         <div key={i} style={{ opacity: lineIdx > i + 2 ? 0.55 : 1, lineHeight: 1.6 }}>
-          {line.p && <span style={{ color: '#22C55E' }}>{line.p}</span>}
-          {line.c && <span style={{ color: line.m ? '#22C55E' : '#fff' }}>{line.c}</span>}
+          {line.p && <span style={{ color: '#FF6B00' }}>{line.p}</span>}
+          {line.c && <span style={{ color: line.m ? '#FF6B00' : '#fff' }}>{line.c}</span>}
           {line.b && <span style={{ color: '#F59E0B' }}>{line.b}</span>}
           {line.m && <span style={{ color: line.dim ? '#64748B' : '#94A3B8' }}>{line.m}</span>}
           {line.dim2 && <span style={{ color: '#64748B' }}> {line.dim2}</span>}
@@ -77,14 +77,14 @@ function TerminalSim({ lines }) {
               consumed += text.length;
               if (remain) parts.push(<span key={parts.length} style={extraStyle}>{remain}</span>);
             };
-            seg(line.p, { color: '#22C55E' });
-            seg(line.c, { color: line.m ? '#22C55E' : '#fff' });
+            seg(line.p, { color: '#FF6B00' });
+            seg(line.c, { color: line.m ? '#FF6B00' : '#fff' });
             seg(line.b, { color: '#F59E0B' });
             seg(line.m, { color: line.dim ? '#64748B' : '#94A3B8' });
             seg(line.dim2, { color: '#64748B' });
             return parts;
           })()}
-          <span style={{ color: '#22C55E', animation: 'blink 1s step-end infinite', marginLeft: 2 }}>▋</span>
+          <span style={{ color: '#FF6B00', animation: 'blink 1s step-end infinite', marginLeft: 2 }}>▋</span>
         </div>
       )}
     </div>
@@ -125,7 +125,7 @@ export default function Landing() {
           
           <h1 className="hero-title-mega">
             Twój osobisty <br />
-            <span className="text-gradient-green">Agent Minecrafta</span>
+            <span className="text-gradient-accent">Agent Minecrafta</span>
           </h1>
           
           <p className="hero-sub-centered">
@@ -200,9 +200,9 @@ export default function Landing() {
                 Wynikowy plik <code>.jar</code> pobierasz od razu po generacji.
               </p>
               <div className="bento-visual" style={{ background: 'transparent', border: 'none', justifyContent: 'flex-start', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
-                <CheckCircle2 size={20} color="#22C55E" /> <span style={{ color: '#fff', fontWeight: 500 }}>Maven/Gradle</span>
-                <CheckCircle2 size={20} color="#22C55E" /> <span style={{ color: '#fff', fontWeight: 500 }}>Brak błędów dependencies</span>
-                <CheckCircle2 size={20} color="#22C55E" /> <span style={{ color: '#fff', fontWeight: 500 }}>Gotowy JAR w 5 sekund</span>
+                <CheckCircle2 size={20} color="#FF6B00" /> <span style={{ color: '#fff', fontWeight: 500 }}>Maven/Gradle</span>
+                <CheckCircle2 size={20} color="#FF6B00" /> <span style={{ color: '#fff', fontWeight: 500 }}>Brak błędów dependencies</span>
+                <CheckCircle2 size={20} color="#FF6B00" /> <span style={{ color: '#fff', fontWeight: 500 }}>Gotowy JAR w 5 sekund</span>
               </div>
             </div>
 

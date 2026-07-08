@@ -111,9 +111,9 @@
   animation:fadeUp 0.2s ease;
 }
 .settings-msg.success{
-  border-color:rgba(34,197,94,0.3);
-  background:rgba(34,197,94,0.08);
-  color:#86EFAC;
+  border-color:rgba(255,107,0,0.3);
+  background:rgba(255,107,0,0.08);
+  color:#FFB088;
 }
 .settings-msg.error{
   border-color:rgba(239,68,68,0.3);
@@ -177,8 +177,8 @@
   transition:border-color 0.15s, box-shadow 0.15s;
 }
 .settings-input:focus{
-  border-color:rgba(34,197,94,0.45);
-  box-shadow:0 0 0 2px rgba(34,197,94,0.10);
+  border-color:rgba(255,107,0,0.45);
+  box-shadow:0 0 0 2px rgba(255,107,0,0.10);
 }
 .settings-input::placeholder{color:var(--text-dim)}
 
@@ -344,15 +344,15 @@
   margin-top:0.2rem;
   font-size:0.72rem;
   font-weight:600;
-  color:#86EFAC;
+  color:#FFB088;
 }
 .discord-status-dot{
   display:inline-block;
   width:7px;
   height:7px;
   border-radius:50%;
-  background:#22C55E;
-  box-shadow:0 0 6px rgba(34,197,94,0.6);
+  background:#FF6B00;
+  box-shadow:0 0 6px rgba(255,107,0,0.6);
 }
 
 /* ─── BILLING ─── */
