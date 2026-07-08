@@ -35,7 +35,7 @@ const ModelIcon = ({modelId, size=13}) => {
 
 const generateWithBackend = async (model, systemPrompt, userPrompt, history, updateMsgCb, abortControllerRef) => {
     abortControllerRef.current = new AbortController();
-  const url = '/api/chat';
+  const url = 'https://api.zenexcode.pl/api/chat';
   
   const { data: { session } } = await (await import('../supabase')).supabase.auth.getSession();
   const jwt = session?.access_token || '';
@@ -1357,7 +1357,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
               <div className="chat-input-box">
                 <textarea
                   className="chat-textarea"
-                  placeholder={isGenerating ? (isEN ? "AI is generating..." : "AI generuje...") : (isEN ? "Describe the changes you want..." : "Opisz zmiany w pluginie...")}
+                  placeholder={isGenerating ? (isEN ? "Typing..." : "Pisze...") : (isEN ? "Describe the changes you want..." : "Opisz zmiany w pluginie...")}
                   value={chatInput}
                   disabled={isGenerating}
                   onChange={e => setChatInput(e.target.value)}

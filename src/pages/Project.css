@@ -309,10 +309,10 @@
 }
 .chat-msg.user .chat-msg-body{
   color: #fff; font-weight: 500;
-  background: linear-gradient(135deg, #FF8C42, #FF5C00);
+  background: #383A40;
   border: none;
   border-radius: 20px 4px 20px 20px;
-  box-shadow: 0 4px 15px rgba(255,107,0,0.2);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
 /* ─── TYPING INDICATOR ─── */
@@ -350,7 +350,7 @@
 .chat-textarea::placeholder{color:var(--text-dim)}
 .chat-send-btn{
   width:36px; height:36px; border-radius:18px;
-  background:var(--accent); color:#fff;
+  background: #5865F2; color:#fff;
   display:flex; align-items:center; justify-content:center;
   border:none; cursor:pointer; flex-shrink:0;
   transition:all 0.2s;
