@@ -120,7 +120,7 @@
 .ps-balance{
   display:flex;align-items:center;gap:0.35rem;
   padding:0.45rem 0.65rem;
-  background:rgba(255,107,0,0.06);
+  background:rgba(34,197,94,0.06);
   border:1px solid var(--accent-border);
   border-radius:var(--r-sm);
 }
@@ -242,7 +242,7 @@
 .chat-messages::before{
   content:"";position:absolute;inset:0;
   background:
-    radial-gradient(circle at 15% 12%,rgba(255,107,0,0.045),transparent 38%),
+    radial-gradient(circle at 15% 12%,rgba(34,197,94,0.045),transparent 38%),
     radial-gradient(circle at 85% 92%,rgba(99,102,241,0.030),transparent 42%);
   pointer-events:none;z-index:0;
 }
@@ -262,7 +262,7 @@
 }
 .chat-msg:hover{background:rgba(255,255,255,0.012)}
 .chat-msg.user{
-  background:linear-gradient(90deg,rgba(255,107,0,0.025),transparent 70%);
+  background:linear-gradient(90deg,rgba(34,197,94,0.025),transparent 70%);
   border-left:2px solid var(--accent-border);
   padding-left:calc(1.75rem - 2px);
 }
@@ -339,8 +339,8 @@
   transition:border-color 0.15s,box-shadow 0.15s;
 }
 .chat-input-box:focus-within{
-  border-color:rgba(255,107,0,0.45);
-  box-shadow:0 0 0 3px rgba(255,107,0,0.10),0 4px 24px rgba(0,0,0,0.3);
+  border-color:rgba(34,197,94,0.45);
+  box-shadow:0 0 0 3px rgba(34,197,94,0.10),0 4px 24px rgba(0,0,0,0.3);
 }
 .chat-textarea{
   flex:1;background:transparent;border:none;outline:none;
@@ -355,9 +355,9 @@
   display:flex;align-items:center;justify-content:center;
   transition:background 0.12s,transform 0.08s,box-shadow 0.15s;
   border-radius:var(--r-md);
-  box-shadow:0 2px 12px rgba(255,107,0,0.3);
+  box-shadow:0 2px 12px rgba(34,197,94,0.3);
 }
-.chat-send-btn:hover{background:var(--accent-dark);box-shadow:0 4px 18px rgba(255,107,0,0.45)}
+.chat-send-btn:hover{background:var(--accent-dark);box-shadow:0 4px 18px rgba(34,197,94,0.45)}
 .chat-send-btn:active{transform:scale(0.94)}
 .chat-send-btn:disabled{background:var(--bg-elevated);color:var(--text-dim);cursor:not-allowed;box-shadow:none}
 .chat-send-btn.stop{background:rgba(239,68,68,0.12);color:#EF4444;box-shadow:none}
@@ -433,7 +433,7 @@
 }
 .inline-code{
   font-family:var(--mono);font-size:0.8rem;
-  background:rgba(255,107,0,0.08);border:1px solid var(--accent-border);
+  background:rgba(34,197,94,0.08);border:1px solid var(--accent-border);
   padding:1px 6px;border-radius:var(--r-sm);color:var(--accent);
 }
 .msg-code-block{

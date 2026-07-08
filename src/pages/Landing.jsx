@@ -147,7 +147,7 @@ export default function Landing() {
                 <Link to="/dashboard" className="claude-btn-primary">
                   {L.openEnv} <ArrowRight size={14}/>
                 </Link>
-                <a href="https://suppi.pl/zenexcode" target="_blank" rel="noopener noreferrer" className="claude-btn-secondary" style={{ background: 'linear-gradient(135deg, #FF6B00, #FF8C42)', color: '#fff', borderColor: 'transparent' }}>
+                <a href="https://suppi.pl/zenexcode" target="_blank" rel="noopener noreferrer" className="claude-btn-secondary" style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)', color: '#fff', borderColor: 'transparent' }}>
                   {L.buySuppi}
                 </a>
                 <a href="#cennik" className="claude-btn-secondary">{L.seePricing}</a>

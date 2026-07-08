@@ -220,7 +220,7 @@
 .docs-callout-body p:last-child{margin-bottom:0}
 .docs-callout-body code{
   font-family:var(--font-mono);font-size:0.78rem;
-  background:rgba(255,107,0,0.10);border:1px solid var(--accent-border);
+  background:rgba(34,197,94,0.10);border:1px solid var(--accent-border);
   padding:1px 5px;border-radius:4px;color:var(--accent);
 }
 .docs-callout.info{border-left-color:#8B7CF6}
@@ -259,7 +259,7 @@
   line-height:1.55;
 }
 .docs-table tr:last-child td{border-bottom:none}
-.docs-table tr:hover td{background:rgba(255,107,0,0.025);color:var(--text)}
+.docs-table tr:hover td{background:rgba(34,197,94,0.025);color:var(--text)}
 .docs-table td code,.docs-table th code{
   font-family:var(--font-mono);font-size:0.76rem;
   background:rgba(255,255,255,0.04);
