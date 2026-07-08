@@ -110,6 +110,9 @@ a{color:inherit;text-decoration:none}
   padding:6px;min-width:180px;
   z-index:50;
   box-shadow:0 20px 48px rgba(0,0,0,0.6);
+  max-height: 250px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .minimal-dropdown button{
   display:block;width:100%;text-align:left;
@@ -148,4 +151,15 @@ a{color:inherit;text-decoration:none}
 .loading-screen{
   display:flex;align-items:center;justify-content:center;
   height:100vh;color:var(--text-muted);font-size:0.875rem;
+}
+
+.minimal-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.minimal-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.minimal-dropdown::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
 }
