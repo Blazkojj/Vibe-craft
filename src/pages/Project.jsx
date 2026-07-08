@@ -599,7 +599,7 @@ ${projectData.prompt}
              .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
 
            const glmText = await generateWithBackend(
-             'z-ai/glm-5.2',
+             'claude-sonnet-5',
              glmSystemPrompt,
              `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
              [],
@@ -608,7 +608,7 @@ ${projectData.prompt}
            );
            
            if (!glmText || glmText.trim() === '') {
-              throw new Error("API Error 500: Model wykonawczy (GLM) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API z-ai jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+              throw new Error("API Error 500: Model wykonawczy (Claude Sonnet 5) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
            }
            
            fullText = thoughtText + '\n\n' + glmText;
@@ -832,7 +832,7 @@ ${userMsg}
            .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
 
          const glmText = await generateWithBackend(
-           'z-ai/glm-5.2',
+           'claude-sonnet-5',
            glmSystemPrompt,
            `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
            formattedHistory,
@@ -841,7 +841,7 @@ ${userMsg}
          );
          
          if (!glmText || glmText.trim() === '') {
-            throw new Error("API Error 500: Model wykonawczy (GLM) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API z-ai jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+            throw new Error("API Error 500: Model wykonawczy (Claude Sonnet 5) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
          }
          
          fullText = thoughtText + '\n\n' + glmText;
