@@ -35,7 +35,7 @@ const ModelIcon = ({modelId, size=13}) => {
 
 const generateWithBackend = async (model, systemPrompt, userPrompt, history, updateMsgCb, abortControllerRef) => {
     abortControllerRef.current = new AbortController();
-  const url = 'https://api.zenexcode.pl/api/chat';
+  const url = '/api/chat';
   
   const { data: { session } } = await (await import('../supabase')).supabase.auth.getSession();
   const jwt = session?.access_token || '';
