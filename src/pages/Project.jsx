@@ -593,15 +593,255 @@ ${projectData.prompt}
            );
            
            const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania.`;
-           const glmText = await generateWithBackend(
-             'z-ai/glm-5.2',
-             glmSystemPrompt,
-             `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${thoughtText}`,
+           const strippedThought = thoughtText
+           .replace(/```[\s\S]*?(?:```|$)/g, '\n[... kod pominięto dla optymalizacji limitu tokenów ...]\n')
+           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[... plik pominięto dla optymalizacji limitu tokenów ...]\n');
+
+         const glmText = await generateWithBackend(
+           'z-ai/glm-5.2',
+           glmSystemPrompt,
+           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${strippedThought}`,
+           formattedHistory,
+           (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
+           abortControllerRef
+         );
+         if (!glmText || glmText.trim() === '') {
+            throw new Error("API Error 500: Model wykonawczy (GLM) nie wygenerował odpowiedzi. Zadanie przekroczyło limit kontekstu lub usługa API z-ai jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach.");
+         }
+         fullText = thoughtText + '\n\n' + glmText;
+        } else {
+           fullText = await generateWithBackend(
+             modelToUse,
+             systemPrompt,
+             userPrompt,
              [],
-             (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
+             (text) => updateMessage(msgId, text, true),
              abortControllerRef
            );
-           fullText = thoughtText + '\n\n' + glmText;
+        }
+        
+        updateMessage(msgId, fullText, false);
+        setStreamingMessageId(null);
+        deductTokenCost(systemPrompt, userPrompt, fullText);
+      } catch (error) {
+        fetch('/api/log-error', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ context: 'generateInitial', message: error.message, name: error.name, stack: error.stack })
+        }).catch(() => {});
+        if (msgId) {
+          // zachowaj częściową treść zamiast kasować wiadomość
+          setMessages(prev => prev.map(m => {
+            if (m.id !== msgId) return m;
+            const partial = m.text || '';
+            const errNote = error.message?.includes('429')
+              ? '\n\n---\n⚠️ **Przerwano — limit zapytań API (429).** Poczekaj ~1 min lub zmień model.'
+              : `\n\n---\n⚠️ **Przerwano — błąd połączenia:** ${error.message || 'nieznany'}`;
+            return { ...m, text: (partial || '') + errNote, isStreaming: false };
+          }));
+        }
+        if (error.message && error.message.includes('429')) {
+           addMessage('System', `⚠️ **Limit zapytań API przekroczony!**\nOsiągnięto limit dla obecnego modelu. Poczekaj około minutę lub **zmień model na "Gemini 1.5 Flash"** w menu na dole czatu, który ma znacznie większe limity w darmowym planie.`);
+        } else {
+           addMessage('System', `Błąd połączenia z modelem: ${error.message} (${error.name})\n\nStack:\n${error.stack}`);
+        }
+      } finally {
+        isGeneratingRef.current = false;
+        setStreamingMessageId(null);
+        setIsGenerating(false);
+      }
+    };
+    
+    if (messages.length === 0) {
+        generateInitial();
+    }
+  }, [projectData]);
+
+  const stopGenerating = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    isGeneratingRef.current = false;
+    setIsGenerating(false);
+    setStreamingMessageId(null);
+  };
+
+  const handleSend = async (overrideMsg = null) => {
+    if (isGeneratingRef.current) return;       // synchroniczny guard — blokuje podwójne wywołania
+    if (isGenerating) return;
+    const isEvent = overrideMsg && overrideMsg.target;
+    const userMsg = (typeof overrideMsg === 'string' && !isEvent) ? overrideMsg : chatInput;
+    
+    if (!userMsg.trim()) return;
+    
+    isGeneratingRef.current = true;            // zablokuj natychmiast, zanim state się zaktualizuje
+    addMessage('You', userMsg);
+    if (typeof overrideMsg !== 'string' || isEvent) setChatInput('');
+    setIsGenerating(true);
+    
+    const canGenerate = await checkDailyLimit();
+    if (!canGenerate) {
+      setIsGenerating(false);
+      return;
+    }
+
+    let msgId = null;
+    
+    try {
+      const currentFiles = {};
+      messages.forEach(msg => {
+        const text = msg.text || '';
+        const regex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          currentFiles[match[1]] = match[2]; 
+        }
+      });
+
+      let filesContext = '';
+      if (Object.keys(currentFiles).length > 0) {
+        filesContext = `\nAKTUALNY KOD W PROJEKCIE (zna go tylko AI, zaktualizuj go jeśli potrzeba):\n`;
+        for (const [path, content] of Object.entries(currentFiles)) {
+          // Token optimization: minify code by stripping comments and excess blank lines
+          let minifiedContent = content
+            .replace(/^[ \t]*\/\/.*$/gm, '')
+            .replace(/\/\*[\s\S]*?\*\//g, '')
+            .replace(/^\s+/gm, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+          if (minifiedContent.length > 6000) {
+            minifiedContent = minifiedContent.substring(0, 6000) + '\n... [obcięto]';
+          }
+          filesContext += `\n--- PLIK: ${path} ---\n${minifiedContent}\n`;
+        }
+      }
+
+      let historyContext = '';
+      let summaryToUse = projectData.conversation_summary || '';
+
+      if (messages.length > 6 && !projectData.conversation_summary) {
+        try {
+          const summaryPrompt = "Jesteś asystentem AI. Streść w max 5 zdaniach poniższą rozmowę, zachowując kluczowe decyzje architektoniczne i nazwy zaimplementowanych funkcji:\n\n" + messages.map(m => `${m.sender}: ${m.text}`).join('\n\n');
+          const { data: { session: sumSession } } = await supabase.auth.getSession();
+          const summaryRes = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sumSession?.access_token || ''}` },
+            body: JSON.stringify({
+              model: 'gemini-2.0-flash',
+              systemPrompt: '',
+              userPrompt: summaryPrompt,
+              history: []
+            })
+          });
+          if (summaryRes.ok) {
+            // Because it streams, we must read the stream to get the summary
+            const reader = summaryRes.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let summaryText = '';
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                  try {
+                    const parsed = JSON.parse(line.replace('data: ', ''));
+                    if (parsed.content) summaryText += parsed.content;
+                  } catch (e) {}
+                }
+              }
+            }
+            if (summaryText) {
+               summaryToUse = summaryText;
+               await supabase.from('projects').update({ conversation_summary: summaryText }).eq('id', id);
+               setProjectData(prev => ({ ...prev, conversation_summary: summaryText }));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to generate summary:", err);
+        }
+      }
+
+      const recentMessages = messages.slice(-4);
+      // History is passed via formattedHistory to backend — only include summary here to avoid double-sending
+      historyContext = summaryToUse ? `[STRESZCZENIE STARSZYCH USTALEŃ]\n${summaryToUse}` : '';
+      
+      const identityInjection = getIdentityInjection(projectData.model);
+      
+      
+      const systemPrompt = `${identityInjection}Jesteś elitarnym inżynierem oprogramowania (Java/PaperMC). 
+ZASADY KRYTYCZNE:
+1. Brak kodu jeśli prompt to luźna rozmowa.
+2. BŁĘDY [SYSTEM-AUTO-FIX]: Gdy dostaniesz błąd z konsoli, ZWRÓĆ CAŁY naprawiony plik w tagu <file>. 
+3. Paper 1.21+: używaj Adventure API (Component), nie ChatColor.
+4. Jeśli modyfikujesz logikę - dbaj o config.yml, PDC, title i uprawnienia.
+5. Format plików:
+<file path="sciezka/do/pliku">
+KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
+</file>
+6. Zawsze zacznij od <think>krótki proces myślowy</think>.
+7. Zmieniaj tylko pliki, które wymagają edycji (generuj zmodyfikowane pliki lub opisz zmiany tekstowo, nie zwracaj całości jeśli to drobnostka).
+8. Nie powtarzaj kodu. Przechodź od razu do rzeczy.`;
+      
+      msgId = addMessage('Claude', '', true);
+      setStreamingMessageId(msgId);
+      
+      const userPrompt = `Silnik: ${projectData.engine}, Wersja MC: ${projectData.version}.
+Pierwotne założenie projektu:
+"""
+${projectData.prompt}
+"""
+${filesContext}${historyContext ? `\n[STRESZCZENIE KONTEKSTU]\n${historyContext}` : ''}
+Nowa wiadomość:
+"""
+${userMsg}
+"""`;
+
+      // Create formatted history for backend, using ONLY recent messages since we pass the rest via historyContext to save tokens
+      const formattedHistory = recentMessages.map(m => ({
+        role: m.sender === 'You' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+
+      let modelToUse = projectData.model;
+      if (userProfile?.fair_use) {
+         modelToUse = 'z-ai/glm-5.2';
+      }
+
+      let fullText = '';
+      if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
+         const hybridPrompt = systemPrompt + "\n\n[TRYB HYBRYDOWY OSTRZEŻENIE]: Jesteś teraz TYLKO modułem myślowym (PLANISTĄ). Twoim jedynym zadaniem jest wygenerować tag <think>...</think> z planem działania. POD ŻADNYM POZOREM NIE GENERUJ KODU! Nie używaj tagów <file>. Użyj tylko <think>, napisz swój plan i NATYCHMIAST ZAKOŃCZ ODPOWIEDŹ.";
+         const thoughtText = await generateWithBackend(
+           modelToUse,
+           hybridPrompt,
+           userPrompt,
+           formattedHistory,
+           (text) => updateMessage(msgId, text, true),
+           abortControllerRef
+         );
+         
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>${project.artifactId}-${project.version}</finalName> oraz opisuj przed wygenerowaniem jak to działa. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         
+         const strippedThought = thoughtText
+           .replace(/```[\s\S]*?(?:```|$)/g, '\n[... kod pominięto dla optymalizacji limitu tokenów ...]\n')
+           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[... plik pominięto dla optymalizacji limitu tokenów ...]\n');
+
+         const glmText = await generateWithBackend(
+           'z-ai/glm-5.2',
+           glmSystemPrompt,
+           `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI]:\n${strippedThought}`,
+           formattedHistory,
+           (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
+           abortControllerRef
+         );
+         
+         if (!glmText || glmText.trim() === '') {
+            throw new Error("API Error 500: Model wykonawczy nie wygenerował kodu. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API z-ai jest przeciążona. Zmień model na Gemini/Claude lub wyłącz Tryb Hybrydowy.");
+         }
+         
+         fullText = thoughtText + '\n\n' + glmText;
         } else {
            fullText = await generateWithBackend(
              modelToUse,
@@ -1055,6 +1295,10 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
       if (match) {
         thinkText = match[1];
         hasThink = true;
+        // Remove code blocks from think block to not clutter UI
+        thinkText = thinkText.replace(/```[\s\S]*?(?:```|$)/g, '\n\n*[... ukryto kod z procesu myślowego dla czytelności interfejsu ...]*\n\n');
+        thinkText = thinkText.replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n\n*[... ukryto pliki z procesu myślowego dla czytelności interfejsu ...]*\n\n');
+        
         // Clean out the think tags/content from main message
         cleanedText = cleanedText.replace(thinkRegex, '').trim();
       }
@@ -1065,7 +1309,11 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
           thinkText = content;
           hasThink = true;
         } else {
-          thinkText += "\\n" + content;
+          thinkText += "\n" + content;
+        }
+        if (thinkText) {
+          thinkText = thinkText.replace(/```[\s\S]*?(?:```|$)/g, '\n\n*[... ukryto kod z procesu myślowego dla optymalizacji miejsca ...]*\n\n');
+          thinkText = thinkText.replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n\n*[... ukryto kod z procesu myślowego dla optymalizacji miejsca ...]*\n\n');
         }
         return '';
       }).trim();
