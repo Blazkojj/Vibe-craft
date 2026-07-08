@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -207,7 +207,7 @@ const CodeBlock = ({ lang, className, children, ...props }) => {
   );
 };
 
-const FileBlock = ({ fb }) => {
+const FileBlock = ({ fb, userProfile }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const { lang } = useLang();
@@ -219,6 +219,9 @@ const FileBlock = ({ fb }) => {
     setTimeout(() => setCopied(false), 1400);
   };
   const ext = fb.path.split('.').pop();
+  
+  const canViewCode = userProfile?.plan && userProfile.plan !== 'Free';
+  
   return (
     <div className={`cf-item ${fb.isEdit ? 'edited' : 'created'} ${open ? 'open' : ''}`}>
       <button className="cf-item-toggle" onClick={() => setOpen(v => !v)}>
@@ -226,10 +229,16 @@ const FileBlock = ({ fb }) => {
         <span className="cf-item-action">{fb.isEdit ? (isEN ? 'Edited' : 'Edytuje') : (isEN ? 'Created' : 'Utworzono')}</span>
         <span className="cf-item-path" title={fb.path}>{fb.path}</span>
         <span className="cf-item-ext">.{ext}</span>
-
       </button>
       {open && (
-        <pre className="cf-item-code"><code>{fb.code}</code></pre>
+        canViewCode ? (
+          <pre className="cf-item-code"><code>{fb.code}</code></pre>
+        ) : (
+          <div className="p-3 text-xs text-amber-500/80 bg-amber-950/20 border-t border-amber-900/30 flex items-center gap-2">
+            <Lock size={12} />
+            {isEN ? 'Code preview is available from Plan 1.' : 'Podgląd kodu dostępny tylko od planu pierwszego.'}
+          </div>
+        )
       )}
     </div>
   );
@@ -831,7 +840,7 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. KRYTYCZNE: Zawsze na początku wiadomości napisz krótki tekst do użytkownika (np. "Oto wygenerowane pliki:"). Na końcu również napisz podsumowanie. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
@@ -1187,7 +1196,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
             </div>
             <div className="cf-list">
                {fileBlocks.map((fb, idx) => (
-                  <FileBlock key={idx} fb={fb} />
+                  <FileBlock key={idx} fb={fb} userProfile={userProfile} />
                ))}
             </div>
           </div>
