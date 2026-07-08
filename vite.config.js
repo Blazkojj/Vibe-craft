@@ -454,7 +454,7 @@ function chatPlugin() {
                         }
                       } catch(e) {}
                     }
-                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
+                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html') || buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out') || buf.includes('403 Forbidden')) {
                       console.error(`[chat] First chunk detected Cloudflare HTML block`);
                       if (!res.headersSent) {
                         res.statusCode = 403;
