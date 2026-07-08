@@ -32,14 +32,24 @@ import './Dashboard.css';
 import './Marketplace.css';
 
 const MC_VERSIONS = [
-  '1.21.4', '1.21.1', '1.21',
-  '1.20.6', '1.20.4', '1.20.1',
-  '1.19.4', '1.19.2', '1.18.2',
-  '1.16.5', '1.12.2', '1.8.9'
+  '1.21.4', '1.21.3', '1.21.2', '1.21.1', '1.21',
+  '1.20.6', '1.20.4', '1.20.2', '1.20.1', '1.20',
+  '1.19.4', '1.19.3', '1.19.2', '1.19.1', '1.19',
+  '1.18.2', '1.18.1', '1.18',
+  '1.17.1', '1.17',
+  '1.16.5', '1.16.4', '1.16.3', '1.16.2', '1.16.1', '1.16',
+  '1.15.2', '1.15.1', '1.15',
+  '1.14.4', '1.14.3', '1.14.2', '1.14.1', '1.14',
+  '1.13.2', '1.13.1', '1.13',
+  '1.12.2', '1.12.1', '1.12',
+  '1.11.2', '1.11',
+  '1.10.2', '1.10',
+  '1.9.4', '1.9',
+  '1.8.9', '1.8.8', '1.8'
 ];
 
 const ENGINES = [
-  'Paper', 'Spigot', 'Purpur', 'Velocity', 'BungeeCord'
+  'Paper', 'Spigot', 'Purpur', 'Folia', 'Velocity', 'BungeeCord', 'Waterfall', 'Sponge', 'Fabric', 'Forge', 'Bukkit', 'Pufferfish', 'Magma', 'Mohist'
 ];
 
 const getModels = (isEN) => [
@@ -1111,29 +1121,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  {/* Deep Think Button */}
-                  <div className="dropdown-container">
-                    <button 
-                      className="dash-selector-btn" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const isPro = !['Free', 'Basic'].includes(planName);
-                        if (!isPro) {
-                           alert(D.deepThinkPro);
-                           return;
-                        }
-                        setDeepThink(!deepThink);
-                      }}
-                      style={{ 
-                        border: deepThink ? '1px solid var(--accent)' : undefined,
-                        color: deepThink ? 'var(--accent)' : undefined,
-                        background: deepThink ? 'rgba(255, 100, 50, 0.05)' : undefined
-                      }}
-                    >
-                      <Sparkles size={11} />
-                      <span>{deepThink ? D.thinkOn : D.thinkOff}</span>
-                    </button>
-                  </div>
+                  
 
                 </div>
 

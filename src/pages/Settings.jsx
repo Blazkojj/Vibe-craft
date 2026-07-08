@@ -232,9 +232,7 @@ export default function Settings() {
           <button className={`settings-nav-item${activeTab==='billing'?' active':''}`} onClick={() => setActiveTab('billing')}>
             <CreditCard size={14}/> <span>{isEN ? 'Billing' : 'Rozliczenia'}</span>
           </button>
-          <button className={`settings-nav-item${activeTab==='developer'?' active':''}`} onClick={() => setActiveTab('developer')}>
-            <Zap size={14}/> <span>{isEN ? 'API Keys' : 'Klucze API'}</span>
-          </button>
+          
         </nav>
       </aside>
 
