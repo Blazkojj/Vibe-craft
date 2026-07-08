@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import fs from 'fs'
 import path from 'path'
 import { exec, execFile, execSync, spawn } from 'child_process'
@@ -454,11 +455,20 @@ function chatPlugin() {
                         }
                       } catch(e) {}
                     }
-                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html') || buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out') || buf.includes('403 Forbidden')) {
+                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
                       console.error(`[chat] First chunk detected Cloudflare HTML block`);
                       if (!res.headersSent) {
                         res.statusCode = 403;
-                        res.end('Cloudflare zablokował request (HTML response). Spróbuj zainstalować curl-impersonate-chrome.');
+                        res.end('Cloudflare zablokował request (HTML response).');
+                      }
+                      proc.kill();
+                      return;
+                    }
+                    if (buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out')) {
+                      console.error(`[chat] First chunk detected API Provider error: ${buf.trim()}`);
+                      if (!res.headersSent) {
+                        res.statusCode = 503;
+                        res.end('Dostawca API modelu jest przeciążony (Błąd 503 Service Unavailable). Zmień na model Gemini lub spróbuj za chwilę.');
                       }
                       proc.kill();
                       return;
@@ -636,7 +646,7 @@ function compilePlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), compilePlugin(), chatPlugin()],
+  plugins: [react(), tailwindcss(), compilePlugin(), chatPlugin()],
   server: {
     allowedHosts: true
   }
