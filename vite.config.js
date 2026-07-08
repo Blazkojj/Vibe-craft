@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import fs from 'fs'
 import path from 'path'
 import { exec, execFile, execSync, spawn } from 'child_process'
@@ -646,7 +645,7 @@ function compilePlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), compilePlugin(), chatPlugin()],
+  plugins: [react(), compilePlugin(), chatPlugin()],
   server: {
     allowedHosts: true
   }
