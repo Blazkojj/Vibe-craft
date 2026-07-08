@@ -616,7 +616,10 @@ ${projectData.prompt}
              glmSystemPrompt,
              `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
              [],
-             (text) => updateMessage(msgId, thoughtText + '\n\n' + text, true),
+             (text) => {
+              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki na podstawie planu:\n\n${text}` : text;
+              updateMessage(msgId, thoughtText + '\n\n' + finalText, true);
+            },
              abortControllerRef
            );
            
