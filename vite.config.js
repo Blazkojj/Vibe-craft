@@ -29,9 +29,13 @@ function chatPlugin() {
         for (const [k, v] of Object.entries(headers)) {
           args.push('-H', `${k}: ${v}`);
         }
-        args.push('-d', body);
+        args.push('-d', '@-');
 
         const proc = spawn(curlBin, args);
+        
+        proc.stdin.write(body);
+        proc.stdin.end();
+
         let stderr = '';
         proc.stderr.on('data', d => { stderr += d.toString(); });
 
