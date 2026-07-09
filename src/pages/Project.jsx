@@ -768,11 +768,9 @@ KOD
       if (Object.keys(currentFiles).length > 0) {
         filesContext = `\nAKTUALNY KOD W PROJEKCIE (zna go tylko AI, zaktualizuj go jeśli potrzeba):\n`;
         for (const [path, content] of Object.entries(currentFiles)) {
-          // Token optimization: minify code by stripping comments and excess blank lines
           let minifiedContent = content
             .replace(/^[ \t]*\/\/.*$/gm, '')
             .replace(/\/\*[\s\S]*?\*\//g, '')
-            .replace(/^\s+/gm, ' ')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
           if (minifiedContent.length > 6000) {
@@ -839,7 +837,7 @@ KOD
       const systemPrompt = `${identityInjection}Jesteś elitarnym inżynierem oprogramowania (Java/PaperMC). 
 ZASADY KRYTYCZNE:
 1. Brak kodu jeśli prompt to luźna rozmowa.
-2. BŁĘDY [SYSTEM-AUTO-FIX]: Gdy dostaniesz błąd z konsoli, ZWRÓĆ CAŁY naprawiony plik w tagu <file>. 
+2. BŁĘDY [SYSTEM-AUTO-FIX]: Gdy dostaniesz błąd z konsoli (wiadomość zawierającą [SYSTEM-AUTO-FIX]), musisz bezwzględnie poprawić pliki wykazujące błędy. Zwróć każdy poprawiony plik jako kompletny plik w tagu <file path="dokładna_ścieżka_pliku">...</file> (np. pom.xml lub odpowiednia klasa Java). Nie pomijaj żadnych linii kodu ani nie stosuj skrótów. Ścieżki plików w tagu <file> muszą być identyczne ze ścieżkami z sekcji "AKTUALNY KOD W PROJEKCIE".
 3. Paper 1.21+: używaj Adventure API (Component), nie ChatColor.
 4. Jeśli modyfikujesz logikę - dbaj o config.yml, PDC, title i uprawnienia.
 5. Format plików:
@@ -882,6 +880,9 @@ ${userMsg}
          if (modelToUse.includes('claude')) {
             isHybrid = true;
          }
+      }
+      if (userMsg.includes('[SYSTEM-AUTO-FIX]')) {
+         isHybrid = false;
       }
 
       let fullText = '';
