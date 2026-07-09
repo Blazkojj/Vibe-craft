@@ -188,7 +188,7 @@ const getModelDisplayName = (model) => {
   return mapping[model] || 'GLM 5.2 (z-ai)';
 };
 
-const CodeBlock = ({ lang, className, children, ...props }) => {
+const CodeBlock = ({ lang, className, children, canViewCode, isEN, ...props }) => {
   const [copied, setCopied] = useState(false);
   const code = String(children);
   const copy = () => {
@@ -200,9 +200,30 @@ const CodeBlock = ({ lang, className, children, ...props }) => {
     <div className="msg-code-block">
       <div className="msg-code-header">
         <span className="msg-code-lang">{lang}</span>
-
       </div>
-      <code className={className} {...props}>{children}</code>
+      {canViewCode ? (
+        <code className={className} {...props}>{children}</code>
+      ) : (
+        <div style={{
+          padding: '1rem',
+          fontSize: '0.8rem',
+          color: '#F59E0B',
+          background: 'rgba(120, 53, 4, 0.1)',
+          border: '1px solid rgba(120, 53, 4, 0.2)',
+          borderRadius: '6px',
+          margin: '0.5rem 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <Lock size={12} />
+          <span>
+            {isEN 
+              ? 'Code preview is locked. Upgrade your plan to view code.' 
+              : 'Podgląd kodu zablokowany. Ulepsz plan, aby zobaczyć kod.'}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
@@ -220,7 +241,9 @@ const FileBlock = ({ fb, userProfile }) => {
   };
   const ext = fb.path.split('.').pop();
   
-  const canViewCode = userProfile?.plan && userProfile.plan !== 'Free';
+  const canViewCode = userProfile?.plan && 
+                      userProfile.plan.toLowerCase() !== 'free' && 
+                      userProfile.plan.toLowerCase() !== 'darmowy';
   
   return (
     <div className={`cf-item ${fb.isEdit ? 'edited' : 'created'} ${open ? 'open' : ''}`}>
@@ -555,11 +578,10 @@ KOD (PEŁNY I GOTOWY DO DZIAŁANIA, BEZ SKRÓTÓW "...")
 </file>
 7. Dla nowych projektów MAVEN: zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
 8. Zawsze zacznij od <think>twój plan działania w 3 zdaniach</think>. Zwracaj się bezpośr. do usera.
-9. Na koniec podsumowanie: "✅ Zaimplementowano:" (3 nowości), komenda budowania i "Przykłady użycia:".`;
-        // Wstrzyknięcie oryginalnego prompta użytkownika do widoku czatu
+9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
+10. OGRANICZENIE ROZMIARU ODPOWIEDZI: Jeśli zadanie wymaga wygenerowania wielu plików, wygeneruj w pierwszej kolejności kluczowe pliki strukturalne (np. pom.xml, plugin.yml, config.yml i główną klasę). Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
         addMessage('You', projectData.prompt);
         
-        // STREAMING AI
         msgId = addMessage('Claude', '', true);
         setStreamingMessageId(msgId);
         
@@ -591,8 +613,15 @@ ${projectData.prompt}
 
         let fullText = '';
         if (isHybrid && modelToUse.includes('claude')) {
-           const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
-           const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Jeśli teraz zaczniesz pisać kod, zabraknie Ci tokenów. Bądź krótki i zwięzły.";
+           const hybridPrompt = `Jesteś ekspertem i architektem oprogramowania Minecraft (Java/PaperMC). 
+Twoim jedynym zadaniem w tej fazie (Faza 1) jest szczegółowo opisać system, który zaimplementujesz dla użytkownika, oraz sporządzić plan plików.
+KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU (w tagach <file> ani w blokach \`\`\`).
+Napisz bardzo szczegółowy, bogaty opis po polsku:
+1. Wyjaśnij dokładnie, jak system będzie działał, jaka będzie architektura klas.
+2. Wypisz komendy i uprawnienia (permissions), które zostaną dodane.
+3. Przedstaw strukturę plików, które należy stworzyć.
+Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu ani bloków kodu.`;
+           const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Bądź krótki i zwięzły.";
            
            const thoughtText = await generateWithBackend(
              modelToUse,
@@ -606,16 +635,27 @@ ${projectData.prompt}
              abortControllerRef
            );
            
-           const glmSystemPrompt = `Jesteś ekspertem Java i Spigot/Paper API. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Zawsze zaczynaj od pom.xml z tagiem <finalName>\${project.artifactId}-\${project.version}</finalName>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD.`;
+           const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
+Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
+
+ZASADY KODOWANIA:
+1. Wygeneruj kod plików w tagach:
+<file path="sciezka/do/pliku">
+KOD
+</file>
+2. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu.
+3. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
+4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych jest ograniczony, w tej wiadomości wygeneruj maksymalnie 2 do 3 najważniejszych plików strukturalnych (np. pom.xml, plugin.yml i główną klasę pluginu z rejestracją wszystkiego).
+5. Na samym końcu wiadomości (po zamknięciu ostatniego tagu </file>) wymień pliki, które pozostały do zaimplementowania (np. menedżery, GUI, listenery) i poproś użytkownika o napisanie słowa "kontynuuj", aby wygenerować kolejną część kodu.`;
            
            let strippedThought = thoughtText
-             .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
-             .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
+             .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
+             .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[WYGENERUJ TEN PLIK W TAGACH <file>]\n');
            
            strippedThought = strippedThought.replace(/<\/?(?:think|thinking|plan)>/gi, '');
 
            const glmText = await generateWithBackend(
-             'claude-opus-4-8',
+             modelToUse,
              glmSystemPrompt,
              `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
              [],
@@ -627,7 +667,7 @@ ${projectData.prompt}
            );
            
            if (!glmText || glmText.trim() === '') {
-              throw new Error("API Error 500: Model wykonawczy (Claude Sonnet 5) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+              throw new Error("API Error 500: Model wykonawczy nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
            }
            
            fullText = thoughtText + '\n\n' + glmText;
@@ -785,7 +825,7 @@ ${projectData.prompt}
             }
           }
         } catch (err) {
-          console.error("Failed to generate summary:", err);
+          console.error(err);
         }
       }
 
@@ -809,8 +849,9 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 6. Zawsze zacznij od <think>krótki proces myślowy</think>.
 7. Zmieniaj tylko pliki, które wymagają edycji (generuj zmodyfikowane pliki lub opisz zmiany tekstowo, nie zwracaj całości jeśli to drobnostka).
 8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
-9. ZAWSZE na końcu wiadomości napisz dla użytkownika bogate, tekstowe podsumowanie po polsku, w którym opiszesz wygenerowany kod, komendy, permissje i instrukcje użycia.
-8. Nie powtarzaj kodu. Przechodź od razu do rzeczy.`;
+9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
+10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
+11. OGRANICZENIE ROZMIARU ODPOWIEDZI: Jeśli zadanie wymaga wygenerowania wielu plików, wygeneruj w pierwszej kolejności kluczowe pliki strukturalne (np. pom.xml, plugin.yml, config.yml i główną klasę). Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -826,7 +867,6 @@ Nowa wiadomość:
 ${userMsg}
 """`;
 
-      // Create formatted history for backend, using ONLY recent messages since we pass the rest via historyContext to save tokens
       const formattedHistory = recentMessages.map(m => ({
         role: m.sender === 'You' ? 'user' : 'model',
         parts: [{ text: m.text }]
@@ -837,10 +877,25 @@ ${userMsg}
          modelToUse = 'z-ai/glm-5.2';
       }
 
+      let isHybrid = userProfile?.hybrid_mode;
+      if (window.location.hostname === 'free.zenexcode.pl' || userProfile?.plan === 'Free' || !userProfile?.plan) {
+         if (modelToUse.includes('claude')) {
+            isHybrid = true;
+         }
+      }
+
       let fullText = '';
-      if (userProfile?.hybrid_mode && modelToUse.includes('claude')) {
-         const hybridPrompt = systemPrompt + "\n\n[UWAGA KRYTYCZNA - JESTEŚ PLANISTĄ]: Jesteś teraz w Fazie 1. Twoim jedynym zadaniem jest wygenerować KRÓTKI plan i listę plików. KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU JAVA/JS/HTML (ani w blokach ``` ani w <file>). Napisz surowy, zwięzły plan w 5-10 zdaniach i ZAKOŃCZ. Jeśli zaczniesz generować implementację klas, przekroczysz limit tokenów i zepsujesz projekt!";
-         const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Jeśli teraz zaczniesz pisać kod, zabraknie Ci tokenów. Bądź krótki i zwięzły.";
+      if (isHybrid && modelToUse.includes('claude')) {
+         const hybridPrompt = `Jesteś ekspertem i architektem oprogramowania Minecraft (Java/PaperMC). 
+Twoim jedynym zadaniem w tej fazie (Faza 1) jest szczegółowo opisać planowane zmiany lub nowe funkcjonalności dla użytkownika oraz sporządzić plan plików.
+KATEGORYCZNY ZAKAZ PISANIA JAKIEGOKOLWIEK KODU (w tagach <file> ani w blokach \`\`\`).
+Napisz bardzo szczegółowy, bogaty opis po polsku:
+1. Wyjaśnij dokładnie, jak system będzie działał, jaka będzie architektura klas.
+2. Wypisz komendy i uprawnienia (permissions), które zostaną dodane.
+3. Przedstaw strukturę plików, które należy stworzyć.
+Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu ani bloków kodu.`;
+
+         const hybridUserPrompt = userPrompt + "\n\n[INSTRUKCJA (FAZA 1 - PLANOWANIE)]: Użytkownik poprosił o powyższe. Twoim zadaniem jest TERAZ TYLKO ZAPLANOWAĆ architekturę (jakie pliki stworzyć, jakie funkcje). NIE PISZ KODU. Kod napiszesz w Fazie 2. Bądź krótki i zwięzły.";
          
          const thoughtText = await generateWithBackend(
            modelToUse,
@@ -854,16 +909,27 @@ ${userMsg}
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania. Twoim zadaniem jest NAPISAĆ KOD na podstawie poniższego planu. KRYTYCZNE: Masz OD RAZU wygenerować PEŁNY KOD, nie wolno Ci pytać "czy chcesz żebym wygenerował kod?". Zawsze na początku wiadomości napisz krótki tekst do użytkownika (np. "Oto wygenerowane pliki:"). Na końcu ZAWSZE napisz bardzo szczegółowe, tekstowe podsumowanie po polsku: opisz dokładnie jak działa wygenerowany kod, wypisz wszystkie komendy, uprawnienia (permissions) i instrukcje konfiguracji. Generuj pliki w tagach <file path="ścieżka">KOD</file>. Generuj PEŁNY kod każdego pliku bez skracania. KATEGORYCZNY ZAKAZ używania "..." jako ścieżki pliku. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>. MUSISZ WYGENEROWAĆ ZAAWANSOWANY KOD. Dostosuj się do języka wskazanego w planie (Java, React, itp).`;
+         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
+Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
+
+ZASADY KODOWANIA:
+1. Wygeneruj kod plików w tagach:
+<file path="sciezka/do/pliku">
+KOD
+</file>
+2. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu.
+3. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
+4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych jest ograniczony, w tej wiadomości wygeneruj maksymalnie 2 do 3 najważniejszych plików strukturalnych (np. pom.xml, plugin.yml i główną klasę pluginu z rejestracją wszystkiego).
+5. Na samym końcu wiadomości (po zamknięciu ostatniego tagu </file>) wymień pliki, które pozostały do zaimplementowania (np. menedżery, GUI, listenery) i poproś użytkownika o napisanie słowa "kontynuuj", aby wygenerować kolejną część kodu.`;
          
          let strippedThought = thoughtText
-           .replace(/```[\s\S]*?(?:```|$)/g, '\n[UWAGA: WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
-           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[UWAGA: WYGENERUJ TEN PLIK W TAGACH <file>]\n');
+           .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
+           .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[WYGENERUJ TEN PLIK W TAGACH <file>]\n');
            
          strippedThought = strippedThought.replace(/<\/?(?:think|thinking|plan)>/gi, '');
 
          const glmText = await generateWithBackend(
-           'claude-opus-4-8',
+           modelToUse,
            glmSystemPrompt,
            `${userPrompt}\n\n[PLAN DO IMPLEMENTACJI DLA CIEBIE - MUSISZ NAPISAĆ KOD]:\n${strippedThought}`,
            formattedHistory,
@@ -872,7 +938,7 @@ ${userMsg}
          );
          
          if (!glmText || glmText.trim() === '') {
-            throw new Error("API Error 500: Model wykonawczy (Claude Sonnet 5) nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
+            throw new Error("API Error 500: Model wykonawczy nie wygenerował odpowiedzi. Prawdopodobnie zadanie przekroczyło limit kontekstu lub usługa API jest tymczasowo niedostępna. Wyłącz Tryb Hybrydowy w Ustawieniach konta (lub zmień model).");
          }
          
          fullText = thoughtText + '\n\n' + glmText;
@@ -1070,6 +1136,9 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
 
   // Helper to parse markdown properly and hide <file> blocks
   const renderMessageContent = (text, isStreaming, msgIndex = -1) => {
+    const canViewCode = userProfile?.plan && 
+                        userProfile.plan.toLowerCase() !== 'free' && 
+                        userProfile.plan.toLowerCase() !== 'darmowy';
     let cleanedText = text || '';
     const fileBlocks = [];
     
@@ -1198,7 +1267,17 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                   return <code className="inline-code" {...props}>{children}</code>;
                 }
                 const lang = langMatch ? langMatch[1] : 'code';
-                return <CodeBlock lang={lang} className={className} {...props}>{children}</CodeBlock>;
+                return (
+                  <CodeBlock 
+                    lang={lang} 
+                    className={className} 
+                    canViewCode={canViewCode} 
+                    isEN={isEN} 
+                    {...props}
+                  >
+                    {children}
+                  </CodeBlock>
+                );
               }
             }}
           >
