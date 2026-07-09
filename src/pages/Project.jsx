@@ -578,8 +578,8 @@ KOD (PEŁNY I GOTOWY DO DZIAŁANIA, BEZ SKRÓTÓW "...")
 </file>
 7. Dla nowych projektów MAVEN: zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
 8. Zawsze zacznij od <think>twój plan działania w 3 zdaniach</think>. Zwracaj się bezpośr. do usera.
-9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
-10. OGRANICZENIE ROZMIARU ODPOWIEDZI: Jeśli zadanie wymaga wygenerowania wielu plików, wygeneruj w pierwszej kolejności kluczowe pliki strukturalne (np. pom.xml, plugin.yml, config.yml i główną klasę). Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
+9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
+10. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian. Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
         addMessage('You', projectData.prompt);
         
         msgId = addMessage('Claude', '', true);
@@ -629,9 +629,9 @@ Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu
              hybridUserPrompt,
              [],
              (text) => {
-              const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
-              updateMessage(msgId, finalText, true);
-            },
+               const finalText = text.trim().startsWith('<file') ? `Oto wygenerowane pliki:\n\n${text}` : text;
+               updateMessage(msgId, finalText, true);
+             },
              abortControllerRef
            );
            
@@ -639,15 +639,15 @@ Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu
 Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
 
 ZASADY KODOWANIA:
-1. Wygeneruj kod plików w tagach:
+1. ZAWSZE na samym początku swojej wiadomości (PRZED jakimikolwiek tagami <file>) napisz szczegółowy, bogaty opis po polsku: opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz komendy, uprawnienia (permissions) oraz instrukcje konfiguracji i użycia.
+2. Wygeneruj kod plików w tagach:
 <file path="sciezka/do/pliku">
 KOD
 </file>
-2. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu.
-3. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
-4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych jest ograniczony, w tej wiadomości wygeneruj maksymalnie 2 do 3 najważniejszych plików strukturalnych (np. pom.xml, plugin.yml i główną klasę pluginu z rejestracją wszystkiego).
+3. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku od początku do końca. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu. pom.xml musi być kompletnym i poprawnym plikiem XML.
+4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian.
 5. Na samym końcu wiadomości (po zamknięciu ostatniego tagu </file>) wymień pliki, które pozostały do zaimplementowania (np. menedżery, GUI, listenery) i poproś użytkownika o napisanie słowa "kontynuuj", aby wygenerować kolejną część kodu.`;
-           
+
            let strippedThought = thoughtText
              .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
              .replace(/<file[\s\S]*?(?:<\/file>|$)/g, '\n[WYGENERUJ TEN PLIK W TAGACH <file>]\n');
@@ -849,9 +849,9 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 6. Zawsze zacznij od <think>krótki proces myślowy</think>.
 7. Zmieniaj tylko pliki, które wymagają edycji (generuj zmodyfikowane pliki lub opisz zmiany tekstowo, nie zwracaj całości jeśli to drobnostka).
 8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
-9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
+9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
 10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
-11. OGRANICZENIE ROZMIARU ODPOWIEDZI: Jeśli zadanie wymaga wygenerowania wielu plików, wygeneruj w pierwszej kolejności kluczowe pliki strukturalne (np. pom.xml, plugin.yml, config.yml i główną klasę). Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
+11. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian. Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -913,13 +913,13 @@ Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu
 Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
 
 ZASADY KODOWANIA:
-1. Wygeneruj kod plików w tagach:
+1. ZAWSZE na samym początku swojej wiadomości (PRZED jakimikolwiek tagami <file>) napisz szczegółowy, bogaty opis po polsku: opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz komendy, uprawnienia (permissions) oraz instrukcje konfiguracji i użycia.
+2. Wygeneruj kod plików w tagach:
 <file path="sciezka/do/pliku">
 KOD
 </file>
-2. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu.
-3. Jeśli tworzysz plugin Minecraft, zawsze generuj pom.xml z <finalName>\${project.artifactId}-\${project.version}</finalName>.
-4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych jest ograniczony, w tej wiadomości wygeneruj maksymalnie 2 do 3 najważniejszych plików strukturalnych (np. pom.xml, plugin.yml i główną klasę pluginu z rejestracją wszystkiego).
+3. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku od początku do końca. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu. pom.xml musi być kompletnym i poprawnym plikiem XML.
+4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian.
 5. Na samym końcu wiadomości (po zamknięciu ostatniego tagu </file>) wymień pliki, które pozostały do zaimplementowania (np. menedżery, GUI, listenery) i poproś użytkownika o napisanie słowa "kontynuuj", aby wygenerować kolejną część kodu.`;
          
          let strippedThought = thoughtText
@@ -999,13 +999,13 @@ Here is the error from the terminal:
 \`\`\`
 ${buildError}
 \`\`\`
-Analyze the reason for the error. You must generate the corrected code file (or files) with the necessary changes. Return only what needs to be fixed. Remember pom.xml!`
+Analyze the reason for the error and fix it. You MUST generate the 100% complete corrected code files (or files) from scratch. Never use comments like '// rest of code...' or abbreviation '...'. Remember to return the complete pom.xml if it needs to be updated or generated!`
       : `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
 Oto treść błędu z terminala:
 \`\`\`
 ${buildError}
 \`\`\`
-Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź pliki) z niezbędnymi zmianami. Zwróć tylko to, co trzeba naprawić. Pamiętaj o \`pom.xml\`!`;
+Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od początku do końca, bez żadnych skrótów typu "..." czy "// reszta kodu bez zmian". Pamiętaj, aby plik pom.xml oraz pliki kodu źródłowego były w 100% pełne i poprawne składniowo. Zwróć także szczegółowy opis tego, co dokładnie zostało poprawione.`;
     
     setBuildError(null);
     handleSend(errorMsg);
@@ -1136,9 +1136,10 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
 
   // Helper to parse markdown properly and hide <file> blocks
   const renderMessageContent = (text, isStreaming, msgIndex = -1) => {
-    const canViewCode = userProfile?.plan && 
+    const isUserMsg = msgIndex >= 0 && messages[msgIndex]?.sender === 'You';
+    const canViewCode = isUserMsg || (userProfile?.plan && 
                         userProfile.plan.toLowerCase() !== 'free' && 
-                        userProfile.plan.toLowerCase() !== 'darmowy';
+                        userProfile.plan.toLowerCase() !== 'darmowy');
     let cleanedText = text || '';
     const fileBlocks = [];
     
@@ -1469,7 +1470,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                     </div>
                   )}
 
-                  <div className={`flex flex-col max-w-[90%] sm:max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
+                  <div className={`flex flex-col max-w-[90%] sm:max-w-[85%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
                     
                     {/* Username header */}
                     <div className="flex items-center gap-2 mb-1 px-1">
@@ -1480,7 +1481,7 @@ Przeanalizuj powód błędu. Musisz wygenerować poprawiony plik z kodem (bądź
                     </div>
 
                     {/* Message body */}
-                    <div className={`relative ${isUser ? 'bg-zinc-800 text-zinc-100 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm border border-zinc-700/50' : 'text-zinc-300 prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-pre:p-0'}`}>
+                    <div className={`relative w-full overflow-x-auto break-all sm:break-words ${isUser ? 'bg-zinc-800 text-zinc-100 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm border border-zinc-700/50' : 'text-zinc-300 prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-pre:p-0'}`}>
                       {renderMessageContent(msg.text, msg.isStreaming, idx)}
                       {msg.isStreaming && msg.text && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-zinc-400 animate-pulse"/>}
                     </div>
