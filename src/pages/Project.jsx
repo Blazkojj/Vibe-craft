@@ -845,7 +845,7 @@ ZASADY KRYTYCZNE:
 KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 </file>
 6. Zawsze zacznij od <think>krótki proces myślowy</think>.
-7. Zmieniaj tylko pliki, które wymagają edycji (generuj zmodyfikowane pliki lub opisz zmiany tekstowo, nie zwracaj całości jeśli to drobnostka).
+7. Zmieniaj tylko te pliki, które wymagają edycji. Każdy zmieniony plik musisz bezwzględnie wygenerować w całości (100% gotowy kod) w tagach <file>. Zabrania się opisywania zmian tylko tekstowo oraz stosowania skrótów typu "..." lub "// reszta kodu bez zmian".
 8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
 9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
 10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
