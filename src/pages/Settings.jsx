@@ -85,13 +85,7 @@ export default function Settings() {
       const u = data.user;
       setUser(u);
       if (u) {
-        setBalance(u.user_metadata?.balance || '10.00');
-        setUsedCredits(u.user_metadata?.used_credits || '0.00');
-        setUsedTokens(u.user_metadata?.used_tokens_uncached || u.user_metadata?.used_tokens || '0');
-        setPlanName(u.user_metadata?.plan || 'Free');
         setDiscordProfile(u.user_metadata?.discord_profile || null);
-        
-        // Pobierz ustawienia deweloperskie z Supabase
         try {
           const profileKey = `__user_profile:${u.email}__`;
           const { data: profs, error } = await supabase.from('projects').select('*').eq('title', profileKey);
@@ -101,9 +95,20 @@ export default function Settings() {
             setCustomApiKey(profileData.custom_api_key || '');
             setCustomBaseUrl(profileData.custom_base_url || '');
             setCustomModelName(profileData.custom_model_name || '');
+            setBalance(profileData.balance || u.user_metadata?.balance || '10.00');
+            setUsedCredits(profileData.used_credits || u.user_metadata?.used_credits || '0.00');
+            setUsedTokens(profileData.used_tokens_uncached || profileData.used_tokens || u.user_metadata?.used_tokens || '0');
+            setPlanName(profileData.plan || u.user_metadata?.plan || 'Free');
+          } else {
+            setBalance(u.user_metadata?.balance || '10.00');
+            setUsedCredits(u.user_metadata?.used_credits || '0.00');
+            setUsedTokens(u.user_metadata?.used_tokens || '0');
+            setPlanName(u.user_metadata?.plan || 'Free');
           }
         } catch (e) {
           console.error('Failed to load profile record:', e);
+          setBalance(u.user_metadata?.balance || '10.00');
+          setPlanName(u.user_metadata?.plan || 'Free');
         }
       }
     });
@@ -232,7 +237,9 @@ export default function Settings() {
           <button className={`settings-nav-item${activeTab==='billing'?' active':''}`} onClick={() => setActiveTab('billing')}>
             <CreditCard size={14}/> <span>{isEN ? 'Billing' : 'Rozliczenia'}</span>
           </button>
-          
+          <button className={`settings-nav-item${activeTab==='developer'?' active':''}`} onClick={() => setActiveTab('developer')}>
+            <Zap size={14}/> <span>{isEN ? 'Developer' : 'Developer'}</span>
+          </button>
         </nav>
       </aside>
 
