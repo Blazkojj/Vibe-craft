@@ -539,6 +539,13 @@ function Project() {
     }
   }, [messages, projectData, id]);
 
+  useEffect(() => {
+    if (projectData && projectData.prompt && projectData.prompt !== 'undefined' && messages.length === 0 && !initialGenerated.current && !isGeneratingRef.current) {
+      initialGenerated.current = true;
+      handleSend(projectData.prompt);
+    }
+  }, [projectData, messages]);
+
   const addMessage = (sender, text, isStreaming = false) => {
     const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     const msgId = Math.random();
@@ -907,10 +914,10 @@ KOD
   const handleSend = async (overrideMsg = null) => {
     if (isGeneratingRef.current) return;       // synchroniczny guard — blokuje podwójne wywołania
     if (isGenerating) return;
-    const isEvent = overrideMsg && overrideMsg.target;
+    const isEvent = overrideMsg && (overrideMsg.target || overrideMsg.preventDefault || typeof overrideMsg === 'object');
     const userMsg = (typeof overrideMsg === 'string' && !isEvent) ? overrideMsg : chatInput;
     
-    if (!userMsg.trim()) return;
+    if (!userMsg || typeof userMsg !== 'string' || !userMsg.trim() || userMsg === 'undefined') return;
     
     isGeneratingRef.current = true;            // zablokuj natychmiast, zanim state się zaktualizuje
     addMessage('You', userMsg);
@@ -1026,10 +1033,11 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
       
-      const userPrompt = `Silnik: ${projectData.engine}, Wersja MC: ${projectData.version}.
+      const validPrompt = (projectData?.prompt && projectData.prompt !== 'undefined') ? projectData.prompt : userMsg;
+      const userPrompt = `Silnik: ${projectData.engine || 'Paper'}, Wersja MC: ${projectData.version || '1.20.4'}.
 Pierwotne założenie projektu:
 """
-${projectData.prompt}
+${validPrompt}
 """
 ${filesContext}${historyContext ? `\n[STRESZCZENIE KONTEKSTU]\n${historyContext}` : ''}
 Nowa wiadomość:

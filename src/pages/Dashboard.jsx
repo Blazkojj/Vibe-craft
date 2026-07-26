@@ -531,8 +531,9 @@ export default function Dashboard() {
   };
 
   const handleGenerate = async (explicitPrompt = null) => {
-    let p = typeof explicitPrompt === 'string' ? explicitPrompt : prompt;
-    if (!p?.trim()) return;
+    const rawPrompt = typeof explicitPrompt === 'string' ? explicitPrompt : prompt;
+    if (!rawPrompt || typeof rawPrompt !== 'string' || !rawPrompt.trim()) return;
+    let p = rawPrompt.trim();
     
     if (deepThink) {
       p = `[WYMÓG GŁĘBOKIEGO PRZEMYŚLENIA: Dokonaj ekstremalnie dokładnej analizy problemu, zaplanuj architekturę i rozważ wszystkie ścieżki zanim napiszesz kod. Musisz myśleć bardzo głęboko i wieloetapowo.]\n\n` + p;
@@ -551,9 +552,10 @@ export default function Dashboard() {
       return;
     }
     try {
+      const cleanPromptForTitle = (typeof explicitPrompt === 'string' ? explicitPrompt : prompt).trim();
       const { data, error } = await supabase.from('projects').insert([{
         user_id: user.id,
-        title: (typeof explicitPrompt === 'string' ? explicitPrompt : prompt).split(' ').slice(0, 5).join(' ') + '...',
+        title: cleanPromptForTitle.split(' ').slice(0, 5).join(' ') + '...',
         prompt: p, version: mcVersion, engine, model, messages: [],
       }]).select();
       if (error) { alert(isEN ? `Error: ${error.message}` : `Błąd: ${error.message}`); return; }
@@ -1047,7 +1049,7 @@ export default function Dashboard() {
                 <button 
                   className="dash-submit-btn-bento"
                   disabled={!prompt.trim()}
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate()}
                 >
                   <Sparkles size={16} />
                   <span>Generuj</span>
@@ -1146,7 +1148,7 @@ export default function Dashboard() {
 
                   <button
                     className="dash-generate-btn"
-                    onClick={handleGenerate}
+                    onClick={() => handleGenerate()}
                     disabled={!prompt.trim() || isEnhancing}
                   >
                     <span>{D.generate}</span>
