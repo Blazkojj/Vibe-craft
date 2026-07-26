@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -543,6 +543,19 @@ const ChatMessageItem = React.memo(({ msg, idx, isEN, currentUser, modelId, rend
           <span className="text-[10px] font-mono text-[#64748b]">{msg.time}</span>
         </div>
         <div className={`relative w-full overflow-x-auto text-xs sm:text-[13px] ${isUser ? 'bg-[#ff6b00] text-white px-3.5 py-2.5 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-3.5 py-2.5 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
+          {msg.images && msg.images.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {msg.images.map((imgUrl, i) => (
+                <img
+                  key={i}
+                  src={imgUrl}
+                  alt={`Załączony obrazek ${i + 1}`}
+                  className="max-w-[220px] max-h-[220px] object-cover rounded-xl border border-white/20 shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => window.open(imgUrl, '_blank')}
+                />
+              ))}
+            </div>
+          )}
           {renderMessageContent(msg.text, msg.isStreaming, idx)}
         </div>
       </div>
@@ -561,12 +574,48 @@ const ChatMessageItem = React.memo(({ msg, idx, isEN, currentUser, modelId, rend
 
 const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerating, externalInput, setExternalInput }) => {
   const [inputVal, setInputVal] = useState(externalInput || '');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (externalInput !== undefined && externalInput !== inputVal) {
       setInputVal(externalInput);
     }
   }, [externalInput]);
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setSelectedImages(prev => [...prev, event.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+    if (e.target) e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let item of items) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setSelectedImages(prev => [...prev, event.target.result]);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+  };
 
   const onChangeText = (e) => {
     const val = e.target.value;
@@ -577,23 +626,47 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
   };
 
   const onSend = () => {
-    if (!isGenerating && inputVal.trim()) {
+    if (!isGenerating && (inputVal.trim() || selectedImages.length > 0)) {
       const text = inputVal;
+      const imgs = [...selectedImages];
       setInputVal('');
+      setSelectedImages([]);
       if (setExternalInput) setExternalInput('');
-      handleSend(text);
+      handleSend(text, imgs);
     }
   };
 
   return (
     <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-4 z-10">
       <div className="relative flex flex-col bg-[#13151d] border border-white/10 focus-within:border-[#ff6b00] rounded-xl transition-colors p-2">
+        {selectedImages.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 border-b border-white/10">
+            {selectedImages.map((imgUrl, i) => (
+              <div key={i} className="relative group">
+                <img
+                  src={imgUrl}
+                  alt={`Podgląd ${i + 1}`}
+                  className="w-16 h-16 object-cover rounded-lg border border-white/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full p-0.5 shadow-md hover:bg-red-500 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <textarea
           className="w-full max-h-48 bg-transparent border-none text-[#f8fafc] placeholder:text-[#64748b] p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
-          placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI to generate mechanics..." : "Opisz co chcesz zbudować...")}
+          placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI or attach images..." : "Opisz co chcesz zbudować lub wklej/dodaj obrazek...")}
           value={inputVal}
           disabled={isGenerating}
           onChange={onChangeText}
+          onPaste={handlePaste}
           onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!isGenerating) onSend(); }}}
           rows={1}
           style={{ minHeight: '44px' }}
@@ -603,7 +676,23 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
           <div className="text-[11px] text-[#64748b] font-mono flex items-center gap-2">
             <span>Enter ↵ wyślij</span>
             <span>•</span>
-            <span>Shift+Enter nowa linia</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1 rounded hover:bg-white/10 text-[#94a3b8] hover:text-[#ff6b00] transition-colors flex items-center gap-1 text-xs"
+              title={isEN ? "Attach images" : "Dodaj obrazek do wiadomości"}
+            >
+              <Paperclip size={14} />
+              <span>{isEN ? "Attach image" : "Dodaj obrazek"}</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageSelect}
+            />
           </div>
 
           <div>
@@ -616,9 +705,9 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
               </button>
             ) : (
               <button 
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!inputVal.trim() ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00]'}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${(!inputVal.trim() && selectedImages.length === 0) ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00]'}`}
                 onClick={onSend} 
-                disabled={!inputVal.trim()} 
+                disabled={!inputVal.trim() && selectedImages.length === 0} 
               >
                 <span>Wyślij</span>
                 <Send size={13}/>
@@ -959,16 +1048,19 @@ function Project() {
     setStreamingMessageId(null);
   };
 
-  const handleSend = async (overrideMsg = null) => {
+  const handleSend = async (overrideMsg = null, overrideImages = []) => {
     if (isGeneratingRef.current) return;       // synchroniczny guard — blokuje podwójne wywołania
     if (isGenerating) return;
     const isEvent = overrideMsg && (overrideMsg.target || overrideMsg.preventDefault || typeof overrideMsg === 'object');
     const userMsg = (typeof overrideMsg === 'string' && !isEvent) ? overrideMsg : chatInput;
+    const imgs = Array.isArray(overrideImages) ? overrideImages : [];
     
-    if (!userMsg || typeof userMsg !== 'string' || !userMsg.trim() || userMsg === 'undefined') return;
+    if ((!userMsg || typeof userMsg !== 'string' || !userMsg.trim() || userMsg === 'undefined') && imgs.length === 0) return;
+    
+    const textToSend = (userMsg && userMsg !== 'undefined' && userMsg.trim()) ? userMsg : (imgs.length > 0 ? "Przeanalizuj i uwzględnij ten obrazek:" : "");
     
     isGeneratingRef.current = true;            // zablokuj natychmiast, zanim state się zaktualizuje
-    addMessage('You', userMsg);
+    addMessage('You', textToSend, false, imgs);
     if (typeof overrideMsg !== 'string' || isEvent) setChatInput('');
     setIsGenerating(true);
     
@@ -1077,7 +1169,8 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
 11. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
 12. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
-13. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).`;
+13. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
+14. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -1153,7 +1246,8 @@ KOD
 3. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku od początku do końca. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu. pom.xml musi być kompletnym i poprawnym plikiem XML.
 4. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu (Komendy, Listenery, Menedżery, GUI)! Żadna klasa odwoływana w kodzie głównym nie może zostać pominięta ani pozostawiona bez pliku.
 5. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Poinformuj użytkownika w 1 zdaniu, że aby pobrać plik JAR wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku.
-6. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Wszystkie mechaniki (w tym ekonomia, stany kont, bazy danych) muszą być napisane w 100% od zera wewnątrz generowanego pluginu Javy. NIE każ użytkownikowi instalować Vault ani EssentialsX!`;
+6. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Wszystkie mechaniki (w tym ekonomia, stany kont, bazy danych) muszą być napisane w 100% od zera wewnątrz generowanego pluginu Javy. NIE każ użytkownikowi instalować Vault ani EssentialsX!
+7. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
@@ -1232,13 +1326,13 @@ Here is the error from the terminal:
 \`\`\`
 ${buildError}
 \`\`\`
-Analyze the reason for the error and fix it. If any classes, commands, listeners, managers or GUI classes are missing (e.g. cannot find symbol), you MUST generate ALL missing class files 100% complete in <file path="...">...</file> tags. Never use comments like '// rest of code...' or abbreviation '...'. Do NOT tell the user to run bash/mvn commands!`
+Analyze the reason for the error and fix it. If any classes, commands, listeners, managers or GUI classes are missing (e.g. cannot find symbol), you MUST generate ALL missing class files 100% complete in <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> tags. Never use comments like '// rest of code...' or abbreviation '...'. Do NOT tell the user to run bash/mvn commands!`
       : `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
 Oto treść błędu z terminala:
 \`\`\`
 ${buildError}
 \`\`\`
-Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="dokładna_ścieżka">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
+Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
     
     setBuildError(null);
     handleSend(errorMsg);
@@ -1272,10 +1366,24 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
       let match;
       let hasFile = false;
       while ((match = regex.exec(text)) !== null) {
-        let fileContent = match[2];
-        // Clean markdown backticks in case AI wrapped code inside the file tag
-        fileContent = fileContent.replace(/^\s*```[a-zA-Z]*\r?\n?/i, '').replace(/\r?\n?```\s*$/i, '');
-        filesMap[match[1]] = fileContent.trim();
+        let filePath = match[1] ? match[1].trim() : '';
+        // Filter out dummy or simulated example paths
+        if (!filePath || filePath.includes('dokładna_ścieżka') || filePath.includes('sciezka/do/pliku') || filePath.endsWith('.dokładna_ścieżka')) continue;
+        
+        let fileContent = match[2] || '';
+        // Thoroughly clean all markdown fences (```java or ```) from inside file content
+        fileContent = fileContent.replace(/```[a-zA-Z]*/g, '').replace(/```/g, '');
+        
+        // Auto-fix truncated Java files (missing closing braces)
+        if (filePath.endsWith('.java')) {
+          const openBraces = (fileContent.match(/\{/g) || []).length;
+          const closeBraces = (fileContent.match(/\}/g) || []).length;
+          if (openBraces > closeBraces) {
+            fileContent += '\n' + '}'.repeat(openBraces - closeBraces);
+          }
+        }
+
+        filesMap[filePath] = fileContent.trim();
         hasFile = true;
       }
       if (hasFile && msg.sender !== 'You') aiEditsCount++;
