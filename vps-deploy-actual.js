@@ -10,8 +10,9 @@ conn.on('ready', () => {
     echo "=== Rozpoczynam aktualizacje na VPS ==="
     cd /var/www/zenexcode
     
-    echo "[*] Pobieranie najnowszego kodu z Git..."
-    git pull
+    echo "[*] Pobieranie i resetowanie do najnowszego kodu z Git..."
+    git fetch origin main
+    git reset --hard origin/main
     
     echo "[*] Instalacja zaleznosci frontend..."
     npm install
