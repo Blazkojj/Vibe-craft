@@ -523,6 +523,109 @@ const FileBlock = ({ fb, userProfile }) => {
   );
 };
 
+const ChatMessageItem = React.memo(({ msg, idx, isEN, currentUser, modelId, renderMessageContent }) => {
+  const isUser = msg.sender === 'You';
+  return (
+    <div className={`flex w-full gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && (
+        <AvatarBadge isUser={false} user={currentUser} modelId={modelId} />
+      )}
+      <div className={`flex flex-col max-w-[92%] sm:max-w-[88%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className="flex items-center gap-2 mb-1 px-1">
+          <span className="text-xs font-bold text-[#94a3b8]">
+            {isUser ? (isEN ? 'You' : 'Ty') : getModelDisplayName(modelId)}
+          </span>
+          <span className="text-[10px] font-mono text-[#64748b]">{msg.time}</span>
+        </div>
+        <div className={`relative w-full overflow-x-auto text-xs sm:text-[13px] ${isUser ? 'bg-[#ff6b00] text-white px-3.5 py-2.5 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-3.5 py-2.5 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
+          {renderMessageContent(msg.text, msg.isStreaming, idx)}
+        </div>
+      </div>
+      {isUser && (
+        <AvatarBadge isUser={true} user={currentUser} modelId={modelId} />
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.msg.id === nextProps.msg.id &&
+         prevProps.msg.text === nextProps.msg.text &&
+         prevProps.msg.isStreaming === nextProps.msg.isStreaming &&
+         prevProps.modelId === nextProps.modelId &&
+         prevProps.isEN === nextProps.isEN;
+});
+
+const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerating, externalInput, setExternalInput }) => {
+  const [inputVal, setInputVal] = useState(externalInput || '');
+
+  useEffect(() => {
+    if (externalInput !== undefined && externalInput !== inputVal) {
+      setInputVal(externalInput);
+    }
+  }, [externalInput]);
+
+  const onChangeText = (e) => {
+    const val = e.target.value;
+    setInputVal(val);
+    if (setExternalInput) setExternalInput(val);
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
+  };
+
+  const onSend = () => {
+    if (!isGenerating && inputVal.trim()) {
+      const text = inputVal;
+      setInputVal('');
+      if (setExternalInput) setExternalInput('');
+      handleSend(text);
+    }
+  };
+
+  return (
+    <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-4 z-10">
+      <div className="relative flex flex-col bg-[#13151d] border border-white/10 focus-within:border-[#ff6b00] rounded-xl transition-colors p-2">
+        <textarea
+          className="w-full max-h-48 bg-transparent border-none text-[#f8fafc] placeholder:text-[#64748b] p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
+          placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI to generate mechanics..." : "Opisz co chcesz zbudować...")}
+          value={inputVal}
+          disabled={isGenerating}
+          onChange={onChangeText}
+          onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!isGenerating) onSend(); }}}
+          rows={1}
+          style={{ minHeight: '44px' }}
+        />
+        
+        <div className="flex items-center justify-between pt-2 border-t border-white/10 px-2">
+          <div className="text-[11px] text-[#64748b] font-mono flex items-center gap-2">
+            <span>Enter ↵ wyślij</span>
+            <span>•</span>
+            <span>Shift+Enter nowa linia</span>
+          </div>
+
+          <div>
+            {isGenerating ? (
+              <button 
+                className="px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 text-xs font-semibold hover:bg-red-900/60 transition-colors"
+                onClick={stopGenerating} 
+              >
+                Przerwij
+              </button>
+            ) : (
+              <button 
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!inputVal.trim() ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00]'}`}
+                onClick={onSend} 
+                disabled={!inputVal.trim()} 
+              >
+                <span>Wyślij</span>
+                <Send size={13}/>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function Project() {
   const { id } = useParams();
   const { lang, t } = useLang();
@@ -1666,37 +1769,17 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                 </div>
               )}
 
-              {messages.map((msg, idx) => {
-                const isUser = msg.sender === 'You';
-                return (
-                  <div key={msg.id} className={`flex w-full gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    
-                    {!isUser && (
-                      <AvatarBadge isUser={false} user={currentUser} modelId={projectData.model} />
-                    )}
-
-                    <div className={`flex flex-col max-w-[92%] sm:max-w-[88%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
-                      
-                      <div className="flex items-center gap-2 mb-1 px-1">
-                        <span className="text-xs font-bold text-[#94a3b8]">
-                          {isUser ? (isEN ? 'You' : 'Ty') : getModelDisplayName(projectData.model)}
-                        </span>
-                        <span className="text-[10px] font-mono text-[#64748b]">{msg.time}</span>
-                      </div>
-
-                      <div className={`relative w-full overflow-x-auto text-xs sm:text-[13px] ${isUser ? 'bg-[#ff6b00] text-white px-3.5 py-2.5 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-3.5 py-2.5 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
-                        {renderMessageContent(msg.text, msg.isStreaming, idx)}
-                      </div>
-
-                    </div>
-
-                    {isUser && (
-                      <AvatarBadge isUser={true} user={currentUser} modelId={projectData.model} />
-                    )}
-
-                  </div>
-                );
-              })}
+              {messages.map((msg, idx) => (
+                <ChatMessageItem
+                  key={msg.id || idx}
+                  msg={msg}
+                  idx={idx}
+                  isEN={isEN}
+                  currentUser={currentUser}
+                  modelId={projectData?.model}
+                  renderMessageContent={renderMessageContent}
+                />
+              ))}
 
               {isGenerating && messages.length > 0 && !messages[messages.length-1]?.isStreaming && (
                 <div className="flex w-full gap-2.5 justify-start">
@@ -1718,52 +1801,14 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
             </div>
 
             {/* CHAT INPUT DOCK */}
-            <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-4 z-10">
-              <div className="relative flex flex-col bg-[#13151d] border border-white/10 focus-within:border-[#ff6b00] rounded-xl transition-colors p-2">
-                <textarea
-                  className="w-full max-h-48 bg-transparent border-none text-[#f8fafc] placeholder:text-[#64748b] p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
-                  placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI to generate mechanics..." : "Opisz co chcesz zbudować...")}
-                  value={chatInput}
-                  disabled={isGenerating}
-                  onChange={e => {
-                    setChatInput(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
-                  }}
-                  onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!isGenerating) handleSend(); }}}
-                  rows={1}
-                  style={{ minHeight: '44px' }}
-                />
-                
-                <div className="flex items-center justify-between pt-2 border-t border-white/10 px-2">
-                  <div className="text-[11px] text-[#64748b] font-mono flex items-center gap-2">
-                    <span>Enter ↵ wyślij</span>
-                    <span>•</span>
-                    <span>Shift+Enter nowa linia</span>
-                  </div>
-
-                  <div>
-                    {isGenerating ? (
-                      <button 
-                        className="px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 text-xs font-semibold hover:bg-red-900/60 transition-colors"
-                        onClick={stopGenerating} 
-                      >
-                        Przerwij
-                      </button>
-                    ) : (
-                      <button 
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!chatInput.trim() ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00]'}`}
-                        onClick={handleSend} 
-                        disabled={!chatInput.trim()} 
-                      >
-                        <span>Wyślij</span>
-                        <Send size={13}/>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ChatInputDock
+              isGenerating={isGenerating}
+              isEN={isEN}
+              handleSend={handleSend}
+              stopGenerating={stopGenerating}
+              externalInput={chatInput}
+              setExternalInput={setChatInput}
+            />
 
           </div>
 
