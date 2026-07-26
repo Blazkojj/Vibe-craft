@@ -447,50 +447,78 @@ function Project() {
   }, [messages]);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProject = async () => {
-      if (currentProjectIdRef.current !== id) {
-        currentProjectIdRef.current = id;
-        initialGenerated.current = false;
-        setMessages([]);
-      }
-      
-      setProjectData(null);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setCurrentUser(user);
-      
-      const { data: allProjects } = await supabase
-        .from('projects')
-        .select('id, title, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-        
-      if (allProjects) {
-        setProjectsList(allProjects.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:')));
-      }
-      
-      const profileKey = `__user_profile:${user.email}__`;
-      const { data: profs } = await supabase.from('projects').select('*').eq('title', profileKey);
-      if (profs && profs[0]) {
-        setUserProfile(profs[0].messages || {});
-      }
-
-      const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
-      if (!error && data) {
-        setProjectData(data);
-        let msgs = data.messages;
-        if (typeof msgs === 'string') {
-          try { msgs = JSON.parse(msgs); } catch(e) {}
+      try {
+        if (currentProjectIdRef.current !== id) {
+          currentProjectIdRef.current = id;
+          initialGenerated.current = false;
+          setMessages([]);
         }
-        if (Array.isArray(msgs) && msgs.length > 0) {
-          const cleanedMessages = msgs.map(msg => ({ ...msg, isStreaming: false }));
-          setMessages(cleanedMessages);
-          initialGenerated.current = true;
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user || (await supabase.auth.getUser()).data?.user;
+        if (user) {
+          setCurrentUser(user);
+          
+          const { data: allProjects } = await supabase
+            .from('projects')
+            .select('id, title, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+            
+          if (allProjects && isMounted) {
+            setProjectsList(allProjects.filter(p => !p.title?.startsWith('__user_profile:') && !p.title?.startsWith('__marketplace:')));
+          }
+          
+          const profileKey = `__user_profile:${user.email}__`;
+          const { data: profs } = await supabase.from('projects').select('*').eq('title', profileKey);
+          if (profs && profs[0] && isMounted) {
+            setUserProfile(profs[0].messages || {});
+          }
+        }
+
+        const { data, error } = await supabase.from('projects').select('*').eq('id', id).maybeSingle();
+        if (!isMounted) return;
+
+        if (data) {
+          setProjectData(data);
+          let msgs = data.messages;
+          if (typeof msgs === 'string') {
+            try { msgs = JSON.parse(msgs); } catch(e) {}
+          }
+          if (Array.isArray(msgs) && msgs.length > 0) {
+            const cleanedMessages = msgs.map(msg => ({ ...msg, isStreaming: false }));
+            setMessages(cleanedMessages);
+            initialGenerated.current = true;
+          }
+        } else {
+          // Fallback if project is new or not in DB yet
+          setProjectData({
+            id: id,
+            title: 'Nowy Projekt',
+            model: 'z-ai/glm-5.2',
+            engine: 'Paper',
+            version: '1.20.4',
+            created_at: new Date().toISOString(),
+            messages: []
+          });
+        }
+      } catch (err) {
+        console.error("[Project] Fetch error:", err);
+        if (isMounted) {
+          setProjectData({
+            id: id,
+            title: 'Projekt',
+            model: 'z-ai/glm-5.2',
+            messages: []
+          });
         }
       }
     };
+
     fetchProject();
+    return () => { isMounted = false; };
   }, [id]);
 
   useEffect(() => {
