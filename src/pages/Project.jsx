@@ -33,9 +33,16 @@ const ModelIcon = ({modelId, size=13}) => {
   return <Sparkles size={size}/>;
 };
 
+const syntaxCache = new Map();
+const MAX_SYNTAX_CACHE_SIZE = 400;
+
 const highlightVSCodeSyntax = (codeStr, filenameOrLang = '') => {
   if (!codeStr) return '';
-  let str = String(codeStr);
+  const str = String(codeStr);
+  const cacheKey = str.length + '_' + filenameOrLang + '_' + str.slice(0, 80) + '_' + str.slice(-80);
+  if (syntaxCache.has(cacheKey)) {
+    return syntaxCache.get(cacheKey);
+  }
   
   const escapeMap = {
     '&': '&amp;',
@@ -86,6 +93,12 @@ const highlightVSCodeSyntax = (codeStr, filenameOrLang = '') => {
   for (let i = tokens.length - 1; i >= 0; i--) {
     tokenized = tokenized.replace(`___TOKEN_${i}___`, tokens[i]);
   }
+
+  if (syntaxCache.size >= MAX_SYNTAX_CACHE_SIZE) {
+    const firstKey = syntaxCache.keys().next().value;
+    syntaxCache.delete(firstKey);
+  }
+  syntaxCache.set(cacheKey, tokenized);
 
   return tokenized;
 };
@@ -175,6 +188,25 @@ const generateWithBackend = async (
   let hasStartedReasoning = fullText.includes('<think>');
   let hasEndedReasoning = fullText.includes('</think>');
 
+  let lastStreamUpdateTime = 0;
+  let streamRafId = null;
+  const throttledUpdateCb = (text) => {
+    const now = Date.now();
+    if (now - lastStreamUpdateTime > 35) {
+      lastStreamUpdateTime = now;
+      if (streamRafId) cancelAnimationFrame(streamRafId);
+      updateMsgCb(text);
+    } else {
+      if (!streamRafId) {
+        streamRafId = requestAnimationFrame(() => {
+          streamRafId = null;
+          lastStreamUpdateTime = Date.now();
+          updateMsgCb(text);
+        });
+      }
+    }
+  };
+
   try {
     const response = await fetchWithRetry(url, {
       method: 'POST',
@@ -247,7 +279,7 @@ const generateWithBackend = async (
                 hasStartedReasoning = true;
               }
               fullText += reasoning;
-              updateMsgCb(fullText);
+              throttledUpdateCb(fullText);
             }
             
             if (delta.content) {
@@ -256,11 +288,11 @@ const generateWithBackend = async (
                 hasEndedReasoning = true;
               }
               fullText += delta.content;
-              updateMsgCb(fullText);
+              throttledUpdateCb(fullText);
             }
           } else if (parsed.content) {
             fullText += parsed.content;
-            updateMsgCb(fullText);
+            throttledUpdateCb(fullText);
           } else if (parsed.error) {
             throw new Error(`API Error: ${parsed.error.message || JSON.stringify(parsed.error)}`);
           }
@@ -270,6 +302,7 @@ const generateWithBackend = async (
         }
       }
     }
+    updateMsgCb(fullText);
   } catch (err) {
     if (signal.aborted) throw err;
 
