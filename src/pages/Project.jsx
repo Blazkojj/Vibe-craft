@@ -1553,7 +1553,7 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                         <span className="text-[10px] font-mono text-[#64748b]">{msg.time}</span>
                       </div>
 
-                      <div className={`relative w-full overflow-x-auto ${isUser ? 'bg-[#ff6b00] text-white px-4 py-3 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-4 py-3 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
+                      <div className={`relative w-full overflow-x-auto text-xs sm:text-[13px] ${isUser ? 'bg-[#ff6b00] text-white px-3.5 py-2.5 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-3.5 py-2.5 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
                         {renderMessageContent(msg.text, msg.isStreaming, idx)}
                       </div>
 
