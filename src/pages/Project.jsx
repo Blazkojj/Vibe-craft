@@ -1535,13 +1535,13 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden selection:bg-slate-200">
+    <div className="flex h-screen bg-[#0b0c10] text-[#f8fafc] font-sans antialiased overflow-hidden selection:bg-orange-500/20">
       
       {/* ─── LEFT SIDEBAR ─── */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white flex-shrink-0 z-20 shadow-xs">
-        <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
+      <aside className="hidden md:flex w-64 flex-col border-r border-white/10 bg-[#13151d] flex-shrink-0 z-20 shadow-xl">
+        <div className="h-14 px-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
           <button 
-            className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2 text-xs font-semibold text-[#94a3b8] hover:text-[#f8fafc] px-2.5 py-1.5 rounded-md hover:bg-[#191c27] transition-colors"
             onClick={() => navigate('/dashboard')}
           >
             <ArrowLeft size={14}/>
@@ -1550,44 +1550,44 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Moje Projekty</div>
+          <div className="px-2.5 py-1.5 text-[10px] font-bold text-[#64748b] uppercase tracking-wider">Moje Projekty</div>
           {projectsList.map(p => (
             <div
               key={p.id}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-medium ${p.id === id ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-medium ${p.id === id ? 'bg-[#ff6b00] text-white font-semibold shadow-md' : 'text-[#94a3b8] hover:bg-[#191c27] hover:text-[#f8fafc]'}`}
               onClick={() => navigate(`/project/${p.id}`)}
               title={p.title}
             >
-              <div className={`w-1.5 h-1.5 rounded-full ${p.id === id ? 'bg-emerald-400' : 'bg-slate-300'}`}/>
+              <div className={`w-1.5 h-1.5 rounded-full ${p.id === id ? 'bg-white' : 'bg-[#64748b]'}`}/>
               <span className="truncate flex-1">{p.title}</span>
             </div>
           ))}
         </div>
 
-        <div className="p-3 border-t border-slate-200 bg-slate-50 flex-shrink-0 space-y-2">
+        <div className="p-3 border-t border-white/10 bg-[#0b0c10] flex-shrink-0 space-y-2">
           <button 
-            className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-all text-left"
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-[#13151d] border border-white/10 hover:border-white/20 transition-all text-left"
             onClick={() => navigate('/ustawienia')}
           >
             {currentUser?.user_metadata?.discord_profile?.avatar ? (
-              <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200"/>
+              <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="w-7 h-7 rounded-full object-cover border border-white/10"/>
             ) : (
-              <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-full bg-[#ff6b00] text-white flex items-center justify-center font-bold text-xs">
                 {(currentUser?.user_metadata?.discord_profile?.global_name || currentUser?.user_metadata?.username || currentUser?.email || 'B').charAt(0).toUpperCase()}
               </div>
             )}
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-xs font-semibold text-slate-900 truncate">
+              <span className="text-xs font-semibold text-[#f8fafc] truncate">
                 {currentUser?.user_metadata?.discord_profile?.global_name || currentUser?.user_metadata?.discord_profile?.username || currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Konto'}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium uppercase">{userProfile?.plan || 'Free'}</span>
+              <span className="text-[10px] text-[#ff6b00] font-bold uppercase">{userProfile?.plan || 'Free'}</span>
             </div>
-            <SettingsIcon size={14} className="text-slate-400"/>
+            <SettingsIcon size={14} className="text-[#64748b]"/>
           </button>
           
-          <div className="flex items-center justify-between px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono">
-            <span className="text-slate-500">{isEN ? 'Credits' : 'Kredyty'}</span>
-            <span className="font-semibold text-slate-800">
+          <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#13151d] border border-white/10 rounded-lg text-xs font-mono">
+            <span className="text-[#64748b]">{isEN ? 'Credits' : 'Kredyty'}</span>
+            <span className="font-semibold text-[#ff6b00]">
               ${parseFloat(userProfile?.used_credits_uncached || userProfile?.used_credits || '0').toFixed(2)} / ${parseFloat(userProfile?.balance || '0').toFixed(2)}
             </span>
           </div>
@@ -1595,37 +1595,37 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
       </aside>
 
       {/* ─── MAIN CONTENT AREA (2-COLUMN SPLIT WORKSPACE) ─── */}
-      <main className="flex-1 flex flex-col min-w-0 relative bg-slate-50">
+      <main className="flex-1 flex flex-col min-w-0 relative bg-[#0b0c10]">
         
         {/* HEADER BAR */}
-        <header className="h-14 flex items-center justify-between px-5 border-b border-slate-200 bg-white flex-shrink-0 z-10 shadow-xs">
+        <header className="h-14 flex items-center justify-between px-5 border-b border-white/10 bg-[#0b0c10] flex-shrink-0 z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <h1 className="text-sm font-bold text-slate-900 truncate">{projectData.title}</h1>
-            <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
+            <h1 className="text-sm font-bold text-[#f8fafc] truncate">{projectData.title}</h1>
+            <div className="h-4 w-px bg-white/10 hidden sm:block"></div>
             
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#191c27] text-[#94a3b8] border border-white/10">
               {projectData.engine || 'Paper'} {projectData.version || '1.21.4'}
             </span>
 
             <div className="relative" ref={modelMenuRef}>
               <button
-                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg transition-all text-xs font-semibold text-slate-700 shadow-xs"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#13151d] border border-white/10 hover:border-white/20 rounded-lg transition-all text-xs font-semibold text-[#f8fafc]"
                 onClick={() => setIsModelMenuOpen(v => !v)}
               >
-                <div className={`flex items-center justify-center w-4 h-4 rounded ${projectData.model?.startsWith('claude') ? 'text-amber-600' : 'text-slate-800'}`}>
+                <div className={`flex items-center justify-center w-4 h-4 rounded ${projectData.model?.startsWith('claude') ? 'text-[#ff6b00]' : 'text-sky-400'}`}>
                   <ModelIcon modelId={projectData.model} size={12}/>
                 </div>
                 {getModelDisplayName(projectData.model)}
-                <ChevronDown size={13} className="text-slate-400 ml-0.5"/>
+                <ChevronDown size={13} className="text-[#64748b] ml-0.5"/>
               </button>
               {isModelMenuOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Model AI</div>
+                <div className="absolute top-full left-0 mt-1 w-56 bg-[#13151d] border border-white/16 rounded-xl shadow-2xl p-1.5 z-50">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-[#64748b] uppercase tracking-wider">Model AI</div>
                   <div className="flex flex-col gap-0.5">
                   {MODELS_LIST.map(m => (
                     <button
                       key={m.id}
-                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${projectData.model === m.id ? 'bg-slate-900 text-white font-semibold' : 'text-slate-700 hover:bg-slate-100'}`}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${projectData.model === m.id ? 'bg-[#ff6b00] text-white font-semibold' : 'text-[#94a3b8] hover:bg-[#191c27] hover:text-white'}`}
                       onClick={() => changeModel(m.id)}
                     >
                       <ModelIcon modelId={m.id} size={13}/>
@@ -1640,19 +1640,19 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
 
           <div className="flex items-center gap-3">
             {buildError && (
-              <button className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors" onClick={handleAutoFix}>
+              <button className="text-xs font-semibold text-red-400 hover:text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors" onClick={handleAutoFix}>
                 <Wrench size={13}/> {isEN ? 'Auto-Fix Error' : 'Napraw błąd'}
               </button>
             )}
             
             <button 
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xs'}`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-800 text-slate-500 border border-white/10 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00] shadow-md'}`}
               onClick={handleBuild} 
               disabled={isBuilding}
             >
               {isBuilding ? (
                 <>
-                  <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"/>
+                  <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin"/>
                   <span>{isEN ? 'Compiling...' : 'Kompilowanie...'}</span>
                 </>
               ) : (
@@ -1664,7 +1664,7 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
             </button>
 
             <button 
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 bg-[#13151d] text-[#64748b] hover:text-red-400 hover:border-red-500/30 hover:bg-red-950/30 transition-colors"
               onClick={handleClearChat} 
               title={isEN ? "Clear history" : "Wyczyść historię"}
             >
@@ -1677,32 +1677,32 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
         <div className="flex-1 flex overflow-hidden">
           
           {/* LEFT COLUMN: CHAT & AI CO-PILOT */}
-          <div className="w-full lg:w-1/2 flex flex-col h-full bg-slate-50 border-r border-slate-200 relative">
+          <div className="w-full lg:w-1/2 flex flex-col h-full bg-[#0b0c10] border-r border-white/10 relative">
             
             {/* CHAT MESSAGES STREAM */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-36 space-y-6" ref={chatContainerRef}>
               
               {messages.length === 0 && !isGenerating && (
                 <div className="m-auto flex flex-col items-center justify-center text-center max-w-md py-12 px-4 space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-800">
+                  <div className="w-12 h-12 rounded-xl bg-[#13151d] border border-white/10 flex items-center justify-center text-[#ff6b00]">
                     <ModelIcon modelId={projectData.model} size={24}/>
                   </div>
                   <div className="space-y-1">
-                    <h2 className="text-xl font-bold text-slate-900">{isEN ? "Welcome to" : "Projekt"} {projectData.title}</h2>
-                    <p className="text-slate-500 text-xs leading-relaxed">
+                    <h2 className="text-xl font-bold text-[#f8fafc]">{isEN ? "Welcome to" : "Projekt"} {projectData.title}</h2>
+                    <p className="text-[#94a3b8] text-xs leading-relaxed">
                       {isEN ? "Describe what plugin mechanics or features you want to generate. AI will build production-ready code." : "Opisz w polu poniżej mechaniki lub komendy, które chcesz stworzyć. AI wygeneruje kompletny kod."}
                     </p>
                   </div>
                   
                   <div className="flex flex-wrap gap-2 justify-center pt-2">
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Dodaj komendę /heal leczącą gracza do pełna z dźwiękiem LEVEL_UP')}>
-                      <Lightbulb size={13} className="text-amber-500"/> Komenda /heal
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#13151d] border border-white/10 hover:border-white/20 text-xs font-medium text-[#f8fafc] rounded-lg transition-colors" onClick={() => setChatInput('Dodaj komendę /heal leczącą gracza do pełna z dźwiękiem LEVEL_UP')}>
+                      <Lightbulb size={13} className="text-amber-400"/> Komenda /heal
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Stwórz system skrzynek losujących (crates) z animacją otwarcia')}>
-                      <Wrench size={13} className="text-sky-600"/> System skrzynek
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#13151d] border border-white/10 hover:border-white/20 text-xs font-medium text-[#f8fafc] rounded-lg transition-colors" onClick={() => setChatInput('Stwórz system skrzynek losujących (crates) z animacją otwarcia')}>
+                      <Wrench size={13} className="text-sky-400"/> System skrzynek
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Dodaj panel GUI z 27 slotami przypisanymi do komendy /menu')}>
-                      <Package size={13} className="text-emerald-600"/> Panel GUI
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#13151d] border border-white/10 hover:border-white/20 text-xs font-medium text-[#f8fafc] rounded-lg transition-colors" onClick={() => setChatInput('Dodaj panel GUI z 27 slotami przypisanymi do komendy /menu')}>
+                      <Package size={13} className="text-emerald-400"/> Panel GUI
                     </button>
                   </div>
                 </div>
@@ -1715,13 +1715,13 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                     <div className={`flex flex-col max-w-[92%] sm:max-w-[88%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
                       
                       <div className="flex items-center gap-2 mb-1 px-1">
-                        <span className="text-xs font-bold text-slate-700">
+                        <span className="text-xs font-bold text-[#94a3b8]">
                           {isUser ? (isEN ? 'You' : 'Ty') : getModelDisplayName(projectData.model)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400">{msg.time}</span>
+                        <span className="text-[10px] font-mono text-[#64748b]">{msg.time}</span>
                       </div>
 
-                      <div className={`relative w-full overflow-x-auto ${isUser ? 'bg-slate-900 text-white px-4 py-3 rounded-2xl rounded-tr-xs shadow-xs' : 'bg-white border border-slate-200 text-slate-800 px-4 py-3 rounded-2xl rounded-tl-xs shadow-xs prose prose-slate max-w-none prose-p:leading-relaxed'}`}>
+                      <div className={`relative w-full overflow-x-auto ${isUser ? 'bg-[#ff6b00] text-white px-4 py-3 rounded-2xl rounded-tr-xs shadow-md' : 'bg-[#13151d] border border-white/10 text-[#f8fafc] px-4 py-3 rounded-2xl rounded-tl-xs shadow-md prose prose-invert max-w-none prose-p:leading-relaxed'}`}>
                         {renderMessageContent(msg.text, msg.isStreaming, idx)}
                       </div>
 
@@ -1734,12 +1734,12 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                 <div className="flex w-full justify-start">
                   <div className="flex flex-col items-start">
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-xs font-bold text-slate-700">{getModelDisplayName(projectData.model)}</span>
+                      <span className="text-xs font-bold text-[#94a3b8]">{getModelDisplayName(projectData.model)}</span>
                     </div>
-                    <div className="flex gap-1.5 items-center h-8 px-3.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
+                    <div className="flex gap-1.5 items-center h-8 px-3.5 rounded-xl bg-[#13151d] border border-white/10 shadow-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ff6b00] animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ff6b00] animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ff6b00] animate-bounce" style={{animationDelay: '300ms'}}></div>
                     </div>
                   </div>
                 </div>
@@ -1749,10 +1749,10 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
             </div>
 
             {/* CHAT INPUT DOCK */}
-            <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 shadow-lg z-10">
-              <div className="relative flex flex-col bg-white border border-slate-300 focus-within:border-slate-900 rounded-xl shadow-xs transition-colors p-2">
+            <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-4 z-10">
+              <div className="relative flex flex-col bg-[#13151d] border border-white/10 focus-within:border-[#ff6b00] rounded-xl transition-colors p-2">
                 <textarea
-                  className="w-full max-h-48 bg-transparent border-none text-slate-900 placeholder:text-slate-400 p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
+                  className="w-full max-h-48 bg-transparent border-none text-[#f8fafc] placeholder:text-[#64748b] p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
                   placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI to generate mechanics..." : "Opisz co chcesz zbudować...")}
                   value={chatInput}
                   disabled={isGenerating}
@@ -1766,24 +1766,24 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                   style={{ minHeight: '44px' }}
                 />
                 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 px-2">
-                  <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
-                    <span>Enter ↵ send</span>
+                <div className="flex items-center justify-between pt-2 border-t border-white/10 px-2">
+                  <div className="text-[11px] text-[#64748b] font-mono flex items-center gap-2">
+                    <span>Enter ↵ wyślij</span>
                     <span>•</span>
-                    <span>Shift+Enter line</span>
+                    <span>Shift+Enter nowa linia</span>
                   </div>
 
                   <div>
                     {isGenerating ? (
                       <button 
-                        className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 text-xs font-semibold hover:bg-red-900/60 transition-colors"
                         onClick={stopGenerating} 
                       >
                         Przerwij
                       </button>
                     ) : (
                       <button 
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!chatInput.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!chatInput.trim() ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00]'}`}
                         onClick={handleSend} 
                         disabled={!chatInput.trim()} 
                       >
@@ -1799,13 +1799,13 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
           </div>
 
           {/* RIGHT COLUMN: LIVE WORKSPACE FILE EXPLORER & BUILD TERMINAL */}
-          <div className="hidden lg:flex w-1/2 flex-col h-full bg-white">
+          <div className="hidden lg:flex w-1/2 flex-col h-full bg-[#0b0c10]">
             
             {/* FILE TABS HEADER */}
-            <div className="h-11 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
+            <div className="h-11 bg-[#13151d] border-b border-white/10 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
               <div className="flex items-center gap-1 overflow-x-auto flex-1 py-1">
                 {filePathsList.length === 0 ? (
-                  <span className="text-xs text-slate-400 font-mono px-2">Brak wygenerowanych plików...</span>
+                  <span className="text-xs text-[#64748b] font-mono px-2">Brak wygenerowanych plików...</span>
                 ) : (
                   filePathsList.map(filePath => {
                     const fileName = filePath.split('/').pop();
@@ -1814,9 +1814,9 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                       <button
                         key={filePath}
                         onClick={() => setSelectedFilePath(filePath)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${isSelected ? 'bg-white text-slate-900 font-semibold border border-slate-200 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${isSelected ? 'bg-[#ff6b00] text-white font-semibold shadow-xs' : 'text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#191c27]'}`}
                       >
-                        <FileCode size={13} className={isSelected ? 'text-slate-800' : 'text-slate-400'}/>
+                        <FileCode size={13} className={isSelected ? 'text-white' : 'text-[#64748b]'}/>
                         <span>{fileName}</span>
                       </button>
                     );
@@ -1827,7 +1827,7 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
               {selectedFilePath && currentFileContent && (
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button 
-                    className="p-1.5 rounded-md hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+                    className="p-1.5 rounded-md hover:bg-[#191c27] text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
                     title="Kopiuj zawartość pliku"
                     onClick={() => {
                       navigator.clipboard?.writeText(currentFileContent);
@@ -1841,35 +1841,35 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
             </div>
 
             {/* LIVE CODE VIEWER BODY */}
-            <div className="flex-1 bg-slate-900 text-slate-100 overflow-auto p-4 font-mono text-xs leading-relaxed relative">
+            <div className="flex-1 bg-[#07080b] text-[#f8fafc] overflow-auto p-4 font-mono text-xs leading-relaxed relative">
               {currentFileContent ? (
                 <pre className="m-0 whitespace-pre">
                   <code>{currentFileContent}</code>
                 </pre>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 font-sans space-y-2">
-                  <FileCode size={36} className="text-slate-700"/>
+                <div className="h-full flex flex-col items-center justify-center text-[#64748b] font-sans space-y-2">
+                  <FileCode size={36} className="text-[#334155]"/>
                   <p className="text-xs font-medium">Wybierz plik z powyższego paska lub poproś AI o kod.</p>
                 </div>
               )}
             </div>
 
             {/* BOTTOM BUILD TERMINAL DRAWER */}
-            <div className="h-32 bg-slate-950 border-t border-slate-800 p-3 font-mono text-xs text-slate-300 overflow-y-auto flex flex-col justify-between flex-shrink-0">
-              <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-1.5 mb-1.5">
-                <span className="font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${buildError ? 'bg-red-500' : isBuilding ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}/>
+            <div className="h-32 bg-[#060709] border-t border-white/10 p-3 font-mono text-xs text-[#94a3b8] overflow-y-auto flex flex-col justify-between flex-shrink-0">
+              <div className="flex items-center justify-between text-[11px] text-[#64748b] border-b border-white/10 pb-1.5 mb-1.5">
+                <span className="font-semibold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${buildError ? 'bg-red-500' : isBuilding ? 'bg-[#ff6b00] animate-pulse' : 'bg-emerald-500'}`}/>
                   Konsola Kompilacji Maven
                 </span>
                 <span>{buildStatus || (buildError ? 'Błąd kompilacji' : 'Gotowy')}</span>
               </div>
-              <div className="flex-1 overflow-y-auto text-[11px] leading-relaxed text-slate-300">
+              <div className="flex-1 overflow-y-auto text-[11px] leading-relaxed text-[#94a3b8]">
                 {buildError ? (
                   <span className="text-red-400 font-mono">{buildError}</span>
                 ) : buildStatus ? (
                   <span className="text-emerald-400 font-mono">{buildStatus}</span>
                 ) : (
-                  <span className="text-slate-500">[INFO] Kliknij "Buduj JAR" na górnym pasku, aby skompilować kod źródłowy Javy.</span>
+                  <span className="text-[#64748b]">[INFO] Kliknij "Buduj JAR" na górnym pasku, aby skompilować kod źródłowy Javy.</span>
                 )}
               </div>
             </div>
