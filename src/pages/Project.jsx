@@ -930,12 +930,12 @@ ZASADY KRYTYCZNE:
 <file path="sciezka/do/pliku">
 KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 </file>
-6. Zawsze zacznij od <think>krótki proces myślowy</think>.
 7. Zmieniaj tylko te pliki, które wymagają edycji. Każdy zmieniony plik musisz bezwzględnie wygenerować w całości (100% gotowy kod) w tagach <file>. Zabrania się opisywania zmian tylko tekstowo oraz stosowania skrótów typu "..." lub "// reszta kodu bez zmian".
 8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
 9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
 10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
-11. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian. Poinformuj użytkownika na końcu, aby napisał "kontynuuj" w celu wygenerowania pozostałych klas.`;
+11. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
+12. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -1009,8 +1009,8 @@ ZASADY KODOWANIA:
 KOD
 </file>
 3. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku od początku do końca. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu. pom.xml musi być kompletnym i poprawnym plikiem XML.
-4. OGRANICZENIE ROZMIARU ODPOWIEDZI: Ponieważ limit tokenów wyjściowych wynosi 8192, ZAWSZE w pierwszej kolejności wygeneruj kompletny pom.xml, plugin.yml i config.yml, a potem maksymalnie 1-2 kompletne klasy Java. Nie zaczynaj generować plików, których nie zdążysz ukończyć przed limitem tokenów! Pliki kodu muszą być kompletne od początku do końca, bez żadnych skrótów "..." ani komentarzy oznaczających brak zmian.
-5. Na samym końcu wiadomości (po zamknięciu ostatniego tagu </file>) wymień pliki, które pozostały do zaimplementowania (np. menedżery, GUI, listenery) i poproś użytkownika o napisanie słowa "kontynuuj", aby wygenerować kolejną część kodu.`;
+4. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu (Komendy, Listenery, Menedżery, GUI)! Żadna klasa odwoływana w kodzie głównym nie może zostać pominięta ani pozostawiona bez pliku.
+5. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Poinformuj użytkownika w 1 zdaniu, że aby pobrać plik JAR wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku.`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
@@ -1089,13 +1089,13 @@ Here is the error from the terminal:
 \`\`\`
 ${buildError}
 \`\`\`
-Analyze the reason for the error and fix it. You MUST generate the 100% complete corrected code files (or files) from scratch. Never use comments like '// rest of code...' or abbreviation '...'. Remember to return the complete pom.xml if it needs to be updated or generated!`
+Analyze the reason for the error and fix it. If any classes, commands, listeners, managers or GUI classes are missing (e.g. cannot find symbol), you MUST generate ALL missing class files 100% complete in <file path="...">...</file> tags. Never use comments like '// rest of code...' or abbreviation '...'. Do NOT tell the user to run bash/mvn commands!`
       : `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
 Oto treść błędu z terminala:
 \`\`\`
 ${buildError}
 \`\`\`
-Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od początku do końca, bez żadnych skrótów typu "..." czy "// reszta kodu bez zmian". Pamiętaj, aby plik pom.xml oraz pliki kodu źródłowego były w 100% pełne i poprawne składniowo. Zwróć także szczegółowy opis tego, co dokładnie zostało poprawione.`;
+Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="dokładna_ścieżka">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
     
     setBuildError(null);
     handleSend(errorMsg);
