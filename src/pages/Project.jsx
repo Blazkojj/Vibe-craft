@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -31,6 +31,99 @@ const ModelIcon = ({modelId, size=13}) => {
     return <img src="/glm.webp" alt="GLM" style={{ width: size, height: size, objectFit: 'contain' }} />;
   }
   return <Sparkles size={size}/>;
+};
+
+const highlightVSCodeSyntax = (codeStr, filenameOrLang = '') => {
+  if (!codeStr) return '';
+  let str = String(codeStr);
+  
+  const escapeMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  
+  let safeStr = str.replace(/[&<>"']/g, m => escapeMap[m]);
+
+  const tokens = [];
+  const addToken = (html) => {
+    const key = `___TOKEN_${tokens.length}___`;
+    tokens.push(html);
+    return key;
+  };
+
+  let tokenized = safeStr;
+
+  // Single line & multi-line comments
+  tokenized = tokenized.replace(/(\/\/[^\n]*|#[^\n]*)/g, (m) => addToken(`<span style="color:#6a9955;font-style:italic;">${m}</span>`));
+  tokenized = tokenized.replace(/(\/\*[\s\S]*?\*\/|&lt;!--[\s\S]*?--&gt;)/g, (m) => addToken(`<span style="color:#6a9955;font-style:italic;">${m}</span>`));
+
+  // Strings ("..." or '...')
+  tokenized = tokenized.replace(/(&quot;[^\n&]*?&quot;|&#039;[^\n&]*?&#039;)/g, (m) => addToken(`<span style="color:#ce9178;">${m}</span>`));
+
+  // Annotations
+  tokenized = tokenized.replace(/(@[a-zA-Z0-9_]+)/g, (m) => addToken(`<span style="color:#dcdcaa;">${m}</span>`));
+
+  // Keywords
+  const keywordsRegex = /\b(public|private|protected|class|interface|enum|void|return|package|import|extends|implements|new|if|else|for|while|do|try|catch|finally|throw|throws|final|static|boolean|int|long|double|float|byte|short|char|true|false|null|this|super|instanceof|var|default|case|switch|break|continue|abstract)\b/g;
+  tokenized = tokenized.replace(keywordsRegex, (m) => addToken(`<span style="color:#569cd6;font-weight:600;">${m}</span>`));
+
+  // XML / HTML Tags
+  tokenized = tokenized.replace(/(&lt;\/?[a-zA-Z0-9_-]+)/g, (m) => addToken(`<span style="color:#569cd6;">${m}</span>`));
+  tokenized = tokenized.replace(/(\s+[a-zA-Z0-9_-]+)(=)/g, (m, p1, p2) => addToken(`<span style="color:#9cdcfe;">${p1}</span>${p2}`));
+
+  // YAML keys
+  tokenized = tokenized.replace(/^(\s*)([a-zA-Z0-9_-]+)(:)/gm, (m, p1, p2, p3) => `${p1}` + addToken(`<span style="color:#9cdcfe;font-weight:600;">${p2}</span>`) + `${p3}`);
+
+  // Class names
+  tokenized = tokenized.replace(/\b([A-Z][a-zA-Z0-9_]+)\b/g, (m) => addToken(`<span style="color:#4ec9b0;">${m}</span>`));
+
+  // Numbers
+  tokenized = tokenized.replace(/\b(\d+(\.\d+)?)\b/g, (m) => addToken(`<span style="color:#b5cea8;">${m}</span>`));
+
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    tokenized = tokenized.replace(`___TOKEN_${i}___`, tokens[i]);
+  }
+
+  return tokenized;
+};
+
+const AvatarBadge = ({ isUser, user, modelId }) => {
+  if (isUser) {
+    const avatarUrl = user?.user_metadata?.discord_profile?.avatar || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+    if (avatarUrl) {
+      return (
+        <img 
+          src={avatarUrl} 
+          alt="User" 
+          className="w-7 h-7 rounded-full border border-white/20 object-cover shadow-sm flex-shrink-0 mt-0.5" 
+        />
+      );
+    }
+    const initial = user?.email ? user.email.charAt(0).toUpperCase() : 'U';
+    return (
+      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#ff6b00] to-[#ff9900] text-white flex items-center justify-center text-xs font-bold shadow-sm flex-shrink-0 border border-white/20 mt-0.5">
+        {initial}
+      </div>
+    );
+  }
+
+  const modelLower = (modelId || '').toLowerCase();
+  if (modelLower.includes('claude') || modelLower.includes('sonnet') || modelLower.includes('opus') || modelLower.includes('haiku')) {
+    return (
+      <div className="w-7 h-7 rounded-full bg-[#cc6b2c]/20 border border-[#ff8c3b]/40 flex items-center justify-center p-1 shadow-sm flex-shrink-0 mt-0.5">
+        <img src="/anthropic.png" alt="Claude" className="w-4 h-4 object-contain" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-7 h-7 rounded-full bg-[#1e293b] border border-sky-500/40 flex items-center justify-center p-1 shadow-sm flex-shrink-0 mt-0.5">
+      <img src="/glm.webp" alt="GLM" className="w-4 h-4 object-contain" />
+    </div>
+  );
 };
 
 const fetchWithRetry = async (url, options, maxRetries = 3, delayMs = 1500) => {
@@ -332,7 +425,7 @@ const CodeBlock = ({ lang, className, children, canViewCode, isEN, ...props }) =
         <span className="msg-code-lang">{lang}</span>
       </div>
       {canViewCode ? (
-        <code className={className} {...props}>{children}</code>
+        <code className={className} dangerouslySetInnerHTML={{ __html: highlightVSCodeSyntax(code, lang) }} {...props} />
       ) : (
         <div style={{
           padding: '1rem',
@@ -385,9 +478,9 @@ const FileBlock = ({ fb, userProfile }) => {
       </button>
       {open && (
         canViewCode ? (
-          <pre className="cf-item-code"><code>{fb.code}</code></pre>
+          <pre className="cf-item-code"><code dangerouslySetInnerHTML={{ __html: highlightVSCodeSyntax(fb.code, fb.path) }} /></pre>
         ) : (
-          <div className="p-3 text-xs text-amber-500/80 bg-amber-950/20 border-t border-amber-900/30 flex items-center gap-2">
+          <div className="p-3 text-xs text-[#F59E0B] bg-[#78350f]/10 border-t border-[#78350f]/20 flex items-center gap-2">
             <Lock size={12} />
             {isEN ? 'Code preview is available from Plan 1.' : 'Podgląd kodu dostępny tylko od planu pierwszego.'}
           </div>
@@ -1543,7 +1636,12 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
               {messages.map((msg, idx) => {
                 const isUser = msg.sender === 'You';
                 return (
-                  <div key={msg.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div key={msg.id} className={`flex w-full gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    
+                    {!isUser && (
+                      <AvatarBadge isUser={false} user={currentUser} modelId={projectData.model} />
+                    )}
+
                     <div className={`flex flex-col max-w-[92%] sm:max-w-[88%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
                       
                       <div className="flex items-center gap-2 mb-1 px-1">
@@ -1558,12 +1656,18 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
                       </div>
 
                     </div>
+
+                    {isUser && (
+                      <AvatarBadge isUser={true} user={currentUser} modelId={projectData.model} />
+                    )}
+
                   </div>
                 );
               })}
 
               {isGenerating && messages.length > 0 && !messages[messages.length-1]?.isStreaming && (
-                <div className="flex w-full justify-start">
+                <div className="flex w-full gap-2.5 justify-start">
+                  <AvatarBadge isUser={false} user={currentUser} modelId={projectData.model} />
                   <div className="flex flex-col items-start">
                     <div className="flex items-center gap-2 mb-1 px-1">
                       <span className="text-xs font-bold text-[#94a3b8]">{getModelDisplayName(projectData.model)}</span>
@@ -1675,8 +1779,8 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
             {/* LIVE CODE VIEWER BODY */}
             <div className="flex-1 bg-[#07080b] text-[#f8fafc] overflow-auto p-4 font-mono text-xs leading-relaxed relative">
               {currentFileContent ? (
-                <pre className="m-0 whitespace-pre">
-                  <code>{currentFileContent}</code>
+                <pre className="m-0 whitespace-pre font-mono text-xs leading-relaxed">
+                  <code dangerouslySetInnerHTML={{ __html: highlightVSCodeSyntax(currentFileContent, selectedFilePath) }} />
                 </pre>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-[#64748b] font-sans space-y-2">
