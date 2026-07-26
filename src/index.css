@@ -4,11 +4,11 @@
 
 @layer base {
   :root {
-    --bg-main: #0b0c10;
-    --bg-card: #13151d;
-    --bg-card-hover: #191c27;
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-color-hover: rgba(255, 255, 255, 0.16);
+    --bg-main: #161822;
+    --bg-card: #1e2130;
+    --bg-card-hover: #262a3d;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color-hover: rgba(255, 255, 255, 0.18);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
@@ -23,12 +23,12 @@
 
 @layer base {
   * {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
     box-sizing: border-box;
   }
   
   html, body {
-    background-color: #0b0c10 !important;
+    background-color: #161822 !important;
     color: #f8fafc !important;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
     font-size: 14px;
