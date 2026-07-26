@@ -425,6 +425,7 @@ function Project() {
   const [buildStatus, setBuildStatus] = useState('');
   const [buildError, setBuildError] = useState(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [showCodePanel, setShowCodePanel] = useState(false);
   const [projectsList, setProjectsList] = useState([]);
   const modelMenuRef = useRef(null);
 
@@ -1646,6 +1647,15 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
             )}
             
             <button 
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors flex items-center gap-1.5 ${showCodePanel ? 'bg-[#ff6b00] text-white border-[#ff6b00]' : 'bg-[#13151d] text-[#94a3b8] hover:text-[#f8fafc] border-white/10'}`}
+              onClick={() => setShowCodePanel(v => !v)}
+              title={isEN ? "Toggle code inspector" : "Pokaż/Ukryj podgląd kodu"}
+            >
+              <FileCode size={13}/>
+              <span>{showCodePanel ? (isEN ? 'Hide Code' : 'Ukryj kod') : (isEN ? 'View Code' : 'Podgląd kodu')}</span>
+            </button>
+
+            <button 
               className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-800 text-slate-500 border border-white/10 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00] shadow-md'}`}
               onClick={handleBuild} 
               disabled={isBuilding}
@@ -1677,7 +1687,7 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
         <div className="flex-1 flex overflow-hidden">
           
           {/* LEFT COLUMN: CHAT & AI CO-PILOT */}
-          <div className="w-full lg:w-1/2 flex flex-col h-full bg-[#0b0c10] border-r border-white/10 relative">
+          <div className={`flex flex-col h-full bg-[#0b0c10] relative transition-all duration-300 ${showCodePanel ? 'w-full lg:w-7/12 border-r border-white/10' : 'w-full flex-1'}`}>
             
             {/* CHAT MESSAGES STREAM */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-36 space-y-6" ref={chatContainerRef}>
@@ -1799,7 +1809,7 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
           </div>
 
           {/* RIGHT COLUMN: LIVE WORKSPACE FILE EXPLORER & BUILD TERMINAL */}
-          <div className="hidden lg:flex w-1/2 flex-col h-full bg-[#0b0c10]">
+          <div className={`flex-col h-full bg-[#0b0c10] border-l border-white/10 transition-all duration-300 ${showCodePanel ? 'hidden lg:flex w-full lg:w-5/12' : 'hidden'}`}>
             
             {/* FILE TABS HEADER */}
             <div className="h-11 bg-[#13151d] border-b border-white/10 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
