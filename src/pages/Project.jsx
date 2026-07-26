@@ -403,7 +403,14 @@ function Project() {
   const isEN = lang === 'en';
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
-  const [projectData, setProjectData] = useState(null);
+  const [projectData, setProjectData] = useState(() => ({
+    id: id || 'default',
+    title: 'Projekt',
+    model: 'z-ai/glm-5.2',
+    engine: 'Paper',
+    version: '1.20.4',
+    messages: []
+  }));
   const [userProfile, setUserProfile] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [chatInput, setChatInput] = useState('');
@@ -1477,7 +1484,6 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
     );
   };
 
-  if (!projectData) return <div className="ide-loading">{isEN ? 'Loading project...' : 'Ładowanie projektu...'}</div>;
 
   const MODELS_LIST = [
     {id:'claude-opus-4-8', label:'Claude Opus 4.8'},
