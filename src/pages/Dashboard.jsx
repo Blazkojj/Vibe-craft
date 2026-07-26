@@ -24,7 +24,13 @@ import {
   Download,
   Search,
   Share2,
-  Terminal
+  Terminal,
+  Grid,
+  List,
+  Clock,
+  ExternalLink,
+  Code2,
+  Cpu
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useLang } from '../LangContext';
@@ -130,6 +136,8 @@ export default function Dashboard() {
   const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
   const [enhanceInput, setEnhanceInput] = useState('');
   const [projects, setProjects] = useState([]);
+  const [projectSearch, setProjectSearch] = useState('');
+  const [projectViewMode, setProjectViewMode] = useState('grid');
   const [user, setUser] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -1049,7 +1057,7 @@ export default function Dashboard() {
                 <div className="dash-dropdowns-group">
                   
                   {/* Model Selector */}
-                  <div className="dropdown-container">
+                  <div className="dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
                     <button className="dash-selector-btn" onClick={e => toggleDropdown('model', e)}>
                       <span className={`dash-icon-wrap ${model.startsWith('claude') ? 'claude' : 'glm'}`}>
                         <ModelIcon modelId={model} size={10} />
@@ -1058,7 +1066,7 @@ export default function Dashboard() {
                       <ChevronDown size={10} />
                     </button>
                     {activeDropdown === 'model' && (
-                      <div className="minimal-dropdown" style={{ minWidth: 200, bottom: 'calc(100% + 4px)', top: 'auto' }}>
+                      <div className="minimal-dropdown" style={{ position: 'absolute', minWidth: 220, top: 'calc(100% + 8px)', left: 0, zIndex: 99999 }}>
                         <div className="dropdown-label">{D.modelLabel}</div>
                         {MODELS.map(m => {
                           const isDisabled = planName === 'Free' && m.id !== 'claude-sonnet-4-6';
@@ -1084,14 +1092,14 @@ export default function Dashboard() {
                   </div>
 
                   {/* Engine Selector */}
-                  <div className="dropdown-container">
+                  <div className="dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
                     <button className="dash-selector-btn" onClick={e => toggleDropdown('engine', e)}>
                       <FolderOpen size={11} />
                       <span>{engine}</span>
                       <ChevronDown size={10} />
                     </button>
                     {activeDropdown === 'engine' && (
-                      <div className="minimal-dropdown" style={{ minWidth: 150, bottom: 'calc(100% + 4px)', top: 'auto' }}>
+                      <div className="minimal-dropdown" style={{ position: 'absolute', minWidth: 160, top: 'calc(100% + 8px)', left: 0, zIndex: 99999 }}>
                         <div className="dropdown-label">{D.engineLabel}</div>
                         {ENGINES.map(eng => (
                           <button key={eng} onClick={() => { setEngine(eng); setActiveDropdown(null); }}>
@@ -1103,14 +1111,14 @@ export default function Dashboard() {
                   </div>
 
                   {/* MC Version Selector */}
-                  <div className="dropdown-container">
+                  <div className="dropdown-container" style={{ position: 'relative', display: 'inline-block' }}>
                     <button className="dash-selector-btn" onClick={e => toggleDropdown('version', e)}>
                       <Command size={11} />
                       <span>MC {mcVersion}</span>
                       <ChevronDown size={10} />
                     </button>
                     {activeDropdown === 'version' && (
-                      <div className="minimal-dropdown large-grid" style={{ minWidth: 240, bottom: 'calc(100% + 4px)', top: 'auto' }}>
+                      <div className="minimal-dropdown large-grid" style={{ position: 'absolute', minWidth: 260, top: 'calc(100% + 8px)', left: 0, zIndex: 99999 }}>
                         <div className="dropdown-label" style={{ gridColumn: '1/-1' }}>{D.versionLabel}</div>
                         {MC_VERSIONS.map(v => (
                           <button key={v} onClick={() => { setMcVersion(v); setActiveDropdown(null); }}>
@@ -1193,78 +1201,230 @@ export default function Dashboard() {
             </div>
 
             {/* PROJECTS SECTION */}
-            <div className="dash-projects-list-area">
-              <div className="dash-projects-header">
-                <h2 className="dash-projects-title">{D.projectsTitle}</h2>
-                <span className="dash-projects-count">
-                  {projects.length} / 2 {D.projectsActive}
-                </span>
+            <div className="dash-projects-bento-area">
+              
+              {/* Header with Search and Layout Toggle */}
+              <div className="dash-projects-toolbar">
+                <div className="dash-toolbar-left">
+                  <div className="dash-projects-title-wrap">
+                    <Code2 size={20} className="dash-title-icon" />
+                    <h2 className="dash-projects-title">{D.projectsTitle}</h2>
+                  </div>
+                  <span className="dash-projects-count-pill">
+                    {projects.length} / 2 {D.projectsActive}
+                  </span>
+                </div>
+
+                <div className="dash-toolbar-right">
+                  <div className="dash-search-box">
+                    <Search size={14} className="dash-search-icon" />
+                    <input 
+                      type="text" 
+                      placeholder={isEN ? "Search projects..." : "Szukaj projektu..."}
+                      value={projectSearch}
+                      onChange={e => setProjectSearch(e.target.value)}
+                      className="dash-search-input"
+                    />
+                    {projectSearch && (
+                      <button className="dash-search-clear" onClick={() => setProjectSearch('')}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="dash-layout-toggle">
+                    <button 
+                      className={`dash-layout-btn${projectViewMode === 'grid' ? ' active' : ''}`}
+                      onClick={() => setProjectViewMode('grid')}
+                      title={isEN ? "Grid View" : "Widok Siatki"}
+                    >
+                      <Grid size={15} />
+                    </button>
+                    <button 
+                      className={`dash-layout-btn${projectViewMode === 'list' ? ' active' : ''}`}
+                      onClick={() => setProjectViewMode('list')}
+                      title={isEN ? "Widok Listy" : "Widok Listy"}
+                    >
+                      <List size={15} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {projects.length === 0 ? (
-                <div className="dash-empty" style={{ marginTop: '1rem', maxWidth: 'none' }}>
-                  {D.projectEmpty}
-                </div>
-              ) : (
-                <div className="dash-projects-list-stack" style={{ marginTop: '1rem' }}>
-                  {projects.map(proj => (
-                    <div 
-                      key={proj.id} 
-                      className="dash-project-row-card" 
-                      onClick={() => navigate(`/project/${proj.id}`)}
-                    >
-                      <div className="dash-proj-top-bar">
-                        <div className="dash-proj-title-area">
-                          <div className="dash-proj-icon-box">
-                            <FileCode size={14} />
-                          </div>
-                          <div className="dash-proj-name-wrap">
-                            <span className="dash-proj-name">{proj.title}</span>
-                            <span className="dash-proj-version-badge">MC {proj.version}</span>
-                          </div>
-                        </div>
-                        <div className="dash-proj-actions">
-                          <button 
-                            className="dash-proj-action-btn"
-                            title={D.openProject}
-                            onClick={() => navigate(`/project/${proj.id}`)}
-                          >
-                            <ArrowRight size={13} />
-                          </button>
-                          <button 
-                            className="dash-project-share-btn"
-                            title={isEN ? 'Share on Marketplace' : 'Udostępnij w Marketplace'}
-                            onClick={e => { e.stopPropagation(); handleOpenPublishModal(proj); }}
-                          >
-                            <Share2 size={13} />
-                          </button>
-                          <button 
-                            className="dash-proj-action-btn delete"
-                            title={D.deleteProject}
-                            onClick={e => handleDeleteProject(proj.id, e)}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
+              {/* Projects Content Area */}
+              {(() => {
+                const filtered = projects.filter(p => 
+                  p.title.toLowerCase().includes(projectSearch.toLowerCase()) || 
+                  (p.prompt && p.prompt.toLowerCase().includes(projectSearch.toLowerCase()))
+                );
 
-                      <div className="dash-proj-description">
-                        {proj.prompt}
+                if (projects.length === 0) {
+                  return (
+                    <div className="dash-bento-empty">
+                      <div className="dash-empty-icon-wrap">
+                        <Terminal size={28} />
                       </div>
-
-                      <div className="dash-proj-bottom-bar">
-                        <div className="dash-proj-status-badge">
-                          <span className="dash-status-dot" />
-                          <span>{D.projectActive}</span>
-                        </div>
-                        <span className="dash-proj-time">
-                          {formatDate(proj.created_at)}
-                        </span>
-                      </div>
+                      <h3>{isEN ? "No projects created yet" : "Brak zarejestrowanych projektów"}</h3>
+                      <p>{isEN ? "Enter a prompt in the generator above to compile your first Minecraft plugin." : "Wpisz polecenie w generatorze powyżej, aby wykompilować swój pierwszy silnikowy plugin Minecraft."}</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                }
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="dash-bento-empty">
+                      <div className="dash-empty-icon-wrap">
+                        <Search size={24} />
+                      </div>
+                      <h3>{isEN ? "No projects match your search" : "Nie znaleziono pasujących projektów"}</h3>
+                      <p>{isEN ? `No results for "${projectSearch}"` : `Brak wyników dla frazy "${projectSearch}"`}</p>
+                    </div>
+                  );
+                }
+
+                if (projectViewMode === 'grid') {
+                  return (
+                    <div className="dash-projects-grid">
+                      {filtered.map(proj => (
+                        <div 
+                          key={proj.id} 
+                          className="dash-bento-card" 
+                          onClick={() => navigate(`/project/${proj.id}`)}
+                        >
+                          <div className="dash-bento-card-header">
+                            <div className="dash-bento-icon-badge">
+                              <FileCode size={18} />
+                            </div>
+                            <div className="dash-bento-title-group">
+                              <h3 className="dash-bento-title">{proj.title}</h3>
+                              <div className="dash-bento-pills">
+                                <span className="dash-bento-pill version">MC {proj.version}</span>
+                                <span className="dash-bento-pill engine">{proj.engine || 'Paper'}</span>
+                              </div>
+                            </div>
+                            <div className="dash-bento-status">
+                              <span className="dash-status-dot" />
+                              <span className="dash-status-text">{D.projectActive}</span>
+                            </div>
+                          </div>
+
+                          <div className="dash-bento-card-body">
+                            <p className="dash-bento-prompt">
+                              {proj.prompt || (isEN ? "Custom compiled plugin" : "Dedykowany wygenerowany plugin")}
+                            </p>
+                          </div>
+
+                          <div className="dash-bento-card-meta">
+                            <div className="dash-bento-tech-tags">
+                              <span className="dash-tech-tag">
+                                <Cpu size={10} />
+                                {proj.model ? proj.model.split('/')[1] || proj.model : 'Claude 4.6'}
+                              </span>
+                              <span className="dash-tech-tag">
+                                <Clock size={10} />
+                                {formatDate(proj.created_at)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="dash-bento-card-footer" onClick={e => e.stopPropagation()}>
+                            <button 
+                              className="dash-bento-cta-btn"
+                              onClick={() => navigate(`/project/${proj.id}`)}
+                            >
+                              <span>{isEN ? "Open in IDE" : "Otwórz w IDE"}</span>
+                              <ArrowRight size={14} />
+                            </button>
+
+                            <div className="dash-bento-icon-actions">
+                              <button 
+                                className="dash-bento-icon-btn share"
+                                title={isEN ? 'Share on Marketplace' : 'Udostępnij w Marketplace'}
+                                onClick={() => handleOpenPublishModal(proj)}
+                              >
+                                <Share2 size={14} />
+                              </button>
+                              <button 
+                                className="dash-bento-icon-btn delete"
+                                title={D.deleteProject}
+                                onClick={e => handleDeleteProject(proj.id, e)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="dash-projects-list-stack">
+                    {filtered.map(proj => (
+                      <div 
+                        key={proj.id} 
+                        className="dash-project-row-card" 
+                        onClick={() => navigate(`/project/${proj.id}`)}
+                      >
+                        <div className="dash-proj-top-bar">
+                          <div className="dash-proj-title-area">
+                            <div className="dash-proj-icon-box">
+                              <FileCode size={16} />
+                            </div>
+                            <div className="dash-proj-name-wrap">
+                              <span className="dash-proj-name">{proj.title}</span>
+                              <span className="dash-proj-version-badge">MC {proj.version}</span>
+                              <span className="dash-bento-pill engine" style={{ fontSize: '0.7rem' }}>{proj.engine || 'Paper'}</span>
+                            </div>
+                          </div>
+
+                          <div className="dash-proj-actions" onClick={e => e.stopPropagation()}>
+                            <button 
+                              className="dash-proj-action-btn primary"
+                              title={D.openProject}
+                              onClick={() => navigate(`/project/${proj.id}`)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.4rem 0.75rem', background: '#ff6b00', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              <span>Otwórz</span>
+                              <ArrowRight size={12} />
+                            </button>
+                            <button 
+                              className="dash-project-share-btn"
+                              title={isEN ? 'Share on Marketplace' : 'Udostępnij w Marketplace'}
+                              onClick={() => handleOpenPublishModal(proj)}
+                            >
+                              <Share2 size={13} />
+                            </button>
+                            <button 
+                              className="dash-proj-action-btn delete"
+                              title={D.deleteProject}
+                              onClick={e => handleDeleteProject(proj.id, e)}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="dash-proj-description">
+                          {proj.prompt}
+                        </div>
+
+                        <div className="dash-proj-bottom-bar">
+                          <div className="dash-proj-status-badge">
+                            <span className="dash-status-dot" />
+                            <span>{D.projectActive}</span>
+                          </div>
+                          <span className="dash-proj-time">
+                            <Clock size={11} style={{ marginRight: 4, display: 'inline' }} />
+                            {formatDate(proj.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
           </div>

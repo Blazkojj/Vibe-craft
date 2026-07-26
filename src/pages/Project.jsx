@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -33,127 +33,253 @@ const ModelIcon = ({modelId, size=13}) => {
   return <Sparkles size={size}/>;
 };
 
-const generateWithBackend = async (model, systemPrompt, userPrompt, history, updateMsgCb, abortControllerRef) => {
+const fetchWithRetry = async (url, options, maxRetries = 3, delayMs = 1500) => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const res = await fetch(url, options);
+      if ([502, 503, 504, 429].includes(res.status) && attempt < maxRetries - 1 && !options.signal?.aborted) {
+        console.warn(`[chat] HTTP ${res.status} received. Retrying attempt ${attempt + 1}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+        attempt++;
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (options.signal?.aborted) throw err;
+      if (attempt < maxRetries - 1) {
+        console.warn(`[chat] Fetch error: ${err.message}. Retrying attempt ${attempt + 1}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, delayMs * (attempt + 1)));
+        attempt++;
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
+const generateWithBackend = async (
+  model, 
+  systemPrompt, 
+  userPrompt, 
+  history, 
+  updateMsgCb, 
+  abortControllerRef,
+  autoContinueCount = 0,
+  accumulatedText = ''
+) => {
+  if (!abortControllerRef.current || autoContinueCount === 0) {
     abortControllerRef.current = new AbortController();
+  }
+  const signal = abortControllerRef.current.signal;
   const url = '/api/chat';
   
   const { data: { session } } = await (await import('../supabase')).supabase.auth.getSession();
   const jwt = session?.access_token || '';
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt}`
-    },
-    signal: abortControllerRef.current.signal,
-      body: JSON.stringify({
-      model: model,
-      systemPrompt: systemPrompt,
-      userPrompt: userPrompt,
-      history: history
-    })
-  });
-  
-  if (!response.ok) {
-    const errText = await response.text();
-    const shortErr = errText.length > 200 ? errText.substring(0, 200) + '...' : errText;
-    throw new Error(`API Error ${response.status}: ${shortErr}`);
-  }
+  let fullText = accumulatedText;
+  let buffer = '';
+  let hasStartedReasoning = fullText.includes('<think>');
+  let hasEndedReasoning = fullText.includes('</think>');
 
-      const contentType = response.headers.get('content-type') || '';
+  try {
+    const response = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`
+      },
+      signal,
+      body: JSON.stringify({
+        model: model,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        history: history
+      })
+    }, 3, 1500);
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      const shortErr = errText.length > 200 ? errText.substring(0, 200) + '...' : errText;
+      throw new Error(`API Error ${response.status}: ${shortErr}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/html')) {
-      throw new Error("Błąd: Serwer zwrócił HTML zamiast strumienia danych. Oznacza to, że uruchomiłeś zbudowaną aplikację (build) bez serwera API. Aby czat przez proxy działał, musisz używać 'npm run dev' (który włącza proxy z vite.config.js) lub posiadać osobny serwer backendowy.");
+      throw new Error("Błąd: Serwer zwrócił HTML zamiast strumienia danych.");
     }
     
     const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8");
-  let fullText = '';
-  let buffer = '';
-  let hasStartedReasoning = false;
-  let hasEndedReasoning = false;
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    const decoder = new TextDecoder("utf-8");
     
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    
-    // Zostaw ostatnią (potencjalnie niekompletną) linię w buforze
-    buffer = lines.pop();
-    
-    for (const line of lines) {
-            const trimmedLine = line.trim();
+    while (true) {
+      if (signal.aborted) break;
+      const { done, value } = await reader.read();
+      if (done) break;
       
-      if (trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        if (trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
+          try {
+            const rawParsed = JSON.parse(trimmedLine);
+            if (rawParsed.error) {
+              throw new Error(rawParsed.error.message || JSON.stringify(rawParsed.error));
+            }
+          } catch(e) {
+            if (e.message && e.message.includes('API Error') === false && !e.message.includes('Unexpected token')) {
+               throw e;
+            }
+          }
+        }
+        
+        if (!trimmedLine.startsWith('data:')) continue;
+        
+        const dataStr = trimmedLine.replace(/^data:\s*/, '').trim();
+        if (dataStr === '[DONE]') continue;
+        
         try {
-          const rawParsed = JSON.parse(trimmedLine);
-          if (rawParsed.error) {
-            throw new Error(rawParsed.error.message || JSON.stringify(rawParsed.error));
+          const parsed = JSON.parse(dataStr);
+          if (parsed.choices && parsed.choices[0].delta) {
+            const delta = parsed.choices[0].delta;
+            
+            const reasoning = delta.reasoning_content || delta.reasoning;
+            if (reasoning) {
+              if (!hasStartedReasoning) {
+                fullText += '<think>\n';
+                hasStartedReasoning = true;
+              }
+              fullText += reasoning;
+              updateMsgCb(fullText);
+            }
+            
+            if (delta.content) {
+              if (hasStartedReasoning && !hasEndedReasoning) {
+                fullText += '\n</think>\n\n';
+                hasEndedReasoning = true;
+              }
+              fullText += delta.content;
+              updateMsgCb(fullText);
+            }
+          } else if (parsed.content) {
+            fullText += parsed.content;
+            updateMsgCb(fullText);
+          } else if (parsed.error) {
+            throw new Error(`API Error: ${parsed.error.message || JSON.stringify(parsed.error)}`);
           }
         } catch(e) {
-          if (e.message && e.message.includes('API Error') === false && !e.message.includes('Unexpected token')) {
-             throw e; // Throw actual API errors
-          }
+          if (e.message && e.message.includes('API Error')) throw e;
+          console.error("SSE JSON Parse Error for line:", dataStr, e);
         }
-      }
-      
-      if (!trimmedLine.startsWith('data:')) continue;
-      
-      const dataStr = trimmedLine.replace(/^data:\s*/, '').trim();
-      if (dataStr === '[DONE]') continue;
-      
-      try {
-        const parsed = JSON.parse(dataStr);
-        // ZenMux logic
-        if (parsed.choices && parsed.choices[0].delta) {
-          const delta = parsed.choices[0].delta;
-          
-          const reasoning = delta.reasoning_content || delta.reasoning;
-          if (reasoning) {
-            if (!hasStartedReasoning) {
-              fullText += '<think>\n';
-              hasStartedReasoning = true;
-            }
-            fullText += reasoning;
-            updateMsgCb(fullText);
-          }
-          
-          if (delta.content) {
-            if (hasStartedReasoning && !hasEndedReasoning) {
-              fullText += '\n</think>\n\n';
-              hasEndedReasoning = true;
-            }
-            fullText += delta.content;
-            updateMsgCb(fullText);
-          }
-        } 
-        // Gemini Logic (from my backend wrapper)
-        else if (parsed.content) {
-          fullText += parsed.content;
-          updateMsgCb(fullText);
-        }
-        // Error from API during stream
-        else if (parsed.error) {
-          throw new Error(`API Error: ${parsed.error.message || JSON.stringify(parsed.error)}`);
-        }
-      } catch(e) {
-        if (e.message && e.message.includes('API Error')) throw e;
-        console.error("SSE JSON Parse Error for line:", dataStr, e);
       }
     }
+  } catch (err) {
+    if (signal.aborted) throw err;
+
+    // Auto-continue if we were cut off mid-generation
+    if (fullText.trim().length > 50 && autoContinueCount < 3) {
+      console.warn(`[chat] Stream dropped mid-generation (${err.message}). Auto-continuing (attempt ${autoContinueCount + 1})...`);
+      
+      const lastContext = fullText.slice(-400);
+      const continuationPrompt = `[AUTOMATYCZNY SERWEROWY MECHANIZM KONTYNUACJI PO PRZERWANIU POŁĄCZENIA/API]
+Twoja poprzednia odpowiedź została przerwana w poniższym miejscu ze względu na chwilowy błąd połączenia z serwerem API.
+
+--- OSTATNI WYGENEROWANY FRAGMENT TWOJEJ WYPOWIEDZI ---
+${lastContext}
+--- KONIEC FRAGMENTU ---
+
+ZASADA KONTYNUACJI: Następne słowo, które wygenerujesz, musi być BEZPOŚREDNIĄ kontynuacją od pierwszego znaku po powyższym fragmencie. KATEGORYCZNIE NIE POWTARZAJ ANI JEDNEGO SŁOWA z tego co napisano powyżej! Dokończ kodowanie pliku, zamknij otwarte tagi <file> oraz wszelkie otwarte klasy i struktury.`;
+
+      return await generateWithBackend(
+        model, 
+        systemPrompt, 
+        continuationPrompt, 
+        history, 
+        updateMsgCb, 
+        abortControllerRef, 
+        autoContinueCount + 1, 
+        fullText
+      );
+    }
+    throw err;
   }
+
   if (hasStartedReasoning && !hasEndedReasoning) {
     fullText += '\n</think>\n\n';
     hasEndedReasoning = true;
     updateMsgCb(fullText);
   }
+
+  // Check for unclosed <file> tag (truncated response by token limit)
+  const openFileCount = (fullText.match(/<file\s+path=/g) || []).length;
+  const closeFileCount = (fullText.match(/<\/file>/g) || []).length;
+
+  if (openFileCount > closeFileCount && autoContinueCount < 3 && !signal.aborted) {
+    console.warn(`[chat] Detected unclosed <file> tag (${openFileCount} open, ${closeFileCount} closed). Auto-continuing file generation...`);
+    const lastContext = fullText.slice(-500);
+    const fileContinuationPrompt = `[AUTOMATYCZNA KONTYNUACJA UTRACONEGO/OBCIĘTEGO KODU PLIKU]
+Twoja odpowiedź osiągnęła limit tokenów i plik nie został zamknięty tagiem </file>.
+
+--- OSTATNI FRAGMENT KODU ---
+${lastContext}
+--- KONIEC FRAGMENTU ---
+
+Kontynuuj kodowanie dokładnie od tego miejsca w kodzie, dokończ obecną klasę/plik i zamknij go tagiem </file>. Następnie dokończ pozostałe pliki jeśli są wymagane. NIE POWTARZAJ niczego co wygenerowałeś wcześniej.`;
+
+    return await generateWithBackend(
+      model, 
+      systemPrompt, 
+      fileContinuationPrompt, 
+      history, 
+      updateMsgCb, 
+      abortControllerRef, 
+      autoContinueCount + 1, 
+      fullText
+    );
+  }
+
   return fullText;
 };
 
+const MINECRAFT_SERVERS_KNOWLEDGE = `
+ZNAJOMOŚĆ POLSKICH SERWERÓW MINECRAFT I ICH WTYCZEK:
+Znasz architekturę, mechanikę i zachowanie popularnych wtyczek z polskich serwerów Minecraft, w tym w szczególności z serwera anarchia.gg (oraz innych serwerów typu Megadrop, Survival+Gildie jak craftmc.pl, realcraft.pl, mysg.pl, blocky.pl, boxcwel.pl itp.):
+- System Sektorów: Rozdzielanie świata na oddzielne instancje serwerowe połączone bazą danych Redis/MySQL do płynnej synchronizacji ekwipunku, zdrowia i statystyk gracza w czasie rzeczywistym podczas przekraczania granic sektorów (teleportacja na krawędzi mapy).
+- BoyFarmer: Blok (zazwyczaj Obsidian lub Gąbka), który po postawieniu automatycznie generuje pionowy słup obsydianu w dół aż do bedrocka (poziom Y=-64).
+- SandFarmer: Blok (zazwyczaj Piasek), który po postawieniu automatycznie generuje pionowy słup piasku w dół aż do bedrocka (poziom Y=-64).
+- KopaczFossy: Blok (zazwyczaj Blok Ruda), który po postawieniu automatycznie usuwa (kopie) pionowy pas bloków o wymiarach np. 1x1 lub 3x3 w dół aż do bedrocka, tworząc fosę.
+- CobbleX: Blok tworzony z 9 staków cobblestone'u w craftingu. Po jego postawieniu i zniszczeniu (lub kliknięciu prawym przyciskiem myszy) gracz otrzymuje losowy drop premium (np. diamenty, netherite, złote jabłka, narzędzia z losowymi zaklęciami).
+- Pandory (lub Skrzynki Pandora): Przedmiot (np. blok muzyczny) o specjalnej nazwie. Postawienie go generuje losowe przedmioty na ziemi lub w ekwipunku gracza, imitując puszkę pandory z dropem.
+- Stoniarki (StoneGenerators / Generator Kamienia): Blok (np. tłok lub gąbka), nad którym po zniszczeniu kamienia automatycznie regeneruje się nowy kamień po krótkim opóźnieniu (zazwyczaj 1-2 sekundy).
+- Różdżki Teleportacyjne (Wands): Przedmioty (np. złota motyka) z określoną liczbą użyć w opisie. Kliknięcie prawym przyciskiem myszy rozpoczyna odliczanie (np. 5 sekund) bez poruszania się, po czym następuje teleportacja na Spawn lub do wyznaczonej lokalizacji.
+- Turbodrop: System modyfikujący dropy z kamienia. Zamiast standardowego dropu z rudy, gracze kopiąc kamień (stone) otrzymują bezpośrednio do ekwipunku surowce (diamenty, szmaragdy, żelazo) z określoną procentową szansą, uwzględniając mnożniki poziomu, uprawnienia VIP/SVIP oraz wydarzenia typu TurboDrop (np. podwójna szansa dla całego serwera). Zawiera rozbudowane GUI z włączaniem/wyłączaniem dropu poszczególnych surowców.
+- Rzucane TNT: Specjalne dynamity, które po kliknięciu prawym przyciskiem myszy są rzucane w kierunku patrzenia gracza. Po uderzeniu w blok wybuchają natychmiastowo, ignorując zabezpieczenia wody/lawy.
+- System Gildii i Sojuszy: Tworzenie gildii za przedmioty z configu, powiększanie terenu (cuboid), podbijanie innych gildii poprzez niszczenie tzw. serca gildii (np. smoczego jaja), naliczanie punktów rankingu gildii na podstawie KDR (zabójstw/zgonów) członków.
+- Otchłań (Abyss): System cyklicznego czyszczenia przedmiotów leżących na ziemi na całym serwerze. Usunięte przedmioty trafiają do wirtualnego schowka (/otchlan), z którego gracze mogą je za darmo lub za opłatą wyciągnąć przez określony czas.
+- Anty-Logut (Combat Log): Blokada wylogowania się podczas walki PvP. Gracz po uderzeniu innego gracza trafia do walki na np. 15 sekund. Użycie komend teleportacji jest zablokowane, a wyjście z serwera skutkuje natychmiastową śmiercią i wypadnięciem przedmiotów.
+
+Gdy użytkownik poprosi o którykolwiek z tych systemów lub nawiąże do serwerów takich jak anarchia.gg lub craftmc.pl, doskonale wiesz, jak te mechaniki działają i tworzysz dedykowane klasy o identycznym zachowaniu (np. BoyFarmer generujący pionowy pas obsydianu za pomocą BukkitRunnable, Turbodrop z GUI opartym na Inventory i miniserializacją wiadomości Adventure, CobbleX z obsługą receptury rzemieślniczej itp.).
+
+GENEROWANIE OBRAZKÓW DLA ITEMÓW (POLLINATIONS FLUX):
+Gdy użytkownik poprosi o wygenerowanie grafiki, obrazka lub wyglądu przedmiotu/bloku (np. "stwórz grafikę dla boyfarmera" albo "wygeneruj obrazek miecza ognia"):
+1. Stwórz szczegółowy, profesjonalny prompt po angielsku w stylu Minecraft (np. "Minecraft style flat vector icon of a magical burning fire sword, game item, dark gray solid background").
+2. Zakoduj ten prompt do formatu URL (URL-encode).
+3. Wstaw wygenerowany obrazek na samym początku swojej wypowiedzi tekstowej (po bloku <think>, ale KATEGORYCZNIE przed pierwszym tagiem <file>) za pomocą tagu markdown:
+![Opis obrazka](https://image.pollinations.ai/prompt/{URL_ENCODED_PROMPT}?width=512&height=512&nologo=true&private=true&model=flux)
+4. Automatycznie dodaj ten sam URL obrazka do wygenerowanego kodu konfiguracji pluginu (np. config.yml pod kluczem "texture-url" lub "image-url") lub jako stałą/pole w kodzie Javy tworzącym dany przedmiot.
+
+ZAPOBIEGANIE POMIJANIU PLIKÓW I UTRACIE KODU:
+1. Zawsze dokładnie analizuj strukturę plików w projekcie. Sprawdź, czy nie pominąłeś żadnej klasy zadeklarowanej w plugin.yml, config.yml lub w Twoim własnym planie architekta. Zaimplementuj wszystkie brakujące pliki!
+2. Jeśli ze względu na limit tokenów wyjściowych (8192) nie jesteś w stanie wygenerować wszystkich klas w jednej odpowiedzi, wygeneruj najpierw najważniejsze pliki w całości (100% kompletny kod), a na końcu wypisz listę plików, które pozostały do zaimplementowania i poproś użytkownika o napisanie "kontynuuj". Kategorycznie zabrania się generowania klas ze skrótami "..." lub komentarzami oznaczających brak zmian!
+3. Jeśli użytkownik napisał "kontynuuj", "dokończ" lub poprosił o brakujące pliki, natychmiast wygeneruj pozostałe klasy w całości w tagach <file>.
+`;
+
 const isClaudeModel = (model) => {
-  return ['opus-4.8', 'sonnet-4.8', 'haiku-4.8', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'].includes(model);
+  return ['opus-4.8', 'sonnet-4.8', 'haiku-4.8', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
 };
 
 const getIdentityInjection = (model) => {
@@ -165,6 +291,8 @@ const getIdentityInjection = (model) => {
     return "Nazywasz się Claude Sonnet 4.8. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Sonnet 4.8. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
   } else if (model === "claude-sonnet-4-6") {
     return "Nazywasz się Claude Sonnet 4.6. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Sonnet 4.6. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
+  } else if (model === "claude-sonnet-5") {
+    return "Nazywasz się Claude Sonnet 5.0. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Sonnet 5.0. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
   } else if (model === "haiku-4.8") {
     return "Nazywasz się Claude Haiku 4.8. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Haiku 4.8. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
   } else if (model === "claude-haiku-4-5-20251001") {
@@ -174,6 +302,7 @@ const getIdentityInjection = (model) => {
 };
 
 const getModelDisplayName = (model) => {
+  if (!model) return 'GLM 5.2 (z-ai)';
   const mapping = {
     'gemini-1.5-pro': 'Gemini 2.5 Pro',
     'z-ai/glm-5.2': 'GLM 5.2 (z-ai)',
@@ -183,9 +312,10 @@ const getModelDisplayName = (model) => {
     'claude-opus-4-7': 'Claude Opus 4.7',
     'claude-opus-4-8': 'Claude Opus 4.8',
     'claude-sonnet-4-6': 'Claude Sonnet 4.6',
+    'claude-sonnet-5': 'Claude Sonnet 5.0',
     'claude-haiku-4-5-20251001': 'Claude Haiku 4.5'
   };
-  return mapping[model] || 'GLM 5.2 (z-ai)';
+  return mapping[model] || model || 'GLM 5.2 (z-ai)';
 };
 
 const CodeBlock = ({ lang, className, children, canViewCode, isEN, ...props }) => {
@@ -349,10 +479,12 @@ function Project() {
       const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
       if (!error && data) {
         setProjectData(data);
-        if (data.messages && data.messages.length > 0) {
-          // Resetujemy status isStreaming dla wszystkich załadowanych wiadomości,
-          // ponieważ po odświeżeniu strony strumień został bezpowrotnie przerwany.
-          const cleanedMessages = data.messages.map(msg => ({ ...msg, isStreaming: false }));
+        let msgs = data.messages;
+        if (typeof msgs === 'string') {
+          try { msgs = JSON.parse(msgs); } catch(e) {}
+        }
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          const cleanedMessages = msgs.map(msg => ({ ...msg, isStreaming: false }));
           setMessages(cleanedMessages);
           initialGenerated.current = true;
         }
@@ -565,7 +697,7 @@ function Project() {
         let selectedModel = "z-ai/glm-5.2";
         if (projectData.model === "gemini-1.5-pro") selectedModel = "gemini-2.5-pro";
   
-        const systemPrompt = `${identityInjection}Jesteś elitarnym Java/PaperMC Dev. 
+        const systemPrompt = `${identityInjection}${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym Java/PaperMC Dev. 
 ZASADY KRYTYCZNE:
 1. Brak kodu jeśli prompt to przywitanie/luźna rozmowa. Odpisz krótko tekstem.
 2. Wymagane bogate mechaniki: config.yml, PDC (zamiast Name), dźwięki, cząsteczki, permissions, BukkitRunnable.
@@ -603,8 +735,12 @@ ${projectData.prompt}
              isHybrid = true;
            }
         } else if (userProfile?.plan === 'Free' || !userProfile?.plan) {
-           modelToUse = 'claude-sonnet-4-6';
-           isHybrid = true;
+           if (projectData.model !== 'claude-sonnet-4-6' && projectData.model !== 'z-ai/glm-5.2') {
+             modelToUse = 'claude-sonnet-4-6';
+           }
+           if (modelToUse.includes('claude')) {
+             isHybrid = true;
+           }
         }
 
         if (userProfile?.fair_use) {
@@ -635,7 +771,7 @@ Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu
              abortControllerRef
            );
            
-           const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
+           const glmSystemPrompt = `${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
 Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
 
 ZASADY KODOWANIA:
@@ -773,8 +909,8 @@ KOD
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/\n{3,}/g, '\n\n')
             .trim();
-          if (minifiedContent.length > 6000) {
-            minifiedContent = minifiedContent.substring(0, 6000) + '\n... [obcięto]';
+          if (minifiedContent.length > 40000) {
+            minifiedContent = minifiedContent.substring(0, 40000) + '\n... [obcięto]';
           }
           filesContext += `\n--- PLIK: ${path} ---\n${minifiedContent}\n`;
         }
@@ -834,7 +970,7 @@ KOD
       const identityInjection = getIdentityInjection(projectData.model);
       
       
-      const systemPrompt = `${identityInjection}Jesteś elitarnym inżynierem oprogramowania (Java/PaperMC). 
+      const systemPrompt = `${identityInjection}${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym inżynierem oprogramowania (Java/PaperMC). 
 ZASADY KRYTYCZNE:
 1. Brak kodu jeśli prompt to luźna rozmowa.
 2. BŁĘDY [SYSTEM-AUTO-FIX]: Gdy dostaniesz błąd z konsoli (wiadomość zawierającą [SYSTEM-AUTO-FIX]), musisz bezwzględnie poprawić pliki wykazujące błędy. Zwróć każdy poprawiony plik jako kompletny plik w tagu <file path="dokładna_ścieżka_pliku">...</file> (np. pom.xml lub odpowiednia klasa Java). Nie pomijaj żadnych linii kodu ani nie stosuj skrótów. Ścieżki plików w tagu <file> muszą być identyczne ze ścieżkami z sekcji "AKTUALNY KOD W PROJEKCIE".
@@ -881,7 +1017,9 @@ ${userMsg}
             isHybrid = true;
          }
       }
-      if (userMsg.includes('[SYSTEM-AUTO-FIX]')) {
+      const isContinuation = /^(kontynuuj|continue|dokończ|dokoncz|dalej|pisz dalej|generuj dalej|napisz resztę|napisz reszte|write more)/i.test(userMsg.trim());
+      const isFixRequest = /(błąd|error|exception|napraw|popraw|failed|compile|kompilacj)/i.test(userMsg.trim());
+      if (userMsg.includes('[SYSTEM-AUTO-FIX]') || isContinuation || isFixRequest) {
          isHybrid = false;
       }
 
@@ -910,7 +1048,7 @@ Zakończ swoją wypowiedź jasnym podsumowaniem planu, nie pisząc żadnego kodu
            abortControllerRef
          );
          
-         const glmSystemPrompt = `Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
+         const glmSystemPrompt = `${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym inżynierem oprogramowania i programistą Java/PaperMC. 
 Twoim zadaniem jest zaimplementować kod na podstawie planu przygotowanego przez architekta.
 
 ZASADY KODOWANIA:
@@ -1262,6 +1400,14 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]}
             components={{
+              img({src, alt, ...props}) {
+                return (
+                  <div className="flex flex-col items-center my-6 p-3 bg-neutral-900/40 rounded-xl border border-neutral-800/80 max-w-sm mx-auto shadow-lg backdrop-blur-sm">
+                    <img src={src} alt={alt} className="rounded-lg max-h-64 object-contain hover:scale-105 transition-transform duration-300" {...props} />
+                    {alt && <span className="text-xs text-neutral-400 mt-2 italic font-medium">{alt}</span>}
+                  </div>
+                );
+              },
               code({node, inline, className, children, ...props}) {
                 const langMatch = /language-(\w+)/.exec(className || '');
                 const isBlock = langMatch || String(children).includes('\n');
@@ -1308,104 +1454,147 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
   const MODELS_LIST = [
     {id:'claude-opus-4-8', label:'Claude Opus 4.8'},
     {id:'claude-opus-4-7', label:'Claude Opus 4.7'},
+    {id:'claude-sonnet-5', label:'Claude Sonnet 5.0'},
     {id:'claude-sonnet-4-6', label:'Claude Sonnet 4.6'},
     {id:'claude-haiku-4-5-20251001', label:'Claude Haiku 4.5'},
     {id:'z-ai/glm-5.2', label:'GLM 5.2'},
   ];
 
+  // Compute files map for live workspace inspector
+  const allFilesMap = useMemo(() => {
+    const files = {};
+    messages.forEach(msg => {
+      const text = msg.text || '';
+      const regex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        let fileContent = match[2].replace(/^\s*```[a-zA-Z]*\r?\n?/i, '').replace(/\r?\n?```\s*$/i, '').trim();
+        if (match[1] && match[1] !== '...' && match[1].length > 2) {
+          files[match[1]] = fileContent;
+        }
+      }
+    });
+    return files;
+  }, [messages]);
+
+  const filePathsList = Object.keys(allFilesMap);
+  const [selectedFilePath, setSelectedFilePath] = useState(null);
+
+  useEffect(() => {
+    if (filePathsList.length > 0 && (!selectedFilePath || !allFilesMap[selectedFilePath])) {
+      const defaultFile = filePathsList.find(f => f.endsWith('pom.xml')) || filePathsList[0];
+      setSelectedFilePath(defaultFile);
+    }
+  }, [filePathsList, selectedFilePath]);
+
+  const currentFileContent = selectedFilePath ? allFilesMap[selectedFilePath] : null;
+
+  if (!projectData) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-900 text-white font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-semibold text-slate-300">Wczytywanie projektu i czatu...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-200 font-sans antialiased overflow-hidden selection:bg-zinc-800">
+    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden selection:bg-slate-200">
       
       {/* ─── LEFT SIDEBAR ─── */}
-      <aside className="hidden md:flex w-72 flex-col border-r border-zinc-800/50 bg-zinc-950/80 backdrop-blur-xl z-20">
-        <div className="p-4 border-b border-zinc-800/50 flex-shrink-0">
+      <aside className="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white flex-shrink-0 z-20 shadow-xs">
+        <div className="h-14 px-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
           <button 
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 rounded-lg transition-colors w-full"
+            className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
             onClick={() => navigate('/dashboard')}
           >
-            <ArrowLeft size={16}/>
-            {isEN ? 'Projects' : 'Projekty'}
+            <ArrowLeft size={14}/>
+            {isEN ? 'Back to Projects' : 'Lista projektów'}
           </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Twoje projekty</div>
+          <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Moje Projekty</div>
           {projectsList.map(p => (
             <div
               key={p.id}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${p.id === id ? 'bg-zinc-800/80 text-white shadow-sm' : 'text-zinc-400 hover:bg-zinc-900/80 hover:text-zinc-200'}`}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-xs font-medium ${p.id === id ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
               onClick={() => navigate(`/project/${p.id}`)}
               title={p.title}
             >
-              <div className={`w-1.5 h-1.5 rounded-full transition-colors ${p.id === id ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-zinc-700 group-hover:bg-zinc-500'}`}/>
-              <span className="text-sm font-medium truncate flex-1">{p.title}</span>
+              <div className={`w-1.5 h-1.5 rounded-full ${p.id === id ? 'bg-emerald-400' : 'bg-slate-300'}`}/>
+              <span className="truncate flex-1">{p.title}</span>
             </div>
           ))}
         </div>
 
-        <div className="p-4 border-t border-zinc-800/50 bg-zinc-950 flex-shrink-0">
+        <div className="p-3 border-t border-slate-200 bg-slate-50 flex-shrink-0 space-y-2">
           <button 
-            className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all text-left group"
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-all text-left"
             onClick={() => navigate('/ustawienia')}
           >
             {currentUser?.user_metadata?.discord_profile?.avatar ? (
-              <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="w-9 h-9 rounded-full object-cover ring-2 ring-zinc-800 group-hover:ring-zinc-700 transition-all"/>
+              <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="w-7 h-7 rounded-full object-cover border border-slate-200"/>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-sm ring-2 ring-zinc-800">
+              <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
                 {(currentUser?.user_metadata?.discord_profile?.global_name || currentUser?.user_metadata?.username || currentUser?.email || 'B').charAt(0).toUpperCase()}
               </div>
             )}
             <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium text-zinc-200 truncate group-hover:text-white transition-colors">
+              <span className="text-xs font-semibold text-slate-900 truncate">
                 {currentUser?.user_metadata?.discord_profile?.global_name || currentUser?.user_metadata?.discord_profile?.username || currentUser?.user_metadata?.username || currentUser?.email?.split('@')[0] || 'Konto'}
               </span>
-              <span className="text-xs text-indigo-400 font-medium uppercase tracking-wider">{userProfile?.plan || 'Free'}</span>
+              <span className="text-[10px] text-slate-500 font-medium uppercase">{userProfile?.plan || 'Free'}</span>
             </div>
-            <SettingsIcon size={16} className="text-zinc-500 group-hover:text-zinc-300 transition-transform group-hover:rotate-45 duration-300"/>
+            <SettingsIcon size={14} className="text-slate-400"/>
           </button>
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
-            <Wallet size={14} className="text-indigo-400"/>
-            <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider flex-1">{isEN ? 'Spent' : 'Wydano'}</span>
-            <span className="text-sm font-mono font-bold text-indigo-300">
+          
+          <div className="flex items-center justify-between px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono">
+            <span className="text-slate-500">{isEN ? 'Credits' : 'Kredyty'}</span>
+            <span className="font-semibold text-slate-800">
               ${parseFloat(userProfile?.used_credits_uncached || userProfile?.used_credits || '0').toFixed(2)} / ${parseFloat(userProfile?.balance || '0').toFixed(2)}
             </span>
           </div>
         </div>
       </aside>
 
-      {/* ─── MAIN CONTENT ─── */}
-      <main className="flex-1 flex flex-col min-w-0 relative bg-zinc-950">
+      {/* ─── MAIN CONTENT AREA (2-COLUMN SPLIT WORKSPACE) ─── */}
+      <main className="flex-1 flex flex-col min-w-0 relative bg-slate-50">
         
-        {/* HEADER */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-md z-10 flex-shrink-0">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <h1 className="text-base font-semibold text-zinc-100 truncate">{projectData.title}</h1>
-            <div className="h-4 w-px bg-zinc-800 hidden sm:block"></div>
+        {/* HEADER BAR */}
+        <header className="h-14 flex items-center justify-between px-5 border-b border-slate-200 bg-white flex-shrink-0 z-10 shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-sm font-bold text-slate-900 truncate">{projectData.title}</h1>
+            <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
             
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+              {projectData.engine || 'Paper'} {projectData.version || '1.21.4'}
+            </span>
+
             <div className="relative" ref={modelMenuRef}>
               <button
-                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 rounded-lg transition-all text-xs font-medium text-zinc-300"
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg transition-all text-xs font-semibold text-slate-700 shadow-xs"
                 onClick={() => setIsModelMenuOpen(v => !v)}
               >
-                <div className={`flex items-center justify-center w-5 h-5 rounded-md ${projectData.model?.startsWith('claude') ? 'bg-orange-500/20 text-orange-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                <div className={`flex items-center justify-center w-4 h-4 rounded ${projectData.model?.startsWith('claude') ? 'text-amber-600' : 'text-slate-800'}`}>
                   <ModelIcon modelId={projectData.model} size={12}/>
                 </div>
                 {getModelDisplayName(projectData.model)}
-                <ChevronDown size={14} className="text-zinc-500 ml-1"/>
+                <ChevronDown size={13} className="text-slate-400 ml-0.5"/>
               </button>
               {isModelMenuOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-1 z-50">
-                  <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Model AI</div>
+                <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Model AI</div>
                   <div className="flex flex-col gap-0.5">
                   {MODELS_LIST.map(m => (
                     <button
                       key={m.id}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${projectData.model === m.id ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}`}
+                      className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors text-left ${projectData.model === m.id ? 'bg-slate-900 text-white font-semibold' : 'text-slate-700 hover:bg-slate-100'}`}
                       onClick={() => changeModel(m.id)}
                     >
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-md ${m.id.startsWith('claude') ? 'bg-orange-500/20 text-orange-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                        <ModelIcon modelId={m.id} size={14}/>
-                      </div>
+                      <ModelIcon modelId={m.id} size={13}/>
                       {m.label}
                     </button>
                   ))}
@@ -1414,198 +1603,247 @@ Przeanalizuj powód błędu i napraw go. ZAWSZE generuj kompletne pliki od pocz�
               )}
             </div>
           </div>
-          
-          <button 
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/30 transition-all flex-shrink-0"
-            onClick={handleClearChat} 
-            title={isEN ? "Clear history" : "Wyczyść historię"}
-          >
-            <Trash2 size={14}/>
-          </button>
+
+          <div className="flex items-center gap-3">
+            {buildError && (
+              <button className="text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors" onClick={handleAutoFix}>
+                <Wrench size={13}/> {isEN ? 'Auto-Fix Error' : 'Napraw błąd'}
+              </button>
+            )}
+            
+            <button 
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xs'}`}
+              onClick={handleBuild} 
+              disabled={isBuilding}
+            >
+              {isBuilding ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"/>
+                  <span>{isEN ? 'Compiling...' : 'Kompilowanie...'}</span>
+                </>
+              ) : (
+                <>
+                  <Package size={14}/>
+                  <span>{isEN ? 'Build JAR' : 'Buduj JAR'}</span>
+                </>
+              )}
+            </button>
+
+            <button 
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+              onClick={handleClearChat} 
+              title={isEN ? "Clear history" : "Wyczyść historię"}
+            >
+              <Trash2 size={14}/>
+            </button>
+          </div>
         </header>
 
-        {/* CHAT MESSAGES AREA */}
-        <div 
-          className="flex-1 overflow-y-auto scroll-smooth"
-          ref={chatContainerRef}
-        >
-          <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 pb-40 flex flex-col gap-8 min-h-full">
+        {/* 2-COLUMN SPLIT WORKSPACE */}
+        <div className="flex-1 flex overflow-hidden">
+          
+          {/* LEFT COLUMN: CHAT & AI CO-PILOT */}
+          <div className="w-full lg:w-1/2 flex flex-col h-full bg-slate-50 border-r border-slate-200 relative">
             
-            {messages.length === 0 && !isGenerating && (
-              <div className="m-auto flex flex-col items-center justify-center text-center max-w-lg space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 py-10">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border shadow-2xl ${projectData.model?.startsWith('claude') ? 'bg-orange-500/10 border-orange-500/20 text-orange-500 shadow-orange-500/10' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500 shadow-indigo-500/10'}`}>
-                  <ModelIcon modelId={projectData.model} size={32}/>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-3xl font-bold tracking-tight text-white">{isEN ? "Welcome to" : "Witaj w projekcie"} <span className="text-transparent bg-clip-text bg-gradient-to-br from-zinc-200 to-zinc-500">{projectData.title}</span></h2>
-                  <p className="text-zinc-400 text-base leading-relaxed max-w-md mx-auto">
-                    {isEN ? "Describe below what you want to create or change. AI will generate production-ready code." : "Opisz w pasku poniżej, co chcesz zbudować lub zmienić. AI wygeneruje gotowy do produkcji kod."}
-                  </p>
-                </div>
-                
-                <div className="flex flex-wrap gap-2 justify-center pt-2">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-sm text-zinc-300 hover:text-white rounded-full transition-all duration-300 hover:scale-[1.02]" onClick={() => setChatInput('Dodaj komendę /heal leczącą gracza do pełna z dźwiękiem LEVEL_UP')}>
-                    <Lightbulb size={14} className="text-amber-400"/> Komenda /heal
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-sm text-zinc-300 hover:text-white rounded-full transition-all duration-300 hover:scale-[1.02]" onClick={() => setChatInput('Stwórz system skrzynek losujących (crates) z animacją otwarcia')}>
-                    <Wrench size={14} className="text-cyan-400"/> System skrzynek
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-sm text-zinc-300 hover:text-white rounded-full transition-all duration-300 hover:scale-[1.02]" onClick={() => setChatInput('Dodaj panel GUI z 27 slotami przypisanymi do komendy /menu')}>
-                    <Package size={14} className="text-emerald-400"/> Panel GUI
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg, idx) => {
-              const isUser = msg.sender === 'You';
-              return (
-                <div key={msg.id} className={`flex w-full group animate-in fade-in slide-in-from-bottom-2 duration-300 ${isUser ? 'justify-end' : 'justify-start'}`}>
+            {/* CHAT MESSAGES STREAM */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 pb-36 space-y-6" ref={chatContainerRef}>
+              
+              {messages.length === 0 && !isGenerating && (
+                <div className="m-auto flex flex-col items-center justify-center text-center max-w-md py-12 px-4 space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-800">
+                    <ModelIcon modelId={projectData.model} size={24}/>
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-bold text-slate-900">{isEN ? "Welcome to" : "Projekt"} {projectData.title}</h2>
+                    <p className="text-slate-500 text-xs leading-relaxed">
+                      {isEN ? "Describe what plugin mechanics or features you want to generate. AI will build production-ready code." : "Opisz w polu poniżej mechaniki lub komendy, które chcesz stworzyć. AI wygeneruje kompletny kod."}
+                    </p>
+                  </div>
                   
-                  {/* AI Avatar */}
-                  {!isUser && (
-                    <div className="flex-shrink-0 mr-4 mt-1 hidden sm:block">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${projectData.model?.startsWith('claude') ? 'bg-orange-500/10 border-orange-500/20 text-orange-500' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500'}`}>
-                        <ModelIcon modelId={projectData.model} size={16}/>
+                  <div className="flex flex-wrap gap-2 justify-center pt-2">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Dodaj komendę /heal leczącą gracza do pełna z dźwiękiem LEVEL_UP')}>
+                      <Lightbulb size={13} className="text-amber-500"/> Komenda /heal
+                    </button>
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Stwórz system skrzynek losujących (crates) z animacją otwarcia')}>
+                      <Wrench size={13} className="text-sky-600"/> System skrzynek
+                    </button>
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 rounded-lg shadow-xs transition-colors" onClick={() => setChatInput('Dodaj panel GUI z 27 slotami przypisanymi do komendy /menu')}>
+                      <Package size={13} className="text-emerald-600"/> Panel GUI
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {messages.map((msg, idx) => {
+                const isUser = msg.sender === 'You';
+                return (
+                  <div key={msg.id} className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex flex-col max-w-[92%] sm:max-w-[88%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
+                      
+                      <div className="flex items-center gap-2 mb-1 px-1">
+                        <span className="text-xs font-bold text-slate-700">
+                          {isUser ? (isEN ? 'You' : 'Ty') : getModelDisplayName(projectData.model)}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">{msg.time}</span>
                       </div>
-                    </div>
-                  )}
 
-                  <div className={`flex flex-col max-w-[90%] sm:max-w-[85%] min-w-0 ${isUser ? 'items-end' : 'items-start'}`}>
-                    
-                    {/* Username header */}
+                      <div className={`relative w-full overflow-x-auto ${isUser ? 'bg-slate-900 text-white px-4 py-3 rounded-2xl rounded-tr-xs shadow-xs' : 'bg-white border border-slate-200 text-slate-800 px-4 py-3 rounded-2xl rounded-tl-xs shadow-xs prose prose-slate max-w-none prose-p:leading-relaxed'}`}>
+                        {renderMessageContent(msg.text, msg.isStreaming, idx)}
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isGenerating && messages.length > 0 && !messages[messages.length-1]?.isStreaming && (
+                <div className="flex w-full justify-start">
+                  <div className="flex flex-col items-start">
                     <div className="flex items-center gap-2 mb-1 px-1">
-                      <span className="text-sm font-semibold text-zinc-300">
-                        {isUser ? (isEN ? 'You' : 'Ty') : getModelDisplayName(projectData.model)}
-                      </span>
-                      <span className="text-xs font-mono text-zinc-600">{msg.time}</span>
+                      <span className="text-xs font-bold text-slate-700">{getModelDisplayName(projectData.model)}</span>
                     </div>
-
-                    {/* Message body */}
-                    <div className={`relative w-full overflow-x-auto break-all sm:break-words ${isUser ? 'bg-zinc-800 text-zinc-100 px-5 py-3 rounded-2xl rounded-tr-sm shadow-sm border border-zinc-700/50' : 'text-zinc-300 prose prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800 prose-pre:p-0'}`}>
-                      {renderMessageContent(msg.text, msg.isStreaming, idx)}
-                      {msg.isStreaming && msg.text && <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-zinc-400 animate-pulse"/>}
+                    <div className="flex gap-1.5 items-center h-8 px-3.5 rounded-xl bg-white border border-slate-200 shadow-xs">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '150ms'}}></div>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
                     </div>
-
-                  </div>
-
-                  {/* User Avatar */}
-                  {isUser && (
-                    <div className="flex-shrink-0 ml-4 mt-1 hidden sm:block">
-                      {currentUser?.user_metadata?.discord_profile?.avatar ? (
-                        <img src={currentUser.user_metadata.discord_profile.avatar} alt="" className="w-8 h-8 rounded-lg object-cover ring-1 ring-zinc-700"/>
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-sm ring-1 ring-zinc-700">
-                          {(currentUser?.user_metadata?.discord_profile?.global_name || currentUser?.user_metadata?.username || currentUser?.email || 'B').charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                </div>
-              );
-            })}
-
-            {/* Generating Indicator */}
-            {isGenerating && messages.length > 0 && !messages[messages.length-1]?.isStreaming && (
-              <div className="flex w-full justify-start animate-in fade-in">
-                <div className="flex-shrink-0 mr-4 mt-1 hidden sm:block">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${projectData.model?.startsWith('claude') ? 'bg-orange-500/10 border-orange-500/20 text-orange-500' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500'}`}>
-                    <ModelIcon modelId={projectData.model} size={16}/>
                   </div>
                 </div>
-                <div className="flex flex-col items-start">
-                  <div className="flex items-center gap-2 mb-1 px-1">
-                    <span className="text-sm font-semibold text-zinc-300">{getModelDisplayName(projectData.model)}</span>
+              )}
+              
+              <div ref={messagesEndRef} className="h-4" />
+            </div>
+
+            {/* CHAT INPUT DOCK */}
+            <div className="absolute bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 shadow-lg z-10">
+              <div className="relative flex flex-col bg-white border border-slate-300 focus-within:border-slate-900 rounded-xl shadow-xs transition-colors p-2">
+                <textarea
+                  className="w-full max-h-48 bg-transparent border-none text-slate-900 placeholder:text-slate-400 p-2 resize-none focus:outline-none focus:ring-0 leading-relaxed text-sm"
+                  placeholder={isGenerating ? (isEN ? "Generating..." : "AI generuje kod...") : (isEN ? "Ask AI to generate mechanics..." : "Opisz co chcesz zbudować...")}
+                  value={chatInput}
+                  disabled={isGenerating}
+                  onChange={e => {
+                    setChatInput(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
+                  }}
+                  onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!isGenerating) handleSend(); }}}
+                  rows={1}
+                  style={{ minHeight: '44px' }}
+                />
+                
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100 px-2">
+                  <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                    <span>Enter ↵ send</span>
+                    <span>•</span>
+                    <span>Shift+Enter line</span>
                   </div>
-                  <div className="flex gap-1 items-center h-8 px-4 rounded-xl bg-zinc-900/50 border border-zinc-800/50">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{animationDelay: '150ms'}}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{animationDelay: '300ms'}}></div>
+
+                  <div>
+                    {isGenerating ? (
+                      <button 
+                        className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
+                        onClick={stopGenerating} 
+                      >
+                        Przerwij
+                      </button>
+                    ) : (
+                      <button 
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${!chatInput.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                        onClick={handleSend} 
+                        disabled={!chatInput.trim()} 
+                      >
+                        <span>Wyślij</span>
+                        <Send size={13}/>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
-            
-            <div ref={messagesEndRef} className="h-4" />
-          </div>
-        </div>
+            </div>
 
-        {/* INPUT AREA */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-zinc-950 via-zinc-950/95 to-transparent pt-12 pb-6 px-4 pointer-events-none z-10">
-          <div className="max-w-4xl mx-auto w-full pointer-events-auto">
-            <div className="relative flex items-end bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden focus-within:ring-1 focus-within:ring-zinc-700 transition-shadow">
-              <textarea
-                className="w-full max-h-60 bg-transparent border-none text-zinc-100 placeholder:text-zinc-500 py-4 pl-5 pr-14 resize-none focus:outline-none focus:ring-0 leading-relaxed"
-                placeholder={isGenerating ? (isEN ? "Typing..." : "Pisze...") : (isEN ? "Ask anything..." : "Napisz co chcesz stworzyć...")}
-                value={chatInput}
-                disabled={isGenerating}
-                onChange={e => {
-                  setChatInput(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = Math.min(e.target.scrollHeight, 240) + 'px';
-                }}
-                onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!isGenerating) handleSend(); }}}
-                rows={1}
-                style={{ minHeight: '56px' }}
-              />
-              
-              <div className="absolute right-2 bottom-2">
-                {isGenerating ? (
-                  <button 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                    onClick={stopGenerating} 
-                    aria-label="Stop"
-                  >
-                    <div className="w-3 h-3 bg-current rounded-sm"/>
-                  </button>
+          </div>
+
+          {/* RIGHT COLUMN: LIVE WORKSPACE FILE EXPLORER & BUILD TERMINAL */}
+          <div className="hidden lg:flex w-1/2 flex-col h-full bg-white">
+            
+            {/* FILE TABS HEADER */}
+            <div className="h-11 bg-slate-100 border-b border-slate-200 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
+              <div className="flex items-center gap-1 overflow-x-auto flex-1 py-1">
+                {filePathsList.length === 0 ? (
+                  <span className="text-xs text-slate-400 font-mono px-2">Brak wygenerowanych plików...</span>
                 ) : (
+                  filePathsList.map(filePath => {
+                    const fileName = filePath.split('/').pop();
+                    const isSelected = filePath === selectedFilePath;
+                    return (
+                      <button
+                        key={filePath}
+                        onClick={() => setSelectedFilePath(filePath)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${isSelected ? 'bg-white text-slate-900 font-semibold border border-slate-200 shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'}`}
+                      >
+                        <FileCode size={13} className={isSelected ? 'text-slate-800' : 'text-slate-400'}/>
+                        <span>{fileName}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {selectedFilePath && currentFileContent && (
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <button 
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${!chatInput.trim() ? 'bg-zinc-800 text-zinc-600' : 'bg-white text-black hover:bg-zinc-200 hover:scale-105'}`}
-                    onClick={handleSend} 
-                    disabled={!chatInput.trim()} 
-                    aria-label="Wyślij"
+                    className="p-1.5 rounded-md hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
+                    title="Kopiuj zawartość pliku"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(currentFileContent);
+                      alert('Skopiowano kod do schowka!');
+                    }}
                   >
-                    <Send size={18} className={`${!chatInput.trim() ? '' : 'translate-x-[1px] translate-y-[-1px]'}`}/>
+                    <Copy size={14}/>
                   </button>
-                )}
-              </div>
-            </div>
-            
-            {/* BUILD BAR */}
-            <div className="mt-3 flex items-center justify-between px-2">
-              <div className="text-xs font-mono text-zinc-500 flex items-center gap-3">
-                <span className="hidden sm:inline-flex items-center gap-1.5"><kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] shadow-sm text-zinc-400">Enter</kbd> {isEN ? 'send' : 'wyślij'}</span>
-                <span className="hidden sm:inline-flex items-center gap-1.5"><kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] shadow-sm text-zinc-400">Shift</kbd> + <kbd className="bg-zinc-800 border border-zinc-700 px-1.5 py-0.5 rounded text-[10px] shadow-sm text-zinc-400">Enter</kbd> {isEN ? 'new line' : 'nowa linia'}</span>
-                <div className="w-1 h-1 bg-zinc-700 rounded-full hidden sm:block"></div>
-                <span className="text-zinc-500 font-medium">MC {projectData.version}</span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-zinc-500 font-medium">{projectData.engine}</span>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {buildError && (
-                  <button className="text-xs font-medium text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors" onClick={handleAutoFix}>
-                    <Wrench size={12}/> {isEN ? 'Auto-Fix Error' : 'Napraw błąd automatycznie'}
-                  </button>
-                )}
-                <div className={`flex items-center gap-2 text-xs font-mono ${buildError?'text-red-400':buildStatus==='Zakończono sukcesem!'?'text-green-400':isBuilding?'text-indigo-400':'text-zinc-500'}`}>
-                  {isBuilding && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"/>}
-                  <span className="max-w-[150px] truncate hidden sm:block">
-                    {buildError ? 'Build failed' : buildStatus==='Zakończono sukcesem!' ? 'Success' : isBuilding ? buildStatus : 'Ready'}
-                  </span>
                 </div>
-                <button 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold tracking-wide uppercase transition-all ${isBuilding ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' : 'bg-indigo-500 text-white hover:bg-indigo-400 shadow-lg shadow-indigo-500/20'}`}
-                  onClick={handleBuild} 
-                  disabled={isBuilding}
-                >
-                  {isBuilding ? (isEN ? 'Compiling...' : 'Kompilowanie...') : (isEN ? 'Build JAR' : 'Buduj JAR')}
-                </button>
+              )}
+            </div>
+
+            {/* LIVE CODE VIEWER BODY */}
+            <div className="flex-1 bg-slate-900 text-slate-100 overflow-auto p-4 font-mono text-xs leading-relaxed relative">
+              {currentFileContent ? (
+                <pre className="m-0 whitespace-pre">
+                  <code>{currentFileContent}</code>
+                </pre>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-500 font-sans space-y-2">
+                  <FileCode size={36} className="text-slate-700"/>
+                  <p className="text-xs font-medium">Wybierz plik z powyższego paska lub poproś AI o kod.</p>
+                </div>
+              )}
+            </div>
+
+            {/* BOTTOM BUILD TERMINAL DRAWER */}
+            <div className="h-32 bg-slate-950 border-t border-slate-800 p-3 font-mono text-xs text-slate-300 overflow-y-auto flex flex-col justify-between flex-shrink-0">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-1.5 mb-1.5">
+                <span className="font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <div className={`w-2 h-2 rounded-full ${buildError ? 'bg-red-500' : isBuilding ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'}`}/>
+                  Konsola Kompilacji Maven
+                </span>
+                <span>{buildStatus || (buildError ? 'Błąd kompilacji' : 'Gotowy')}</span>
+              </div>
+              <div className="flex-1 overflow-y-auto text-[11px] leading-relaxed text-slate-300">
+                {buildError ? (
+                  <span className="text-red-400 font-mono">{buildError}</span>
+                ) : buildStatus ? (
+                  <span className="text-emerald-400 font-mono">{buildStatus}</span>
+                ) : (
+                  <span className="text-slate-500">[INFO] Kliknij "Buduj JAR" na górnym pasku, aby skompilować kod źródłowy Javy.</span>
+                )}
               </div>
             </div>
+
           </div>
+
         </div>
+
       </main>
     </div>
   );

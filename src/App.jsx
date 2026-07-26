@@ -22,7 +22,7 @@ function ProtectedRoute({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) return <div style={{ color: '#fff', padding: '2rem' }}>Loading...</div>;
+  if (session === undefined) return <div style={{ color: '#0f172a', padding: '2rem' }}>Loading...</div>;
   return session ? children : <Navigate to="/login" replace />;
 }
 

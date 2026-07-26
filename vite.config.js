@@ -9,6 +9,45 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 dotenv.config()
 dotenv.config({ path: '.env.local' })
 
+const discordBotToken = process.env.DISCORD_BOT_TOKEN;
+const discordChannelId = '1526338277081092336';
+
+async function sendErrorToDiscord(title, details) {
+  if (!discordBotToken) {
+    console.warn('[Discord Log] Warning: DISCORD_BOT_TOKEN is not configured.');
+    return;
+  }
+  try {
+    let cleanMsg = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
+    if (cleanMsg.length > 1800) {
+      cleanMsg = cleanMsg.substring(0, 1800) + '\n... [TRUNCATED]';
+    }
+    const payload = {
+      embeds: [
+        {
+          title: `⚠️ Błąd: ${title}`,
+          description: ```json\n${cleanMsg}\n```,
+          color: 16711680, // Red
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+    const res = await fetch(`https://discord.com/api/v10/channels/${discordChannelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${discordBotToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      console.error('[Discord Log] Failed to send error:', await res.text());
+    }
+  } catch (e) {
+    console.error('[Discord Log] Error sending to discord:', e);
+  }
+}
+
 function chatPlugin() {
   return {
     name: 'chat-plugin',
@@ -246,12 +285,14 @@ function chatPlugin() {
         if (req.method === 'POST') {
           let body = '';
           req.on('data', chunk => { body += chunk.toString() });
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
               const parsed = JSON.parse(body);
               console.error('[CLIENT-SIDE ERROR LOGGED]:', parsed);
+              await sendErrorToDiscord('Client-side', parsed);
             } catch (e) {
               console.error('[CLIENT-SIDE ERROR RAW]:', body);
+              await sendErrorToDiscord('Client-side (Raw)', body);
             }
             res.end('ok');
           });
@@ -340,13 +381,14 @@ function chatPlugin() {
                 let url = 'https://zenmux.ai/api/v1/chat/completions';
                 if (WORKER_URL) url = WORKER_URL + '/zenmux/api/v1/chat/completions';
 
-                if (isTrueClaude && !userProfile.custom_api_key) {
+const isClaude = isTrueClaude || isClaudeAlias;
+                if (isClaude && !userProfile.custom_api_key) {
                   url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
-                  if (model === 'claude-opus-4-8') { backendModel = 'claude-opus-4-8'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_8; }
+                  if (model === 'claude-opus-4-8' || model === 'opus-4.8') { backendModel = 'claude-opus-4-8'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_8; }
                   if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_7; }
                   if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_4_6; }
-                  if (model === 'claude-haiku-4-5-20251001') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = process.env.AIAPIFLOW_KEY_HAIKU_4_5; }
-                  if (model === 'claude-sonnet-5') { backendModel = 'claude-sonnet-5'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_5; }
+                  if (model === 'claude-haiku-4-5-20251001' || model === 'haiku-4.8') { backendModel = 'claude-haiku-4-5-20251001'; apiKey = process.env.AIAPIFLOW_KEY_HAIKU_4_5; }
+                  if (model === 'claude-sonnet-5' || model === 'sonnet-4.8') { backendModel = 'claude-sonnet-5'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_5; }
                 }
 
                 if (userProfile.custom_api_key) {
@@ -367,6 +409,22 @@ function chatPlugin() {
                   }
                 }
 
+                const isOpenRouter = apiKey && apiKey.startsWith('sk-or-');
+                if (isOpenRouter) {
+                  url = WORKER_URL ? WORKER_URL + '/openrouter/api/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
+                  const mapping = {
+                    'claude-sonnet-4-6': 'anthropic/claude-3.7-sonnet',
+                    'claude-sonnet-5': 'anthropic/claude-3.5-sonnet',
+                    'claude-opus-4-8': 'anthropic/claude-3-opus',
+                    'claude-opus-4-7': 'anthropic/claude-3-opus',
+                    'claude-haiku-4-5-20251001': 'anthropic/claude-3-haiku',
+                    'opus-4.8': 'anthropic/claude-3-opus',
+                    'sonnet-4.8': 'anthropic/claude-3.7-sonnet',
+                    'haiku-4.8': 'anthropic/claude-3.5-haiku'
+                  };
+                  backendModel = mapping[backendModel] || backendModel;
+                }
+
                 console.log(`[chat] Target URL: ${url}, Backend model: ${backendModel}`);
                 if (!apiKey) {
                   console.error(`[chat] Error: Missing API key for model ${model}`);
@@ -384,7 +442,6 @@ function chatPlugin() {
                 }
 
                 const messages = [];
-                // Claude prompt caching: mark system prompt as cacheable (saves ~90% on repeated calls)
                 if (finalSystemPrompt) {
                   messages.push({
                     role: 'system',
@@ -397,7 +454,6 @@ function chatPlugin() {
                    const convertedHistory = history.map((h, i) => {
                      const text = h.parts ? h.parts[0].text : h.content;
                      const role = h.role === 'model' ? 'assistant' : 'user';
-                     // Cache breakpoint on last assistant message for multi-turn caching
                      const isLastAssistant = isTrueClaude && role === 'assistant' && i === history.map((x, j) => x.role === 'model' ? j : -1).filter(j => j >= 0).slice(-1)[0];
                      return {
                        role,
@@ -418,85 +474,116 @@ function chatPlugin() {
                   'Accept-Language': 'en-US,en;q=0.9',
                 };
                 if (isTrueClaude) reqHeaders['anthropic-beta'] = 'prompt-caching-2024-07-31';
+                if (isOpenRouter) {
+                  reqHeaders['HTTP-Referer'] = 'https://zenexcode.pl';
+                  reqHeaders['X-Title'] = 'Zenexcode';
+                }
 
-                const requestBody = JSON.stringify({
-                  model: backendModel,
-                  messages: messages,
-                  stream: true,
-                  max_tokens: 8192
-                });
-
-                console.log(`[chat] Spawning curl stream for ${backendModel}. Body size: ${requestBody.length} bytes`);
-                const proc = curlStream(url, reqHeaders, requestBody, res, (errMsg) => {
-                  console.error(`[chat] curlStream error callback: ${errMsg}`);
-                  if (!res.headersSent) {
-                    res.statusCode = 500;
-                    res.end(`Błąd curl: ${errMsg}`);
+                let currentProc = null;
+                const startStream = (targetModel, isFallback = false) => {
+                  let activeModel = targetModel;
+                  if (isOpenRouter && isFallback) {
+                    activeModel = 'qwen/qwen-2.5-coder-32b-instruct:free';
                   }
-                });
 
-                // Najpierw musimy wiedzieć czy HTTP status OK — curl -i daje headers,
-                // ale dla uproszczenia czytamy pierwsze bajty: jeśli zaczyna się od "<" to HTML (CF block)
-                let firstChunk = true;
-                let buf = '';
+                  const requestBody = JSON.stringify({
+                    model: activeModel,
+                    messages: messages,
+                    stream: true,
+                    max_tokens: 8192
+                  });
 
-                proc.stdout.on('data', (chunk) => {
-                  if (firstChunk) {
-                    firstChunk = false;
-                    buf = chunk.toString('utf8');
-                    console.log(`[chat] Received first chunk of length ${chunk.length}. Preview: ${buf.slice(0, 150)}`);
-                    
-                    // Wykryj HTML (Cloudflare block) lub czysty JSON z błędem
-                    if (buf.trimStart().startsWith('{')) {
-                      try {
-                        const j = JSON.parse(buf);
-                        if (j.error || j.code || j.message) {
-                          console.error(`[chat] First chunk detected JSON error response: ${buf}`);
-                          if (!res.headersSent) {
-                            res.statusCode = 400;
-                            res.end(buf);
-                          }
-                          proc.kill();
-                          return;
-                        }
-                      } catch(e) {}
-                    }
-                    if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
-                      console.error(`[chat] First chunk detected Cloudflare HTML block`);
-                      if (!res.headersSent) {
-                        res.statusCode = 403;
-                        res.end('Cloudflare zablokował request (HTML response).');
-                      }
-                      proc.kill();
-                      return;
-                    }
-                    if (buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out')) {
-                      console.error(`[chat] First chunk detected API Provider error: ${buf.trim()}`);
-                      if (!res.headersSent) {
-                        res.statusCode = 503;
-                        res.end('Dostawca API modelu jest przeciążony (Błąd 503 Service Unavailable). Zmień na model Gemini lub spróbuj za chwilę.');
-                      }
-                      proc.kill();
-                      return;
-                    }
-                    // OK — wyślij nagłówki i pierwszą porcję
+                  console.log(`[chat] Spawning curl stream for ${activeModel}. Body size: ${requestBody.length} bytes (isFallback=${isFallback})`);
+                  
+                  let procEnded = false;
+                  const proc = curlStream(url, reqHeaders, requestBody, res, (errMsg) => {
+                    if (procEnded) return;
+                    console.error(`[chat] curlStream error callback: ${errMsg}`);
                     if (!res.headersSent) {
-                      res.writeHead(200, {
-                        'Content-Type': 'text/event-stream',
-                        'Cache-Control': 'no-cache',
-                        'Connection': 'keep-alive'
-                      });
+                      res.statusCode = 500;
+                      res.end(`Błąd curl: ${errMsg}`);
                     }
-                    res.write(chunk);
-                  } else {
-                    res.write(chunk);
-                  }
-                });
+                  });
+                  currentProc = proc;
 
-                proc.stdout.on('end', () => {
-                  console.log(`[chat] curl stream ended for ${backendModel}`);
-                  if (!res.writableEnded) res.end();
-                });
+                  let firstChunk = true;
+                  let buf = '';
+
+                  proc.stdout.on('data', (chunk) => {
+                    if (procEnded) return;
+                    if (firstChunk) {
+                      firstChunk = false;
+                      buf = chunk.toString('utf8');
+                      console.log(`[chat] Received first chunk of length ${chunk.length}. Preview: ${buf.slice(0, 150)}`);
+                      
+                      // Wykryj HTML (Cloudflare block) lub czysty JSON z błędem
+                      if (buf.trimStart().startsWith('{')) {
+                        try {
+                          const j = JSON.parse(buf);
+                          if (j.error) {
+                            // Check for reject_no_credit on OpenRouter
+                            if (isOpenRouter && j.error.type === 'reject_no_credit' && !isFallback) {
+                              console.warn(`[chat] OpenRouter reject_no_credit. Retrying with free model...`);
+                              procEnded = true;
+                              proc.kill();
+                              startStream(targetModel, true);
+                              return;
+                            }
+                            
+                            console.error(`[chat] First chunk detected JSON error response: ${buf}`);
+                            if (!res.headersSent) {
+                              res.statusCode = 400;
+                              res.end(buf);
+                            }
+                            procEnded = true;
+                            proc.kill();
+                            return;
+                          }
+                        } catch(e) {}
+                      }
+                      if (buf.trimStart().startsWith('<!DOCTYPE') || buf.trimStart().startsWith('<html')) {
+                        console.error(`[chat] First chunk detected Cloudflare HTML block`);
+                        if (!res.headersSent) {
+                          res.statusCode = 403;
+                          res.end('Cloudflare zablokował request (HTML response).');
+                        }
+                        procEnded = true;
+                        proc.kill();
+                        return;
+                      }
+                      if (buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out')) {
+                        console.error(`[chat] First chunk detected API Provider error: ${buf.trim()}`);
+                        if (!res.headersSent) {
+                          res.statusCode = 503;
+                          res.end('Dostawca API modelu jest przeciążony (Błąd 503 Service Unavailable). Zmień na model Gemini lub spróbuj za chwilę.');
+                        }
+                        procEnded = true;
+                        proc.kill();
+                        return;
+                      }
+                      // OK — wyślij nagłówki i pierwszą porcję
+                      if (!res.headersSent) {
+                        res.writeHead(200, {
+                          'Content-Type': 'text/event-stream',
+                          'Cache-Control': 'no-cache',
+                          'Connection': 'keep-alive'
+                        });
+                      }
+                      res.write(chunk);
+                    } else {
+                      res.write(chunk);
+                    }
+                  });
+
+                  proc.stdout.on('end', () => {
+                    if (procEnded) return;
+                    procEnded = true;
+                    console.log(`[chat] curl stream ended for ${activeModel}`);
+                    if (!res.writableEnded) res.end();
+                  });
+                };
+
+                startStream(backendModel);
               } else {
                 // Gemini API
                 const apiKey = process.env.GEMINI_API_KEY;
@@ -526,6 +613,8 @@ function chatPlugin() {
                 res.end();
               }
             } catch(e) {
+              console.error('[chat] Error:', e);
+              await sendErrorToDiscord('API /api/chat', { message: e.message, stack: e.stack });
               res.statusCode = 500;
               res.end('Błąd serwera czatu: ' + e.message);
             }
@@ -558,7 +647,7 @@ function compilePlugin() {
           }
           let body = '';
           req.on('data', chunk => { body += chunk.toString() });
-          req.on('end', () => {
+          req.on('end', async () => {
             try {
               const files = JSON.parse(body).filter(f => !f.path.startsWith('.mvn') && !f.path.endsWith('maven.config') && !f.path.endsWith('settings.xml'));
 
@@ -596,10 +685,12 @@ function compilePlugin() {
                 return res.end('Brak pliku pom.xml! Poproś AI o wygenerowanie struktury Maven.');
               }
 
-              exec('mvn clean package', { cwd: buildDir }, (error, stdout, stderr) => {
+              exec('mvn clean package', { cwd: buildDir }, async (error, stdout, stderr) => {
                 if (error) {
+                  const errorMsg = `Błąd kompilacji Mavena:\n${stdout}\n${stderr}`;
+                  await sendErrorToDiscord('Maven Compile Error', { error: error.message, stdout: stdout.substring(0, 1000) });
                   res.statusCode = 500;
-                  return res.end(`Błąd kompilacji Mavena:\n${stdout}\n${stderr}`);
+                  return res.end(errorMsg);
                 }
                 
                 const targetDir = path.join(buildDir, 'target');
@@ -640,6 +731,7 @@ function compilePlugin() {
               });
 
             } catch(e) {
+              await sendErrorToDiscord('API /api/compile (Catch)', { message: e.message, stack: e.stack });
               res.statusCode = 500;
               res.end('Błąd serwera kompilacji: ' + e.message);
             }
@@ -653,6 +745,11 @@ function compilePlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), compilePlugin(), chatPlugin()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   server: {
     allowedHosts: true
   }

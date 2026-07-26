@@ -26,7 +26,7 @@ conn.on('ready', () => {
     npm run build
     
     echo "[*] Restartowanie uslug w PM2..."
-    pm2 restart VibeCraft-Strona || true
+    pm2 restart ZenexCode-Strona || pm2 restart VibeCraft-Strona || true
     pm2 restart ZenexGuard || true
     pm2 restart MailServer || true
     
