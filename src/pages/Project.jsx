@@ -388,6 +388,11 @@ Znasz architekturę, mechanikę i zachowanie popularnych wtyczek z polskich serw
 - Otchłań (Abyss): System cyklicznego czyszczenia przedmiotów leżących na ziemi na całym serwerze. Usunięte przedmioty trafiają do wirtualnego schowka (/otchlan), z którego gracze mogą je za darmo lub za opłatą wyciągnąć przez określony czas.
 - Anty-Logut (Combat Log): Blokada wylogowania się podczas walki PvP. Gracz po uderzeniu innego gracza trafia do walki na np. 15 sekund. Użycie komend teleportacji jest zablokowane, a wyjście z serwera skutkuje natychmiastową śmiercią i wypadnięciem przedmiotów.
 
+KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.):
+1. ZAWSZE twórz systemy całkowicie SAMODZIELNE (Self-Contained) zaimplementowane w 100% wewnątrz klas Javy Twojego pluginu.
+2. Jeśli w pluginie potrzebna jest ekonomia (waluta, stany kont, komendy /bal, /pay itp.), ZAWSZE napisz własny \`EconomyManager\` (np. zapisujący stany kont w config.yml, bazie SQLite lub PDC) oraz własne komendy i GUI.
+3. KATEGORYCZNIE ZABRANIA SIĘ pisać użytkownikowi instrukcji typu "Musisz zainstalować Vault oraz EssentialsX" lub odsyłania do pobierania zewnętrznych wtyczek/skryptów z SpigotMC/EssentialsX. Wszystko ma działać natychmiast po wgraniu wygenerowanego pliku JAR, bez żadnych zewnętrznych zależności (dependencies).
+
 Gdy użytkownik poprosi o którykolwiek z tych systemów lub nawiąże do serwerów takich jak anarchia.gg lub craftmc.pl, doskonale wiesz, jak te mechaniki działają i tworzysz dedykowane klasy o identycznym zachowaniu (np. BoyFarmer generujący pionowy pas obsydianu za pomocą BukkitRunnable, Turbodrop z GUI opartym na Inventory i miniserializacją wiadomości Adventure, CobbleX z obsługą receptury rzemieślniczej itp.).
 
 GENEROWANIE OBRAZKÓW DLA ITEMÓW (POLLINATIONS FLUX):
@@ -1071,7 +1076,8 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
 10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
 11. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
-12. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.`;
+12. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
+13. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -1146,7 +1152,8 @@ KOD
 </file>
 3. Generuj ZAWSZE PEŁNY, DOKŁADNY kod każdego pliku od początku do końca. KATEGORYCZNIE ZABRANIA SIĘ używania komentarzy typu "// reszta kodu bez zmian" lub "..." wewnątrz kodu. pom.xml musi być kompletnym i poprawnym plikiem XML.
 4. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu (Komendy, Listenery, Menedżery, GUI)! Żadna klasa odwoływana w kodzie głównym nie może zostać pominięta ani pozostawiona bez pliku.
-5. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Poinformuj użytkownika w 1 zdaniu, że aby pobrać plik JAR wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku.`;
+5. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Poinformuj użytkownika w 1 zdaniu, że aby pobrać plik JAR wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku.
+6. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Wszystkie mechaniki (w tym ekonomia, stany kont, bazy danych) muszą być napisane w 100% od zera wewnątrz generowanego pluginu Javy. NIE każ użytkownikowi instalować Vault ani EssentialsX!`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
