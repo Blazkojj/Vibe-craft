@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X, Play, Square, CheckCircle2, AlertTriangle, Cpu, Layers, Loader2, ShieldAlert, Server } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -752,6 +752,17 @@ function Project() {
   const [projectsList, setProjectsList] = useState([]);
   const modelMenuRef = useRef(null);
 
+  const [isAgentRunning, setIsAgentRunning] = useState(false);
+  const [showAgentDrawer, setShowAgentDrawer] = useState(false);
+  const [agentStep, setAgentStep] = useState(1);
+  const [agentLogs, setAgentLogs] = useState([]);
+  const agentLogsEndRef = useRef(null);
+
+  const addAgentLog = (text, type = 'info') => {
+    const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setAgentLogs(prev => [...prev, { id: Math.random(), time, text, type }]);
+  };
+
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const initialGenerated = useRef(false);
@@ -1475,6 +1486,108 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
     }, 2000);
   };
 
+  const runAgentLoop = async () => {
+    if (isAgentRunning) return;
+    setIsAgentRunning(true);
+    setShowAgentDrawer(true);
+    setAgentLogs([]);
+    setAgentStep(1);
+
+    addAgentLog('🤖 Autonomiczny Agent AI uaktywniony dla serwera Pelican MC...', 'step');
+    addAgentLog('📋 Inicjalizacja pętli weryfikacji i środowiska testowego...', 'info');
+
+    let attempts = 0;
+    const maxAttempts = 3;
+    let success = false;
+
+    while (attempts < maxAttempts && !success) {
+      attempts++;
+      addAgentLog(`🔄 Pętla Autonomiczna Agenta (Próba ${attempts}/${maxAttempts})...`, 'step');
+
+      const filesMap = {};
+      messages.forEach(msg => {
+        const text = msg.text || '';
+        const regex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          let filePath = match[1] ? match[1].trim() : '';
+          if (!filePath || filePath.includes('dokładna_ścieżka') || filePath.includes('sciezka/do/pliku')) continue;
+          let fileContent = match[2] || '';
+          fileContent = fileContent.replace(/```[a-zA-Z]*/g, '').replace(/```/g, '');
+          if (filePath.endsWith('.java')) {
+            const openBraces = (fileContent.match(/\{/g) || []).length;
+            const closeBraces = (fileContent.match(/\}/g) || []).length;
+            if (openBraces > closeBraces) fileContent += '\n' + '}'.repeat(openBraces - closeBraces);
+          }
+          filesMap[filePath] = fileContent.trim();
+        }
+      });
+
+      const filesToBuild = Object.keys(filesMap).map(path => ({ path, content: filesMap[path] }));
+
+      if (filesToBuild.length === 0 || !filesMap['pom.xml']) {
+        addAgentLog('⚙️ Generowanie brakującego kodu źródłowego Java i pom.xml...', 'info');
+        setAgentStep(1);
+        await handleSend(messages.length === 0 ? projectData.prompt : "Wygeneruj wszystkie brakujące pliki klas Javy i pom.xml dla tego pluginu!");
+        await new Promise(r => setTimeout(r, 4000));
+        continue;
+      }
+
+      setAgentStep(2);
+      addAgentLog('⚙️ Wysyłanie kodu do silnika kompilacji Maven...', 'info');
+
+      try {
+        const { data: { session: agentSession } } = await supabase.auth.getSession();
+        const res = await fetch('/api/agent/deploy-and-test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${agentSession?.access_token || ''}`
+          },
+          body: JSON.stringify({ files: filesToBuild })
+        });
+
+        const result = await res.json();
+
+        if (!result.success) {
+          if (result.phase === 'maven_compile') {
+            addAgentLog(`❌ Błąd kompilacji Maven podczas budowania paczki!`, 'error');
+            addAgentLog(`🔧 Auto-Fix: Przekazywanie logów błędu do AI...`, 'warn');
+            setAgentStep(1);
+            await handleSend(`[SYSTEM-AUTO-FIX] Nastąpił błąd kompilacji Maven podczas budowania pliku .jar. Napraw wykazane błędy i zwróć poprawione pliki:\n\n${result.error}`);
+            await new Promise(r => setTimeout(r, 4000));
+          } else if (result.phase === 'runtime_test') {
+            addAgentLog(`❌ Wykryto wyjątek runtime w konsoli serwera Minecraft Paper!`, 'error');
+            addAgentLog(`📜 Wyciąg z logów: ${result.logs ? result.logs.slice(-300) : ''}`, 'warn');
+            addAgentLog(`🔧 Auto-Fix: Przekazywanie wyjątku serwera MC do AI...`, 'warn');
+            setAgentStep(4);
+            await handleSend(`[SYSTEM-RUNTIME-FIX] Plugin napotkał błąd podczas ładowania na serwerze Paper 1.21.4 (Pelican). Przeanalizuj poniższe logi i popraw kod klas Javy:\n\n${result.logs}`);
+            await new Promise(r => setTimeout(r, 4000));
+          }
+        } else {
+          setAgentStep(3);
+          addAgentLog(`📦 Plik JAR (${result.jarName}) został skompilowany i wdrożony do serwera Pelican!`, 'info');
+          setAgentStep(4);
+          addAgentLog(`📜 Odczytywanie logów z konsoli serwera Minecraft Paper 1.21.4...`, 'info');
+          addAgentLog(`✅ BRAK BŁĘDÓW! Plugin został pomyślnie załadowany i aktywowany!`, 'success');
+          setAgentStep(5);
+          success = true;
+        }
+
+      } catch (err) {
+        addAgentLog(`⚠️ Wystąpił błąd komunikacji z agentem: ${err.message}`, 'error');
+        break;
+      }
+    }
+
+    setIsAgentRunning(false);
+    if (success) {
+      addAgentLog('🎉 AUTONOMICZNY TEST ZAKOŃCZONY SUKCESEM 100%!', 'success');
+    } else {
+      addAgentLog('⚠️ Przekroczono limit prób automatycznej naprawy.', 'error');
+    }
+  };
+
   // Helper to parse markdown properly and hide <file> blocks
   const renderMessageContent = (text, isStreaming, msgIndex = -1) => {
     const isUserMsg = msgIndex >= 0 && messages[msgIndex]?.sender === 'You';
@@ -1821,6 +1934,24 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               <span>{showCodePanel ? (isEN ? 'Hide Code' : 'Ukryj kod') : (isEN ? 'View Code' : 'Podgląd kodu')}</span>
             </button>
 
+            <button
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-md ${
+                isAgentRunning 
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white animate-pulse border border-amber-400' 
+                  : (showAgentDrawer ? 'bg-indigo-600 text-white border border-indigo-400' : 'bg-[#1e1b4b] text-indigo-300 hover:bg-[#2e2a72] hover:text-white border border-indigo-500/40')
+              }`}
+              onClick={() => {
+                setShowAgentDrawer(v => !v);
+                if (!isAgentRunning && agentLogs.length === 0) {
+                  runAgentLoop();
+                }
+              }}
+              title="Autonomiczny Agent AI dla serwera Pelican MC"
+            >
+              <Bot size={14} className={isAgentRunning ? "animate-spin" : ""} />
+              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI (Pelican)"}</span>
+            </button>
+
             <button 
               className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-800 text-slate-500 border border-white/10 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00] shadow-md'}`}
               onClick={handleBuild} 
@@ -1914,6 +2045,90 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               
               <div ref={messagesEndRef} className="h-4" />
             </div>
+
+            {/* AGENT AI AUTONOMOUS CONSOLE DRAWER */}
+            {showAgentDrawer && (
+              <div className="mx-4 mb-3 bg-[#0d0f17] border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-[#131726] border-b border-indigo-500/20">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                      <Bot size={16} className={isAgentRunning ? "animate-spin text-amber-400" : ""} />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                        Autonomiczny Agent AI
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Pelican MC</span>
+                      </h3>
+                      <p className="text-[10px] text-slate-400">Samodzielna kompilacja, deployment i testy na serwerze Paper 1.21.4</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isAgentRunning ? (
+                      <button 
+                        onClick={runAgentLoop}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow"
+                      >
+                        <Play size={12}/> Uruchom Agenta
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => setIsAgentRunning(false)}
+                        className="px-2.5 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                      >
+                        <Square size={12}/> Przerwij
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => setShowAgentDrawer(false)}
+                      className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
+                    >
+                      <X size={14}/>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stepper Progress */}
+                <div className="grid grid-cols-4 gap-1 p-2 bg-[#090b11] border-b border-white/5 text-[10px] font-medium text-center">
+                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 1 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
+                    <span>🤖 Kod AI</span>
+                  </div>
+                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 2 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
+                    <span>⚙️ Maven</span>
+                  </div>
+                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 3 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
+                    <span>📦 Pelican MC</span>
+                  </div>
+                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 4 ? (agentStep === 5 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50' : 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50') : 'text-slate-600'}`}>
+                    <span>📜 Logi MC</span>
+                  </div>
+                </div>
+
+                {/* Terminal Log Console */}
+                <div className="p-3 max-h-48 overflow-y-auto font-mono text-[11px] bg-[#05060a] space-y-1.5 custom-scrollbar">
+                  {agentLogs.length === 0 ? (
+                    <div className="py-4 flex flex-col items-center justify-center text-slate-500 gap-1">
+                      <Terminal size={20} className="opacity-40" />
+                      <span>Brak logów agenta. Kliknij "Uruchom Agenta" aby rozpocząć autonomiczny cykl.</span>
+                    </div>
+                  ) : (
+                    agentLogs.map((log) => (
+                      <div key={log.id} className={`flex items-start gap-2 leading-relaxed ${
+                        log.type === 'error' ? 'text-red-400 bg-red-950/30 p-1 rounded border border-red-900/40' :
+                        log.type === 'success' ? 'text-emerald-400 bg-emerald-950/30 p-1 rounded border border-emerald-900/40 font-bold' :
+                        log.type === 'warn' ? 'text-amber-400' :
+                        log.type === 'step' ? 'text-indigo-300 font-bold border-b border-indigo-900/30 pb-0.5 mt-1' :
+                        'text-slate-300'
+                      }`}>
+                        <span className="text-[9px] text-slate-500 select-none">{log.time}</span>
+                        <span className="whitespace-pre-wrap break-all flex-1">{log.text}</span>
+                      </div>
+                    ))
+                  )}
+                  <div ref={agentLogsEndRef} />
+                </div>
+              </div>
+            )}
 
             {/* CHAT INPUT DOCK */}
             <ChatInputDock

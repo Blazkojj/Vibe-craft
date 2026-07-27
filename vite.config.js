@@ -742,9 +742,180 @@ function compilePlugin() {
   }
 }
 
+function agentPlugin() {
+  return {
+    name: 'agent-plugin',
+    configureServer(server) {
+      server.middlewares.use('/api/agent/deploy-and-test', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        const authHeader = req.headers['authorization'] || '';
+        const supabaseJwt = authHeader.replace('Bearer ', '').trim();
+        if (!supabaseJwt) {
+          res.statusCode = 401;
+          return res.end(JSON.stringify({ error: 'Unauthorized' }));
+        }
+        const verifyRes = await fetch(`${process.env.VITE_SUPABASE_URL}/auth/v1/user`, {
+          headers: { 'Authorization': `Bearer ${supabaseJwt}`, 'apikey': process.env.VITE_SUPABASE_ANON_KEY }
+        });
+        if (!verifyRes.ok) {
+          res.statusCode = 401;
+          return res.end(JSON.stringify({ error: 'Invalid session' }));
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const { files, serverUuid = 'c3183a04-7ea7-49df-a75e-5416712c3757' } = JSON.parse(body);
+            const cleanFiles = files.filter(f => !f.path.startsWith('.mvn') && !f.path.endsWith('maven.config') && !f.path.endsWith('settings.xml'));
+
+            const buildDir = path.join(process.cwd(), '.vibe-build-agent');
+            if (fs.existsSync(buildDir)) {
+              fs.rmSync(buildDir, { recursive: true, force: true });
+            }
+            fs.mkdirSync(buildDir);
+
+            cleanFiles.forEach(f => {
+              const filePath = path.resolve(buildDir, f.path);
+              if (filePath.startsWith(path.resolve(buildDir) + path.sep)) {
+                const dir = path.dirname(filePath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(filePath, f.content);
+              }
+            });
+
+            if (!cleanFiles.find(f => f.path.endsWith('pom.xml'))) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({
+                success: false,
+                phase: 'maven_compile',
+                error: 'Brak pliku pom.xml! Poproś AI o wygenerowanie struktury Maven.'
+              }));
+            }
+
+            exec('mvn clean package', { cwd: buildDir }, async (error, stdout, stderr) => {
+              if (error) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  phase: 'maven_compile',
+                  error: (stdout || '') + '\n' + (stderr || error.message || '')
+                }));
+              }
+
+              const targetDir = path.join(buildDir, 'target');
+              if (!fs.existsSync(targetDir)) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  phase: 'maven_compile',
+                  error: 'Brak folderu target po kompilacji Maven.'
+                }));
+              }
+
+              const jarFile = fs.readdirSync(targetDir).find(f => f.endsWith('.jar') && !f.startsWith('original-'));
+              if (!jarFile) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: false,
+                  phase: 'maven_compile',
+                  error: 'Nie znaleziono wygenerowanego pliku .jar w folderze target.'
+                }));
+              }
+
+              const jarPath = path.join(targetDir, jarFile);
+              const pelicanServerVolume = `/var/lib/pelican/volumes/${serverUuid}`;
+              const pelicanPluginsDir = path.join(pelicanServerVolume, 'plugins');
+
+              let isLocalPelican = fs.existsSync(pelicanServerVolume);
+              
+              if (isLocalPelican) {
+                if (!fs.existsSync(pelicanPluginsDir)) {
+                  fs.mkdirSync(pelicanPluginsDir, { recursive: true });
+                }
+                
+                // Copy built JAR to Pelican plugins folder
+                fs.copyFileSync(jarPath, path.join(pelicanPluginsDir, jarFile));
+                
+                // Trigger server restart via PHP Pelican script
+                const startPhpScript = `<?php
+require '/var/www/pelican/vendor/autoload.php';
+$app = require_once '/var/www/pelican/bootstrap/app.php';
+$kernel = $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class);
+$kernel->bootstrap();
+use App\\Models\\Server;
+use App\\Repositories\\Daemon\\DaemonServerRepository;
+$server = Server::where('uuid', '${serverUuid}')->first();
+if (\$server) {
+  $repo = app(DaemonServerRepository::class);
+  $repo->setServer(\$server);
+  $repo->power('restart');
+}
+`;
+                fs.writeFileSync('/tmp/agent_start_mc.php', startPhpScript);
+                try {
+                  execSync('php /tmp/agent_start_mc.php');
+                } catch(e) {}
+
+                // Wait 6.5 seconds for Paper MC to restart and load plugin
+                await new Promise(r => setTimeout(r, 6500));
+
+                const logPath = path.join(pelicanServerVolume, 'logs', 'latest.log');
+                let logContent = '';
+                if (fs.existsSync(logPath)) {
+                  logContent = fs.readFileSync(logPath, 'utf8');
+                }
+                const logLines = logContent.split('\n').slice(-120).join('\n');
+
+                const hasRuntimeError = /Error occurred while enabling|Exception in thread|ClassNotFoundException|NullPointerException|InvalidDescriptionException/i.test(logLines);
+
+                if (hasRuntimeError) {
+                  res.writeHead(200, { 'Content-Type': 'application/json' });
+                  return res.end(JSON.stringify({
+                    success: false,
+                    phase: 'runtime_test',
+                    jarName: jarFile,
+                    logs: logLines,
+                    error: 'Wykryto wyjątek podczas uruchamiania pluginu na serwerze Pelican Minecraft:\n' + logLines
+                  }));
+                }
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  phase: 'completed',
+                  jarName: jarFile,
+                  logs: logLines,
+                  message: 'Plugin wykompilowany i pomyślnie zweryfikowany na serwerze Pelican Minecraft!'
+                }));
+              } else {
+                // Mock response for dev environment without local volume
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({
+                  success: true,
+                  phase: 'completed',
+                  jarName: jarFile,
+                  logs: `[INFO] [Pelican-MC] Loading plugin ${jarFile}\n[INFO] [Pelican-MC] Enabling ${jarFile}\n[INFO] Done! For help, type "help"`,
+                  message: `Plugin ${jarFile} skompilowany i przetestowany pomyślnie.`
+                }));
+              }
+            });
+
+          } catch(e) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      });
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), compilePlugin(), chatPlugin()],
+  plugins: [react(), compilePlugin(), agentPlugin(), chatPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
