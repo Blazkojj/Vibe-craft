@@ -856,7 +856,7 @@ function Project() {
   const [buildError, setBuildError] = useState(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [showCodePanel, setShowCodePanel] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState('agent');
+  const [rightPanelTab, setRightPanelTab] = useState('code');
   const [projectsList, setProjectsList] = useState([]);
   const modelMenuRef = useRef(null);
 
@@ -2084,25 +2084,6 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               <span>{showCodePanel ? (isEN ? 'Hide Code' : 'Ukryj kod') : (isEN ? 'View Code' : 'Podgląd kodu')}</span>
             </button>
 
-            <button
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-md ${
-                isAgentRunning 
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white animate-pulse border border-amber-400' 
-                  : (showCodePanel && rightPanelTab === 'agent' ? 'bg-indigo-600 text-white border border-indigo-400' : 'bg-[#1e1b4b] text-indigo-300 hover:bg-[#2e2a72] hover:text-white border border-indigo-500/40')
-              }`}
-              onClick={() => {
-                setShowCodePanel(true);
-                setRightPanelTab('agent');
-                if (!isAgentRunning && agentLogs.length === 0) {
-                  runAgentLoop();
-                }
-              }}
-              title="Autonomiczny Agent AI dla serwera Pelican MC"
-            >
-              <Bot size={14} className={isAgentRunning ? "animate-spin" : ""} />
-              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI"}</span>
-            </button>
-
             <button 
               className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-2 ${isBuilding ? 'bg-slate-800 text-slate-500 border border-white/10 cursor-not-allowed' : 'bg-[#ff6b00] text-white hover:bg-[#e05d00] shadow-md'}`}
               onClick={handleBuild} 
@@ -2215,32 +2196,10 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
             {/* RIGHT PANEL HEADER: TABS SWITCHER */}
             <div className="h-11 bg-[#13151d] border-b border-white/10 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setRightPanelTab('agent')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    rightPanelTab === 'agent'
-                      ? 'bg-indigo-600 text-white shadow-md border border-indigo-400'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Bot size={14} className={isAgentRunning ? "animate-spin text-amber-400" : ""} />
-                  <span>Agent AI</span>
-                  {isAgentRunning && (
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setRightPanelTab('code')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    rightPanelTab === 'code'
-                      ? 'bg-[#ff6b00] text-white shadow-md'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-[#ff6b00] text-white shadow-md">
                   <FileCode size={14} />
-                  <span>Kod ({filePathsList.length})</span>
-                </button>
+                  <span>Pliki Projektu ({filePathsList.length})</span>
+                </div>
               </div>
 
               <button
