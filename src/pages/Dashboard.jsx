@@ -30,7 +30,8 @@ import {
   Clock,
   ExternalLink,
   Code2,
-  Cpu
+  Cpu,
+  Loader2
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useLang } from '../LangContext';
@@ -135,6 +136,8 @@ export default function Dashboard() {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
   const [enhanceInput, setEnhanceInput] = useState('');
+  const [enhancedResult, setEnhancedResult] = useState('');
+  const [copiedEnhanced, setCopiedEnhanced] = useState(false);
   const [projects, setProjects] = useState([]);
   const [projectSearch, setProjectSearch] = useState('');
   const [projectViewMode, setProjectViewMode] = useState('grid');
@@ -580,6 +583,7 @@ export default function Dashboard() {
       return;
     }
     setIsEnhancing(true);
+    setEnhancedResult('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/enhance-prompt', {
@@ -588,13 +592,12 @@ export default function Dashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token || ''}`
         },
-        body: JSON.stringify({ prompt: enhanceInput })
+        body: JSON.stringify({ prompt: enhanceInput, lang: isEN ? 'en' : 'pl' })
       });
       const data = await res.json();
-      if (data.enhanced) {
-        setPrompt(data.enhanced);
-        setIsEnhanceModalOpen(false);
-        setEnhanceInput('');
+      const resultText = data.enhanced || data.enhancedPrompt;
+      if (resultText) {
+        setEnhancedResult(resultText);
       } else {
         alert((isEN ? 'Enhancement error: ' : 'Błąd ulepszania: ') + (data.error || (isEN ? 'Unknown error' : 'Nieznany błąd')));
       }
@@ -1959,36 +1962,135 @@ export default function Dashboard() {
 
       {isEnhanceModalOpen && (
         <div className="dash-modal-overlay" onClick={() => setIsEnhanceModalOpen(false)}>
-          <div className="dash-modal" onClick={e => e.stopPropagation()}>
-            <div className="dash-modal-header">
-              <h3>{D.enhanceTitle}</h3>
+          <div className="dash-modal" onClick={e => e.stopPropagation()} style={{ border: '1px solid rgba(168, 85, 247, 0.35)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 50px rgba(168, 85, 247, 0.25)' }}>
+            <div className="dash-modal-header" style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)' }}>
+                  <Wand2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{D.enhanceTitle}</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Przekształć prosty pomysł w profesjonalną specyfikację gotową dla Agenta AI</p>
+                </div>
+              </div>
               <button className="dash-close-btn" onClick={() => setIsEnhanceModalOpen(false)}><X size={16} /></button>
             </div>
-            <div className="dash-modal-body">
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: '1.4' }}>
-                {D.enhanceModalDesc}
-              </p>
-              <textarea 
-                value={enhanceInput} 
-                onChange={e => setEnhanceInput(e.target.value)} 
-                placeholder={D.enhancePlaceholder}
-                style={{ 
-                  width: '100%', minHeight: '120px', background: 'var(--bg-input)', 
-                  color: '#fff', border: '1px solid var(--border)', 
-                  borderRadius: '8px', padding: '1rem', resize: 'vertical',
-                  fontSize: '0.95rem'
-                }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button 
-                  className="dash-generate-btn" 
-                  onClick={handleEnhancePrompt}
-                  disabled={isEnhancing || !enhanceInput.trim()}
-                >
-                  <span>{isEnhancing ? D.enhanceMagicWorking : D.enhanceGenerateBtn}</span>
-                  <Wand2 size={12} className={isEnhancing ? "animate-pulse" : ""} />
-                </button>
+
+            <div className="dash-modal-body" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  Twoje wstępne założenie / opis pluginu:
+                </label>
+                <textarea 
+                  value={enhanceInput} 
+                  onChange={e => setEnhanceInput(e.target.value)} 
+                  placeholder={D.enhancePlaceholder}
+                  style={{ 
+                    width: '100%', minHeight: '100px', background: '#0b0c10', 
+                    color: '#f4f4f5', border: '1px solid rgba(255, 255, 255, 0.12)', 
+                    borderRadius: '12px', padding: '1rem', resize: 'vertical',
+                    fontSize: '0.9rem', outline: 'none', fontFamily: 'inherit',
+                    lineHeight: '1.5'
+                  }}
+                />
               </div>
+
+              {!enhancedResult && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => setIsEnhanceModalOpen(false)}
+                    style={{ background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.15)', color: '#94a3b8', padding: '0.6rem 1.25rem', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Anuluj
+                  </button>
+                  <button 
+                    onClick={handleEnhancePrompt}
+                    disabled={isEnhancing || !enhanceInput.trim()}
+                    style={{ 
+                      background: isEnhancing || !enhanceInput.trim() ? 'rgba(168, 85, 247, 0.2)' : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+                      color: isEnhancing || !enhanceInput.trim() ? 'rgba(255, 255, 255, 0.4)' : '#fff',
+                      border: 'none', padding: '0.6rem 1.5rem', borderRadius: '10px',
+                      fontSize: '0.85rem', fontWeight: 700, cursor: isEnhancing || !enhanceInput.trim() ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: isEnhancing || !enhanceInput.trim() ? 'none' : '0 4px 15px rgba(168, 85, 247, 0.4)'
+                    }}
+                  >
+                    {isEnhancing ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>{D.enhanceMagicWorking}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        <span>{D.enhanceGenerateBtn}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {enhancedResult && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(168, 85, 247, 0.06)', border: '1px solid rgba(168, 85, 247, 0.25)', borderRadius: '14px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Sparkles size={14} /> Wygenerowany Super Prompt (Zenexcode AI)
+                    </span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(enhancedResult);
+                        setCopiedEnhanced(true);
+                        setTimeout(() => setCopiedEnhanced(false), 2000);
+                      }}
+                      style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      {copiedEnhanced ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
+                      <span>{copiedEnhanced ? 'Skopiowano!' : 'Kopiuj'}</span>
+                    </button>
+                  </div>
+
+                  <textarea
+                    readOnly
+                    value={enhancedResult}
+                    style={{ 
+                      width: '100%', minHeight: '160px', background: '#07080c', 
+                      color: '#e4e4e7', border: '1px solid rgba(255,255,255,0.1)', 
+                      borderRadius: '10px', padding: '1rem', fontSize: '0.85rem',
+                      lineHeight: '1.6', outline: 'none', resize: 'vertical', fontFamily: 'monospace'
+                    }}
+                  />
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem' }}>
+                    <button 
+                      onClick={handleEnhancePrompt}
+                      disabled={isEnhancing}
+                      style={{ background: 'transparent', border: 'none', color: '#a1a1aa', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'underline' }}
+                    >
+                      <Wand2 size={13} /> Regeneruj prompt
+                    </button>
+
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button 
+                        onClick={() => setIsEnhanceModalOpen(false)}
+                        style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#94a3b8', padding: '0.6rem 1.25rem', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        Zamknij
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setPrompt(enhancedResult);
+                          setIsEnhanceModalOpen(false);
+                          setEnhancedResult('');
+                          setEnhanceInput('');
+                        }}
+                        style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)' }}
+                      >
+                        <Check size={16} />
+                        <span>Użyj w generatorze</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
