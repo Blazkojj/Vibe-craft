@@ -749,6 +749,7 @@ function Project() {
   const [buildError, setBuildError] = useState(null);
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
   const [showCodePanel, setShowCodePanel] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState('agent');
   const [projectsList, setProjectsList] = useState([]);
   const modelMenuRef = useRef(null);
 
@@ -1976,18 +1977,19 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-md ${
                 isAgentRunning 
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white animate-pulse border border-amber-400' 
-                  : (showAgentDrawer ? 'bg-indigo-600 text-white border border-indigo-400' : 'bg-[#1e1b4b] text-indigo-300 hover:bg-[#2e2a72] hover:text-white border border-indigo-500/40')
+                  : (showCodePanel && rightPanelTab === 'agent' ? 'bg-indigo-600 text-white border border-indigo-400' : 'bg-[#1e1b4b] text-indigo-300 hover:bg-[#2e2a72] hover:text-white border border-indigo-500/40')
               }`}
               onClick={() => {
-                setShowAgentDrawer(v => !v);
+                setShowCodePanel(true);
+                setRightPanelTab('agent');
                 if (!isAgentRunning && agentLogs.length === 0) {
                   runAgentLoop();
                 }
               }}
-              title="Autonomiczny Agent AI dla serwera Pelican MC"
+              title="Autonomiczny Agent AI dla serwera Pelican MC (Tryb Antigravity)"
             >
               <Bot size={14} className={isAgentRunning ? "animate-spin" : ""} />
-              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI (Pelican)"}</span>
+              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI (Antigravity)"}</span>
             </button>
 
             <button 
@@ -2084,120 +2086,6 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               <div ref={messagesEndRef} className="h-4" />
             </div>
 
-            {/* AGENT AI AUTONOMOUS CONSOLE DRAWER */}
-            {showAgentDrawer && (
-              <div className="mx-4 mb-3 bg-[#0d0f17] border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col backdrop-blur-xl animate-in slide-in-from-bottom duration-300">
-                {/* Drawer Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-[#131726] border-b border-indigo-500/20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                      <Bot size={16} className={isAgentRunning ? "animate-spin text-amber-400" : ""} />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                        Autonomiczny Agent AI
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Pelican MC</span>
-                      </h3>
-                      <p className="text-[10px] text-slate-400">Samodzielna kompilacja, deployment i testy na serwerze Paper 1.21.4</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!isAgentRunning ? (
-                      <button 
-                        onClick={runAgentLoop}
-                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors shadow"
-                      >
-                        <Play size={12}/> Uruchom Agenta
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => setIsAgentRunning(false)}
-                        className="px-2.5 py-1 bg-red-600/80 hover:bg-red-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors"
-                      >
-                        <Square size={12}/> Przerwij
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => setShowAgentDrawer(false)}
-                      className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
-                    >
-                      <X size={14}/>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Stepper Progress */}
-                <div className="grid grid-cols-4 gap-1 p-2 bg-[#090b11] border-b border-white/5 text-[10px] font-medium text-center">
-                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 1 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
-                    <span>🤖 Kod AI</span>
-                  </div>
-                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 2 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
-                    <span>⚙️ Maven</span>
-                  </div>
-                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 3 ? 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50' : 'text-slate-600'}`}>
-                    <span>📦 Pelican MC</span>
-                  </div>
-                  <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 ${agentStep >= 4 ? (agentStep === 5 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50' : 'bg-indigo-950/60 text-indigo-300 border border-indigo-800/50') : 'text-slate-600'}`}>
-                    <span>📜 Logi MC</span>
-                  </div>
-                </div>
-
-                {/* Terminal Log Console */}
-                <div className="p-3 max-h-48 overflow-y-auto font-mono text-[11px] bg-[#05060a] space-y-1.5 custom-scrollbar">
-                  {agentLogs.length === 0 ? (
-                    <div className="py-4 flex flex-col items-center justify-center text-slate-500 gap-1">
-                      <Terminal size={20} className="opacity-40" />
-                      <span>Brak logów agenta. Kliknij "Uruchom Agenta" aby rozpocząć autonomiczny cykl.</span>
-                    </div>
-                  ) : (
-                    agentLogs.map((log) => (
-                      <div key={log.id} className={`flex items-start gap-2 leading-relaxed ${
-                        log.type === 'error' ? 'text-red-400 bg-red-950/30 p-1 rounded border border-red-900/40' :
-                        log.type === 'success' ? 'text-emerald-400 bg-emerald-950/30 p-1 rounded border border-emerald-900/40 font-bold' :
-                        log.type === 'warn' ? 'text-amber-400' :
-                        log.type === 'step' ? 'text-indigo-300 font-bold border-b border-indigo-900/30 pb-0.5 mt-1' :
-                        'text-slate-300'
-                      }`}>
-                        <span className="text-[9px] text-slate-500 select-none">{log.time}</span>
-                        <span className="whitespace-pre-wrap break-all flex-1">{log.text}</span>
-                      </div>
-                    ))
-                  )}
-                  <div ref={agentLogsEndRef} />
-                </div>
-
-                {/* Interactive CLI Console Command Bar */}
-                <div className="p-2 bg-[#0a0c14] border-t border-white/10 flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#131520] border border-white/10 rounded-lg">
-                    <span className="text-xs font-mono text-emerald-400 select-none">$ mc-console &gt;</span>
-                    <input 
-                      type="text" 
-                      value={mcCommandInput} 
-                      onChange={(e) => setMcCommandInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') sendMcConsoleCommand();
-                      }}
-                      placeholder="Wpisz komendę do konsoli Minecraft (np. plugins, help, reload)..." 
-                      className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-500"
-                    />
-                  </div>
-                  <button 
-                    onClick={() => sendMcConsoleCommand()}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow"
-                  >
-                    <Send size={12}/> Wyślij
-                  </button>
-                  <button 
-                    onClick={() => sendMcConsoleCommand('plugins')}
-                    className="px-2.5 py-1.5 bg-[#1e2338] hover:bg-[#282e4a] text-indigo-300 rounded-lg text-[11px] font-mono transition-colors border border-indigo-500/30"
-                    title="Pokaż wtyczki serwera"
-                  >
-                    /plugins
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* CHAT INPUT DOCK */}
             <ChatInputDock
               isGenerating={isGenerating}
@@ -2210,81 +2098,241 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
 
           </div>
 
-          {/* RIGHT COLUMN: LIVE WORKSPACE FILE EXPLORER & BUILD TERMINAL */}
+          {/* RIGHT COLUMN: ANTIGRAVITY AGENT WORKSPACE & FILE EXPLORER */}
           <div className={`flex-col h-full bg-[#0b0c10] border-l border-white/10 transition-all duration-300 ${showCodePanel ? 'hidden lg:flex w-full lg:w-5/12' : 'hidden'}`}>
             
-            {/* FILE TABS HEADER */}
+            {/* RIGHT PANEL HEADER: TABS SWITCHER */}
             <div className="h-11 bg-[#13151d] border-b border-white/10 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
-              <div className="flex items-center gap-1 overflow-x-auto flex-1 py-1">
-                {filePathsList.length === 0 ? (
-                  <span className="text-xs text-[#64748b] font-mono px-2">Brak wygenerowanych plików...</span>
-                ) : (
-                  filePathsList.map(filePath => {
-                    const fileName = filePath.split('/').pop();
-                    const isSelected = filePath === selectedFilePath;
-                    return (
-                      <button
-                        key={filePath}
-                        onClick={() => setSelectedFilePath(filePath)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${isSelected ? 'bg-[#ff6b00] text-white font-semibold shadow-xs' : 'text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#191c27]'}`}
-                      >
-                        <FileCode size={13} className={isSelected ? 'text-white' : 'text-[#64748b]'}/>
-                        <span>{fileName}</span>
-                      </button>
-                    );
-                  })
-                )}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setRightPanelTab('agent')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    rightPanelTab === 'agent'
+                      ? 'bg-indigo-600 text-white shadow-md border border-indigo-400'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Bot size={14} className={isAgentRunning ? "animate-spin text-amber-400" : ""} />
+                  <span>Agent AI (Antigravity)</span>
+                  {isAgentRunning && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setRightPanelTab('code')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    rightPanelTab === 'code'
+                      ? 'bg-[#ff6b00] text-white shadow-md'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <FileCode size={14} />
+                  <span>Kod ({filePathsList.length})</span>
+                </button>
               </div>
 
-              {selectedFilePath && currentFileContent && (
-                <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setShowCodePanel(false)}
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                title="Zamknij panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* TAB CONTENT */}
+            {rightPanelTab === 'agent' ? (
+              /* ANTIGRAVITY AUTONOMOUS AGENT WORKSPACE */
+              <div className="flex-1 flex flex-col bg-[#07080d] overflow-hidden">
+                {/* Agent Header & Control Card */}
+                <div className="p-3.5 bg-[#0e101a] border-b border-indigo-500/20 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        <Bot size={20} className={isAgentRunning ? "animate-spin text-amber-400" : "text-indigo-400"} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                          Tryb Antigravity Agent
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Pelican MC</span>
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-mono">Serwer: {projectData.engine || 'Paper'} {projectData.version || '1.21.4'}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      {!isAgentRunning ? (
+                        <button 
+                          onClick={runAgentLoop}
+                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md hover:scale-105"
+                        >
+                          <Play size={13}/> Uruchom Agenta
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => setIsAgentRunning(false)}
+                          className="px-3.5 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                        >
+                          <Square size={13}/> Przerwij
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stepper Progress */}
+                  <div className="grid grid-cols-4 gap-1.5 text-[10px] font-medium text-center font-mono">
+                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 1 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                      <span>🧠 Kod AI</span>
+                    </div>
+                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 2 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                      <span>⚙️ Maven</span>
+                    </div>
+                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 3 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                      <span>📦 Pelican</span>
+                    </div>
+                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 4 ? (agentStep === 5 ? 'bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold shadow-xs' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs') : 'bg-black/40 text-slate-600'}`}>
+                      <span>📜 Logi MC</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-Time Live Execution Stream (Antigravity Terminal Logs) */}
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 font-mono text-xs bg-[#040508] custom-scrollbar">
+                  {agentLogs.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 py-12">
+                      <Terminal size={36} className="opacity-30 text-indigo-400 animate-pulse" />
+                      <p className="text-xs text-center max-w-xs text-slate-400">
+                        Konsola Agenta gotowa. Kliknij <strong className="text-emerald-400">"Uruchom Agenta"</strong>, aby uruchomić pełny cykl kompilacji Maven, wdrożenia na Pelican MC i testów.
+                      </p>
+                    </div>
+                  ) : (
+                    agentLogs.map((log) => (
+                      <div key={log.id} className={`p-2.5 rounded-xl leading-relaxed border transition-all ${
+                        log.type === 'error' ? 'text-red-300 bg-red-950/40 border-red-900/60' :
+                        log.type === 'success' ? 'text-emerald-300 bg-emerald-950/40 border-emerald-900/60 font-bold' :
+                        log.type === 'warn' ? 'text-amber-300 bg-amber-950/20 border-amber-900/40' :
+                        log.type === 'step' ? 'text-indigo-200 bg-indigo-950/40 border-indigo-800/50 font-bold' :
+                        'text-slate-300 bg-[#0c0e18]/80 border-white/5'
+                      }`}>
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 mb-1 border-b border-white/5 pb-0.5">
+                          <span className="font-bold text-indigo-400/80">ANTIGRAVITY CLI</span>
+                          <span>{log.time}</span>
+                        </div>
+                        <span className="whitespace-pre-wrap break-all">{log.text}</span>
+                      </div>
+                    ))
+                  )}
+                  <div ref={agentLogsEndRef} />
+                </div>
+
+                {/* Interactive CLI Console Command Bar */}
+                <div className="p-2.5 bg-[#0a0c14] border-t border-indigo-500/20 flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-[#040508] border border-indigo-500/30 rounded-xl">
+                    <span className="text-xs font-mono text-emerald-400 select-none">$ mc &gt;</span>
+                    <input 
+                      type="text" 
+                      value={mcCommandInput} 
+                      onChange={(e) => setMcCommandInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') sendMcConsoleCommand();
+                      }}
+                      placeholder="Komenda MC (np. plugins, help, reload)..." 
+                      className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-500"
+                    />
+                  </div>
                   <button 
-                    className="p-1.5 rounded-md hover:bg-[#191c27] text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
-                    title="Kopiuj zawartość pliku"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(currentFileContent);
-                      alert('Skopiowano kod do schowka!');
-                    }}
+                    onClick={() => sendMcConsoleCommand()}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow"
                   >
-                    <Copy size={14}/>
+                    <Send size={12}/> Wyślij
+                  </button>
+                  <button 
+                    onClick={() => sendMcConsoleCommand('plugins')}
+                    className="px-2.5 py-2 bg-[#171a2b] hover:bg-[#222740] text-indigo-300 rounded-xl text-[11px] font-mono transition-colors border border-indigo-500/30"
+                    title="Pokaż wtyczki serwera"
+                  >
+                    /plugins
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* FILE EXPLORER & CODE VIEWER (Standard Code Mode) */
+              <div className="flex-1 flex flex-col bg-[#07080b] overflow-hidden">
+                {/* FILE TABS HEADER */}
+                <div className="h-10 bg-[#0d0f17] border-b border-white/10 flex items-center justify-between px-3 gap-2 overflow-x-auto flex-shrink-0">
+                  <div className="flex items-center gap-1 overflow-x-auto flex-1 py-1">
+                    {filePathsList.length === 0 ? (
+                      <span className="text-xs text-[#64748b] font-mono px-2">Brak wygenerowanych plików...</span>
+                    ) : (
+                      filePathsList.map(filePath => {
+                        const fileName = filePath.split('/').pop();
+                        const isSelected = filePath === selectedFilePath;
+                        return (
+                          <button
+                            key={filePath}
+                            onClick={() => setSelectedFilePath(filePath)}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono transition-colors whitespace-nowrap ${isSelected ? 'bg-[#ff6b00] text-white font-semibold shadow-xs' : 'text-[#94a3b8] hover:text-[#f8fafc] hover:bg-[#191c27]'}`}
+                          >
+                            <FileCode size={13} className={isSelected ? 'text-white' : 'text-[#64748b]'}/>
+                            <span>{fileName}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
 
-            {/* LIVE CODE VIEWER BODY */}
-            <div className="flex-1 bg-[#07080b] text-[#f8fafc] overflow-auto p-4 font-mono text-xs leading-relaxed relative">
-              {currentFileContent ? (
-                <pre className="m-0 whitespace-pre font-mono text-xs leading-relaxed">
-                  <code dangerouslySetInnerHTML={{ __html: highlightVSCodeSyntax(currentFileContent, selectedFilePath) }} />
-                </pre>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-[#64748b] font-sans space-y-2">
-                  <FileCode size={36} className="text-[#334155]"/>
-                  <p className="text-xs font-medium">Wybierz plik z powyższego paska lub poproś AI o kod.</p>
+                  {selectedFilePath && currentFileContent && (
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button 
+                        className="p-1.5 rounded-md hover:bg-[#191c27] text-[#94a3b8] hover:text-[#f8fafc] transition-colors"
+                        title="Kopiuj zawartość pliku"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(currentFileContent);
+                          alert('Skopiowano kod do schowka!');
+                        }}
+                      >
+                        <Copy size={14}/>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* BOTTOM BUILD TERMINAL DRAWER */}
-            <div className="h-32 bg-[#060709] border-t border-white/10 p-3 font-mono text-xs text-[#94a3b8] overflow-y-auto flex flex-col justify-between flex-shrink-0">
-              <div className="flex items-center justify-between text-[11px] text-[#64748b] border-b border-white/10 pb-1.5 mb-1.5">
-                <span className="font-semibold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1.5">
-                  <div className={`w-2 h-2 rounded-full ${buildError ? 'bg-red-500' : isBuilding ? 'bg-[#ff6b00] animate-pulse' : 'bg-emerald-500'}`}/>
-                  Konsola Kompilacji Maven
-                </span>
-                <span>{buildStatus || (buildError ? 'Błąd kompilacji' : 'Gotowy')}</span>
+                {/* LIVE CODE VIEWER BODY */}
+                <div className="flex-1 text-[#f8fafc] overflow-auto p-4 font-mono text-xs leading-relaxed relative">
+                  {currentFileContent ? (
+                    <pre className="m-0 whitespace-pre font-mono text-xs leading-relaxed">
+                      <code dangerouslySetInnerHTML={{ __html: highlightVSCodeSyntax(currentFileContent, selectedFilePath) }} />
+                    </pre>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-[#64748b] font-sans space-y-2">
+                      <FileCode size={36} className="text-[#334155]"/>
+                      <p className="text-xs font-medium">Wybierz plik z powyższego paska lub poproś AI o kod.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* BOTTOM BUILD TERMINAL DRAWER */}
+                <div className="h-32 bg-[#060709] border-t border-white/10 p-3 font-mono text-xs text-[#94a3b8] overflow-y-auto flex flex-col justify-between flex-shrink-0">
+                  <div className="flex items-center justify-between text-[11px] text-[#64748b] border-b border-white/10 pb-1.5 mb-1.5">
+                    <span className="font-semibold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full ${buildError ? 'bg-red-500' : isBuilding ? 'bg-[#ff6b00] animate-pulse' : 'bg-emerald-500'}`}/>
+                      Konsola Kompilacji Maven
+                    </span>
+                    <span>{buildStatus || (buildError ? 'Błąd kompilacji' : 'Gotowy')}</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto text-[11px] leading-relaxed text-[#94a3b8]">
+                    {buildError ? (
+                      <span className="text-red-400 font-mono">{buildError}</span>
+                    ) : buildStatus ? (
+                      <span className="text-emerald-400 font-mono">{buildStatus}</span>
+                    ) : (
+                      <span className="text-[#64748b]">[INFO] Kliknij "Buduj JAR" na górnym pasku, aby skompilować kod źródłowy Javy.</span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto text-[11px] leading-relaxed text-[#94a3b8]">
-                {buildError ? (
-                  <span className="text-red-400 font-mono">{buildError}</span>
-                ) : buildStatus ? (
-                  <span className="text-emerald-400 font-mono">{buildStatus}</span>
-                ) : (
-                  <span className="text-[#64748b]">[INFO] Kliknij "Buduj JAR" na górnym pasku, aby skompilować kod źródłowy Javy.</span>
-                )}
-              </div>
-            </div>
+            )}
 
           </div>
 
