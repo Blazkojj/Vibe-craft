@@ -71,6 +71,12 @@ const getModels = (isEN) => [
 
 const GITHUB_PRESET_PROMPTS = [
   {
+    id: 'hydroklatka',
+    title: '💧 Hydro Klatka (Anarchia.gg)',
+    tag: 'GitHub / Anarchia.gg',
+    prompt: 'Stwórz profesjonalny skrypt/plugin Hydro Klatka dla Paper 1.21.4 (Anarchia.gg mechanic). Przedmiot Hydro Klatka po postawieniu tworzy wokół gracza szczelną klatkę 3x3x3 z niebieskiego szkła/obsydianu wypełnioną wodą wewnątrz (wodna pułapka spowalnia i blokuje stawianie bloków). Po 12 sekundach klatka automatycznie znika i przywraca oryginalne bloki.'
+  },
+  {
     id: 'anarchia',
     title: '📦 Hardcore Anarchia Core',
     tag: 'GitHub / Anarchia.gg',

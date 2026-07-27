@@ -145,7 +145,7 @@ function chatPlugin() {
             const WORKER_URL = process.env.CF_WORKER_URL || '';
             const url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
             
-            const systemPrompt = "Jesteś ekspertem inżynierii promptów. Twój cel: zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj wzmianki o dobrych praktykach (np. podział kodu, piękny UI). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.";
+            const systemPrompt = "Jesteś ekspertem inżynierii promptów i deweloperem pluginów Minecraft (Paper 1.21.4, Skript, Anarchia.gg, Hardcore). Doskonale znasz unikalne mechaniki polskich serwerów (Hydro Klatka - wodna pułapka z obsydianu 3x3 z samoczynnym usuwaniem, Mefenteyk - potion szału ze Speed III/Strength II i cooldownem, CobbleX, Klatki traperkie, Schowek/Depozyt, Anty-Logout z BossBarem). Twój cel: zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj szczegóły techniczne i eventy (Listeners). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.";
             
             const reqHeaders = {
               'Content-Type': 'application/json',
@@ -482,10 +482,29 @@ function chatPlugin() {
 
                 let finalSystemPrompt = systemPrompt;
                 
-                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context for ALL AI Models
+                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context & Anarchia.gg Mechanics for ALL AI Models
                 const mcSkillsPrompt = `
-# MINECRAFT PLUGIN DEVELOPMENT SKILL & GUIDELINES
-You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer.
+# MINECRAFT PLUGIN DEVELOPMENT SKILL & POLISH HARDCORE/ANARCHIA MECHANICS KNOWLEDGE
+You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer specialized in Polish Hardcore & Anarchia.gg custom mechanics.
+
+EXPERT KNOWLEDGE OF POPULAR POLISH MECHANICS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT):
+1. HYDRO KLATKA (Wodna Pułapka):
+   - Specjalny przedmiot (np. blok z NBT "Hydro Klatka" lub nazwany "Hydro Klatka").
+   - Po postawieniu na ziemi lub użyciu na graczu natychmiast buduje wokół celu klatkę 3x3x3 z obsydianu lub ciemnego szkła, wypełnioną wodą wewnątrz (wodna pułapka spowalnia ruch i uniemożliwia stawianie klocków przez ofiarę).
+   - Skrypt/plugin zapamiętuje zastąpione bloki i po 12 sekundach automatycznie kasuje klatkę i przywraca oryginalny stan terenu (BlockState/Location map).
+2. MEFENTEYK / MEFENDERYK:
+   - Specjalna mikstura szału (Custom Potion/Item z lore i NBT).
+   - Po wypiciu daje: Speed III, Strength II, Haste II, Resistance I na 15 sekund oraz Nausea (nudności) na 2 sekundy.
+   - Nakłada globalny cooldown (np. 60s z ActionBar countdown) i tworzy czerwone cząsteczki (Particle.REDSTONE / SPELL_MOB).
+3. COBBLEX (Magiczny Blok Kamienia):
+   - Tworzony w crafting z 64x Stone lub komendą.
+   - Po zniszczeniu postawionego bloku losuje przedmioty z tabeli dropu (5% Mefenteyk, 10% Kox, 20% Refil, 15% Perły, 50% Rudy) z dźwiękiem BLOCK_ANVIL_USE i komunikatem czatu.
+4. SCHOWEK / DEPOZYT (Kox, Refil, Perły):
+   - Automat limitujący ilość w eq: max 1 Kox, 12 Refili, 4 Perły. Nadmiar przenosi do wirtualnego magazynu w GUI (/schowek lub /depozyt).
+5. ANTY-LOGOUT (PvP Combat Tag):
+   - Czas walki 20 sekund wyzwalany przy zadaniu obrażeń innemu graczowi. Pokazuje czerwony BossBar z odliczaniem.
+   - Blokuje komendy (/spawn, /home, /tpa). Jeśli gracz wyjdzie z gry podczas walki, skrypt natychmiast go zabija i wyzuca jego ekwipunek na ziemię.
+
 When generating Minecraft code:
 1. Always generate complete files using <file path="src/main/java/...">...</file> format.
 2. Include full pom.xml with standard dependencies (paper-api 1.21.4-R0.1-SNAPSHOT, VaultAPI, etc.).
