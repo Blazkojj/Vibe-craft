@@ -543,18 +543,21 @@ Twój cel: Zamień krótki pomysł użytkownika na doskonały, szczegółowy, us
 
                 let finalSystemPrompt = systemPrompt;
                 
-                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context (from Jahrome907/minecraft-agent-skills) & Comprehensive Polish Server Mechanics Knowledge for ALL AI Models
-                const mcSkillsPrompt = `
-# MINECRAFT AGENT SKILL: PAPER PLUGIN DEV (1.21.x / Java 21) & POLISH HARDCORE MECHANICS
-You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer executing with the official "minecraft-agent-skills" standards (Jahrome907/minecraft-agent-skills).
+                // Dynamically load installed Jahrome907/minecraft-agent-skills from .agents/skills/
+                let installedSkillContent = '';
+                try {
+                  const skillPath = path.join(process.cwd(), '.agents', 'skills', 'minecraft-plugin-dev', 'SKILL.md');
+                  if (fs.existsSync(skillPath)) {
+                    installedSkillContent = fs.readFileSync(skillPath, 'utf8');
+                  }
+                } catch (err) {
+                  console.error('Failed to load installed skill file:', err.message);
+                }
 
-OFFICIAL AGENT SKILL RULES (PAPER 1.21.x / JAVA 21):
-1. Target Platform: Server-side Paper 1.21.4 API (Java 21). Paper includes all Bukkit and Spigot APIs plus async performance improvements and Adventure native components.
-2. Text Components: ALWAYS use net.kyori.adventure.text.Component and net.kyori.adventure.text.format.NamedTextColor for code-owned messages. Use MiniMessage for config-driven rich text. Avoid legacy ChatColor.
-3. Event Priority & Handling: Use @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true). EventPriority order is LOWEST -> LOW -> NORMAL -> HIGH -> HIGHEST -> MONITOR (MONITOR is read-only).
-4. Persistent Data Storage (PDC): Store entity/item/chunk metadata using PersistentDataContainer with NamespacedKey and PersistentDataType.
-5. Vault Economy: Soft-depend on Vault, check presence via getPluginManager().getPlugin("Vault"), check RegisteredServiceProvider<Economy>, and gracefully disable economy if provider is absent.
-6. Asynchronous Safety: Never block the main thread. Run async tasks via BukkitScheduler runTaskAsynchronously or Paper RegionScheduler/AsyncScheduler.
+                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context & Comprehensive Polish Server Mechanics Knowledge for ALL AI Models
+                const mcSkillsPrompt = `
+# INSTALLED OFFICIAL MINECRAFT AGENT SKILL (.agents/skills/minecraft-plugin-dev/SKILL.md):
+${installedSkillContent || 'Target Platform: Paper 1.21.4 API (Java 21)'}
 
 CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
 1. ALWAYS generate 100% complete, self-contained Java code. You MUST generate full code for EVERY class referenced (Main JavaPlugin class, Listener classes, Command Executors, TabCompleters, GUI Manager classes, Task Timers, Custom Item Builders). Missing class symbols cause Maven compilation errors!
