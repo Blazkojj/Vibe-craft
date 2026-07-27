@@ -400,11 +400,13 @@ Kontynuuj kodowanie dokładnie od tego miejsca w kodzie, dokończ obecną klasę
 };
 
 const isClaudeModel = (model) => {
-  return ['opus-4.8', 'sonnet-4.8', 'haiku-4.8', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
+  return ['claude-fable-5', 'opus-4.8', 'sonnet-4.8', 'haiku-4.8', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
 };
 
 const getIdentityInjection = (model) => {
-  if (model === "opus-4.8" || model === "claude-opus-4-8") {
+  if (model === "claude-fable-5") {
+    return "Nazywasz się Claude Fable 5. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Claude Fable 5. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
+  } else if (model === "opus-4.8" || model === "claude-opus-4-8") {
     return "Nazywasz się Claude Opus 4.8. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Opus 4.8. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
   } else if (model === "claude-opus-4-7") {
     return "Nazywasz się Claude Opus 4.7. Jeśli użytkownik zapyta kim jesteś lub jak się nazywasz, musisz kategorycznie odpowiedzieć, że jesteś modelem Opus 4.7. Odpowiedz czystym tekstem, bez tagów HTML/XML.\n";
@@ -425,6 +427,7 @@ const getIdentityInjection = (model) => {
 const getModelDisplayName = (model) => {
   if (!model) return 'GLM 5.2 (z-ai)';
   const mapping = {
+    'claude-fable-5': 'Claude Fable 5',
     'gemini-1.5-pro': 'Gemini 2.5 Pro',
     'z-ai/glm-5.2': 'GLM 5.2 (z-ai)',
     'opus-4.8': 'Opus 4.8',
@@ -1986,6 +1989,7 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
 
 
   const MODELS_LIST = [
+    {id:'claude-fable-5', label:'Claude Fable 5'},
     {id:'claude-opus-4-8', label:'Claude Opus 4.8'},
     {id:'claude-opus-4-7', label:'Claude Opus 4.7'},
     {id:'claude-sonnet-5', label:'Claude Sonnet 5.0'},
@@ -2377,6 +2381,29 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                     <button onClick={() => setIsEnhanceModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
                       <X size={18} />
                     </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                      ⚡ Wybierz gotowy szablon z GitHub:
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      {[
+                        { title: '📦 Anarchia Hardcore', prompt: 'Napisz pełny plugin Minecraft 1.21.4 (Paper API) dla serwera Hardcore Anarchia. Zaimplementuj: System Mefentery (specjalna mikstura dająca efekt szału), system CobbleX po zniszczeniu 64 kamienia z losowaniem rzadkich itemów (strefa dropu w GUI), system Anty-Logout podczas walki z paskiem BossBar oraz schowki na kox/refile/perły w GUI.' },
+                        { title: '🏰 Gildie & Tereny', prompt: 'Stwórz zaawansowany system gildii dla Paper 1.21.4 z Vault API. Każda gildia ma swoje Serce (End Crystal), teren 50x50 z blokadą budowania dla obcych, skarbiec gildijny w GUI oraz system wojen gildii.' },
+                        { title: '⚔️ RPG Bosses & Dungeons', prompt: 'Napisz silnik RPG Bossów i Lochów (Paper 1.21.4). Zaimplementuj bossa z celowanymi umiejętnościami obszarowymi (AoE particle effects), paskiem zdrowia BossBar, fazą wściekłości (Rage mode na 25% HP) i dynamiczną generacją portalu po pokonaniu bossa z epicką skrzynią nagród.' },
+                        { title: '💰 AuctionHouse GUI', prompt: 'Zbuduj profesjonalny plugin Domu Aukcyjnego w GUI (AuctionHouse) dla Spigot 1.21.4 z podłączeniem Vault economy. Funkcje: wystawianie przedmiotu trzymanego w dłoni (/ah sell <cena>), sortowanie ofert (najnowsze/najtańsze), odbiór zarobionych pieniędzy i 5% prowizji rynkowej.' },
+                        { title: '🛡️ Anti-Crash Guard', prompt: 'Stwórz bezkompromisowy plugin zabezpieczający serwer Minecraft Paper 1.21.4 przed exploitami pakietowymi. Zaimplementuj limiter interakcji ekwipunku, detekcję i czyszczenie nielegalnych Shulker Boxów z NBT oraz blokadę nadmiaru pakietów.' }
+                      ].map((item, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setEnhanceInputText(item.prompt)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-slate-300 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-white transition-all cursor-pointer"
+                        >
+                          {item.title}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <textarea

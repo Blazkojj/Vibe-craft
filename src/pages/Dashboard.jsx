@@ -60,12 +60,46 @@ const ENGINES = [
 ];
 
 const getModels = (isEN) => [
+  { id: 'claude-fable-5', label: 'Claude Fable 5', badge: isEN ? 'NEW / Fast' : 'NOWOŚĆ / Szybki' },
   { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', badge: isEN ? 'Best' : 'Najlepszy' },
   { id: 'claude-opus-4-7', label: 'Claude Opus 4.7' },
   { id: 'claude-sonnet-5', label: 'Claude Sonnet 5.0', badge: isEN ? 'New' : 'Nowość' },
   { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', badge: isEN ? 'Popular' : 'Popularny' },
   { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', badge: isEN ? 'Fast' : 'Szybki' },
   { id: 'z-ai/glm-5.2', label: 'GLM 5.2', badge: isEN ? 'Free' : 'Darmowy' }
+];
+
+const GITHUB_PRESET_PROMPTS = [
+  {
+    id: 'anarchia',
+    title: '📦 Hardcore Anarchia Core',
+    tag: 'GitHub / Anarchia.gg',
+    prompt: 'Napisz pełny plugin Minecraft 1.21.4 (Paper API) dla serwera Hardcore Anarchia. Zaimplementuj: System Mefentery (specjalna mikstura dająca efekt szału), system CobbleX po zniszczeniu 64 kamienia z losowaniem rzadkich itemów (strefa dropu w GUI), system Anty-Logout podczas walki z paskiem BossBar oraz schowki na kox/refile/perły w GUI.'
+  },
+  {
+    id: 'guilds',
+    title: '🏰 Guilds & Claims System',
+    tag: 'GitHub / SpigotMC',
+    prompt: 'Stwórz zaawansowany system gildii dla Paper 1.21.4 z Vault API. Każda gildia ma swoje Serce (End Crystal), teren 50x50 z blokadą budowania dla obcych, skarbiec gildijny w GUI oraz system wojen gildii.'
+  },
+  {
+    id: 'dungeons',
+    title: '⚔️ Custom RPG Bosses & Dungeons',
+    tag: 'GitHub / MythicEngine',
+    prompt: 'Napisz silnik RPG Bossów i Lochów (Paper 1.21.4). Zaimplementuj bossa z celowanymi umiejętnościami obszarowymi (AoE particle effects), paskiem zdrowia BossBar, fazą wściekłości (Rage mode na 25% HP) i dynamiczną generacją portalu po pokonaniu bossa z epicką skrzynią nagród.'
+  },
+  {
+    id: 'auction',
+    title: '💰 AuctionHouse & Player Market',
+    tag: 'GitHub / Essentials',
+    prompt: 'Zbuduj profesjonalny plugin Domu Aukcyjnego w GUI (AuctionHouse) dla Spigot 1.21.4 z podłączeniem Vault economy. Funkcje: wystawianie przedmiotu trzymanego w dłoni (/ah sell <cena>), sortowanie ofert (najnowsze/najtańsze), odbiór zarobionych pieniędzy i 5% prowizji rynkowej.'
+  },
+  {
+    id: 'security',
+    title: '🛡️ Anti-Crash & Exploit Guard',
+    tag: 'GitHub / Security',
+    prompt: 'Stwórz bezkompromisowy plugin zabezpieczający serwer Minecraft Paper 1.21.4 przed exploitami pakietowymi. Zaimplementuj limiter interakcji ekwipunku, detekcję i czyszczenie nielegalnych Shulker Boxów z NBT oraz blokadę nadmiaru pakietów.'
+  }
 ];
 
 const getPLANS = (D, isEN) => [
@@ -1978,6 +2012,33 @@ export default function Dashboard() {
 
             <div className="dash-modal-body" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                  ⚡ Wybierz gotowy szablon promptu z GitHub / Community:
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1rem' }}>
+                  {GITHUB_PRESET_PROMPTS.map(preset => (
+                    <button
+                      key={preset.id}
+                      onClick={() => setEnhanceInput(preset.prompt)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.12)',
+                        color: '#e4e4e7',
+                        borderRadius: '8px',
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.2)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                    >
+                      {preset.title}
+                    </button>
+                  ))}
+                </div>
+
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
                   Twoje wstępne założenie / opis pluginu:
                 </label>

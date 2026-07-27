@@ -387,7 +387,7 @@ function chatPlugin() {
 
               const SUPA_SERVICE = process.env.SUPABASE_SERVICE_KEY;
               const { systemPrompt: sp, userPrompt: up, model: m } = JSON.parse(body);
-              const isPaidModel = ['claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
+              const isPaidModel = ['claude-fable-5','claude-opus-4-8','claude-opus-4-7','claude-sonnet-4-6','claude-haiku-4-5-20251001','claude-sonnet-5'].includes(m);
               
               const hasCustomKey = !!userProfile?.custom_api_key;
               const skipBilling = true; // disabled for debugging
@@ -418,7 +418,7 @@ function chatPlugin() {
               console.log(`[chat] Incoming request for model: ${model}`);
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
-              const isTrueClaude = ['claude-opus-4-8', 'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
+              const isTrueClaude = ['claude-fable-5', 'claude-opus-4-8', 'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
               const isZenmux = model === 'z-ai/glm-5.2' || isClaudeAlias || isTrueClaude || hasCustomKey;
 
               if (isZenmux) {
@@ -429,9 +429,10 @@ function chatPlugin() {
                 let url = 'https://zenmux.ai/api/v1/chat/completions';
                 if (WORKER_URL) url = WORKER_URL + '/zenmux/api/v1/chat/completions';
 
-const isClaude = isTrueClaude || isClaudeAlias;
+                const isClaude = isTrueClaude || isClaudeAlias;
                 if (isClaude && !userProfile.custom_api_key) {
                   url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
+                  if (model === 'claude-fable-5') { backendModel = 'claude-fable-5'; apiKey = process.env.AIAPIFLOW_KEY_FABLE_5 || 'sk-aba1a60c08118a7806c5b36ff8f026300008189db99ae031010a1b80c89cc6ea'; }
                   if (model === 'claude-opus-4-8' || model === 'opus-4.8') { backendModel = 'claude-opus-4-8'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_8; }
                   if (model === 'claude-opus-4-7') { backendModel = 'claude-opus-4-7'; apiKey = process.env.AIAPIFLOW_KEY_OPUS_4_7; }
                   if (model === 'claude-sonnet-4-6') { backendModel = 'claude-sonnet-4-6'; apiKey = process.env.AIAPIFLOW_KEY_SONNET_4_6; }
