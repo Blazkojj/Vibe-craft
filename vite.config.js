@@ -566,6 +566,8 @@ CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
 4. Always generate a valid pom.xml with paper-api 1.21.4-R0.1-SNAPSHOT, maven-compiler-plugin (Java 21 source & target), and UTF-8 encoding.
 5. All Bukkit/Paper API calls must be 100% valid for Minecraft 1.21.4.
 6. AUTOMATIC FILE DELETION RULE: NEVER ask the user to manually delete files or directories! If old, obsolete, or refactored classes/packages exist (such as old files in src/main/java/pl/zenexcode/hyperac/), YOU MUST OUTPUT <delete path="src/main/java/pl/zenexcode/hyperac"/> TAGS SO THE SYSTEM DELETES THEM AUTOMATICALLY!
+7. PLANNING FIRST RULE: Na samym początku, gdy użytkownik prosi o nowy plugin/system, ZAWSZE najpierw przedstaw bogaty i przejrzysty Plan Architektoniczny (opis funkcji, lista klas, komendy, permissions, konfiguracja) BEZ wygenerowania jakiegokolwiek tagu <file>. Zakończ pytaniem: "Czy akceptujesz ten plan architektoniczny? Odpowiedz 'Tak' lub 'Akceptuję', aby wygenerować 100% wszystkich plików projektu."
+8. ALL FILES AT ONCE RULE: Gdy użytkownik wyrazi zgodę (odpowie "Tak", "Akceptuję", "Generuj", "Zrób to", "Dokończ") LUB w przypadku poprawek błędów ([SYSTEM-AUTO-FIX]), wygeneruj BEZWZGLĘDNIE 100% WSZYSTKICH PLIKÓW PROJEKTU NA RAZ W JEDNEJ ODPOWIEDZI (pom.xml, plugin.yml, config.yml i WSZYSTKIE klasy Java)!
 
 COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT, SKKF, MCHC):
 1. HYDRO KLATKA (Wodna Pułapka):
@@ -723,12 +725,12 @@ COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAG
                         try {
                           const j = JSON.parse(buf);
                           if (j.error) {
-                            // Check for reject_no_credit on OpenRouter
-                            if (isOpenRouter && j.error.type === 'reject_no_credit' && !isFallback) {
-                              console.warn(`[chat] OpenRouter reject_no_credit. Retrying with free model...`);
+                            // Check for 503 / 429 / reject_no_credit / overloaded error from OpenRouter / Anthropic
+                            if (!isFallback) {
+                              console.warn(`[chat] API Provider overloaded or rejected request (${j.error.message || j.error.type}). Retrying silently with fallback model...`);
                               procEnded = true;
                               proc.kill();
-                              startStream(targetModel, true);
+                              startStream('z-ai/glm-5.2', true);
                               return;
                             }
                             
@@ -753,15 +755,14 @@ COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAG
                         proc.kill();
                         return;
                       }
-                      if (buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out')) {
-                        console.error(`[chat] First chunk detected API Provider error: ${buf.trim()}`);
-                        if (!res.headersSent) {
-                          res.statusCode = 503;
-                          res.end('Dostawca API modelu jest przeciążony (Błąd 503 Service Unavailable). Zmień na model Gemini lub spróbuj za chwilę.');
+                      if (buf.includes('503 Service Unavailable') || buf.includes('502 Bad Gateway') || buf.includes('504 Gateway Time-out') || buf.includes('overloaded') || buf.includes('rate_limit')) {
+                        console.warn(`[chat] API Provider overloaded (503/502/429). Retrying silently with fallback model...`);
+                        if (!isFallback) {
+                          procEnded = true;
+                          proc.kill();
+                          startStream('z-ai/glm-5.2', true);
+                          return;
                         }
-                        procEnded = true;
-                        proc.kill();
-                        return;
                       }
                       // OK — wyślij nagłówki i pierwszą porcję
                       if (!res.headersSent) {

@@ -1373,13 +1373,13 @@ ZASADY KRYTYCZNE:
 KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 </file>
 4. Zmieniaj tylko te pliki, które wymagają edycji. Każdy zmieniony plik musisz bezwzględnie wygenerować w całości (100% gotowy kod) w tagach <file>. Zabrania się opisywania zmian tylko tekstowo oraz stosowania skrótów typu "..." lub "// reszta kodu bez zmian".
-5. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
-6. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
-7. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
-8. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
-9. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w Zenexcode jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
-10. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
-11. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/zenexcode/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
+5. FAZA 1 (PLANOWANIE ARCHITEKTURY): Na samym początku, gdy użytkownik prosi o nowy plugin/mechanikę i nie ma jeszcze akceptacji planu, ZAWSZE najpierw wygeneruj sam przejrzysty i bogaty PLAN ARCHITEKTONICZNY (opis funkcji, listę komend, permissions, strukturę klas i opis działania). BEZWZGLĘDNIE NIE GENERUJ tagów <file> w tej pierwszej odpowiedzi! Zakończ pytaniem: "Czy akceptujesz ten plan architektoniczny? Odpowiedz 'Tak' lub 'Akceptuję', aby wygenerować 100% wszystkich plików projektu w 1 odpowiedzi."
+6. FAZA 2 (GENEROWANIE 100% PLIKÓW NA RAZ): Gdy użytkownik wyrazi zgodę (odpowie "Tak", "Akceptuję", "Generuj", "Rób", "Zrób to", "Dokończ"), LUB w przypadku zgłoszenia poprawek ([SYSTEM-AUTO-FIX] / edycji): WYGENERUJ BEZWZGLĘDNIE 100% WSZYSTKICH PLANOWANYCH PLIKÓW NA RAZ W JEDNEJ ODPOWIEDZI (pom.xml, plugin.yml, config.yml oraz KAŻDĄ zadeklarowaną klasę Javy)! Zabrania się dzielenia plików na części lub pomijania jakichkolwiek klas!
+7. KRYTYCZNE: ZAWSZE na samym początku swojej odpowiedzi z kodem napisz bardzo szczegółowe, bogate tekstowe wprowadzenie i instrukcje po polsku, a następnie wygeneruj tagi <file> z kodem.
+8. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI, to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego.
+9. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Kompilacja w Zenexcode jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
+10. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Wszystkie funkcjonalności MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
+11. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/zenexcode/ruletka/Ruletka.java).`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -1496,26 +1496,38 @@ KOD
       setStreamingMessageId(null);
       deductTokenCost(systemPrompt, userPrompt, fullText, formattedHistory);
     } catch(err) {
+      // Silent auto-fallback if provider is overloaded or rate limited (503/502/504/429)
+      if (err.message && (err.message.includes('503') || err.message.includes('502') || err.message.includes('504') || err.message.includes('przeciążony') || err.message.includes('Service Unavailable') || err.message.includes('429'))) {
+        console.warn("[handleSend] Provider overloaded. Attempting silent fallback to GLM 5.2...");
+        try {
+          const fallbackText = await generateWithBackend(
+            'z-ai/glm-5.2',
+            systemPrompt,
+            userPrompt,
+            formattedHistory,
+            (text) => updateMessage(msgId, text, true),
+            abortControllerRef
+          );
+          updateMessage(msgId, fallbackText, false);
+          setStreamingMessageId(null);
+          return;
+        } catch (fallbackErr) {
+          console.error("Silent fallback failed:", fallbackErr);
+        }
+      }
+
       fetch('/api/log-error', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ context: 'handleSend', message: err.message, name: err.name, stack: err.stack })
       }).catch(() => {});
       if (msgId) {
-        // zachowaj częściową treść zamiast kasować wiadomość
         setMessages(prev => prev.map(m => {
           if (m.id !== msgId) return m;
           const partial = m.text || '';
-          const errNote = err.message?.includes('429')
-            ? '\n\n---\n⚠️ **Przerwano — limit zapytań API (429).** Poczekaj ~1 min lub zmień model.'
-            : `\n\n---\n⚠️ **Przerwano — błąd połączenia:** ${err.message || 'nieznany'}`;
+          const errNote = `\n\n---\n⚠️ **Przerwano — błąd połączenia:** ${err.message || 'nieznany'}`;
           return { ...m, text: (partial || '') + errNote, isStreaming: false };
         }));
-      }
-      if (err.message && err.message.includes('429')) {
-         addMessage('System', `⚠️ **Limit zapytań API przekroczony!**\nOsiągnięto limit dla obecnego modelu. Poczekaj około minutę lub **zmień model na "Gemini 1.5 Flash"** w menu na dole czatu, który ma znacznie większe limity w darmowym planie.`);
-      } else {
-         addMessage('System', `Błąd: ${err.message} (${err.name})\n\nStack:\n${err.stack}`);
       }
     } finally {
       isGeneratingRef.current = false;
