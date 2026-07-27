@@ -48,6 +48,37 @@ async function sendErrorToDiscord(title, details) {
   }
 }
 
+async function fetchForumSearchResults(query) {
+  try {
+    const cleanQuery = (query || '').substring(0, 150).replace(/[^a-zA-Z0-9 ąćęłńóśźżĄĆĘŁŃÓŚŹŻ_\-]/g, ' ').trim();
+    if (!cleanQuery) return '';
+    const searchQuery = `${cleanQuery} minecraft skript forum spigotmc github crafting.pl`;
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+    const resp = await fetch(searchUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8'
+      }
+    });
+    const html = await resp.text();
+    const results = [];
+    const titleMatches = [...html.matchAll(/<a class="result__a"[^>]*>([\s\S]*?)<\/a>/gi)];
+    const snippetMatches = [...html.matchAll(/<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+    for (let i = 0; i < Math.min(titleMatches.length, 5); i++) {
+      const title = (titleMatches[i]?.[1] || '').replace(/<[^>]+>/g, '').trim();
+      const snippet = (snippetMatches[i]?.[1] || '').replace(/<[^>]+>/g, '').trim();
+      if (title || snippet) {
+        results.push(`• ${title}:\n  ${snippet}`);
+      }
+    }
+    return results.join('\n\n');
+  } catch (e) {
+    console.error('[forum-search] Search failed:', e.message);
+    return '';
+  }
+}
+
 function chatPlugin() {
   return {
     name: 'chat-plugin',
@@ -171,6 +202,12 @@ KNOW-HOW POPULARNYCH MECHANIK I SKRYPTÓW:
 
 Twój cel: Zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj szczegóły techniczne i eventy (Listeners). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.`;
             
+            const searchResults = await fetchForumSearchResults(prompt);
+            let userContent = `Zamień ten pomysł na profesjonalny prompt (zwróć tylko prompt!):\n\n${prompt}`;
+            if (searchResults) {
+              userContent += `\n\n# WYNIKI WYSZUKIWANIA NA FORACH (SpigotMC/Skript.pl/GitHub/Crafting.pl):\n${searchResults}`;
+            }
+
             const reqHeaders = {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey}`,
@@ -184,7 +221,7 @@ Twój cel: Zamień krótki pomysł użytkownika na doskonały, szczegółowy, us
               model: 'claude-sonnet-4-6',
               messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `Zamień ten pomysł na profesjonalny prompt (zwróć tylko prompt!):\n\n${prompt}` }
+                { role: 'user', content: userContent }
               ],
               stream: false,
               max_tokens: 4096
@@ -551,6 +588,22 @@ When generating Minecraft code:
                     finalSystemPrompt = finalSystemPrompt + '\n\n# SYSTEM BEHAVIOR INSTRUCTIONS (ANTHROPIC CORE SYSTEM PROMPT)\n' + opusPrompt;
                   } catch (e) {
                     console.error('Failed to load Opus prompt:', e.message);
+                  }
+                }
+
+                // Perform live forum search for recent user query
+                let lastUserText = '';
+                if (history && Array.isArray(history) && history.length > 0) {
+                  const lastUserMsg = [...history].reverse().find(m => m.role === 'user' || m.role === 'human');
+                  if (lastUserMsg) {
+                    lastUserText = lastUserMsg.parts ? lastUserMsg.parts[0].text : (lastUserMsg.content || '');
+                  }
+                }
+                
+                if (lastUserText) {
+                  const chatSearchResults = await fetchForumSearchResults(lastUserText);
+                  if (chatSearchResults) {
+                    finalSystemPrompt += `\n\n# LIVE INTERNET & FORUM SEARCH RESULTS (SpigotMC / Skript.pl / GitHub):\n${chatSearchResults}`;
                   }
                 }
 
