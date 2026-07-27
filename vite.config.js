@@ -301,6 +301,54 @@ function chatPlugin() {
         }
       });
 
+      server.middlewares.use('/api/web-search', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const { query } = JSON.parse(body);
+            if (!query || !query.trim()) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Query is required' }));
+            }
+            
+            const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+            const resp = await fetch(searchUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8'
+              }
+            });
+            const html = await resp.text();
+            
+            const results = [];
+            const titleMatches = [...html.matchAll(/<a class="result__a"[^>]*>([\s\S]*?)<\/a>/gi)];
+            const snippetMatches = [...html.matchAll(/<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+            for (let i = 0; i < Math.min(titleMatches.length, 5); i++) {
+              const rawTitle = titleMatches[i]?.[1] || '';
+              const rawSnippet = snippetMatches[i]?.[1] || '';
+              const title = rawTitle.replace(/<[^>]+>/g, '').trim();
+              const snippet = rawSnippet.replace(/<[^>]+>/g, '').trim();
+              if (title || snippet) {
+                results.push({ title, snippet });
+              }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ query, results }));
+          } catch(e) {
+            console.error('[web-search] Error:', e);
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: e.message, results: [] }));
+          }
+        });
+      });
+
       server.middlewares.use('/api/chat', async (req, res) => {
         if (req.method === 'POST') {
           let body = '';
@@ -366,7 +414,7 @@ function chatPlugin() {
                 }
               }
 
-              const { systemPrompt, userPrompt, model, history } = JSON.parse(body);
+              const { systemPrompt, userPrompt, model, history, images } = JSON.parse(body);
               console.log(`[chat] Incoming request for model: ${model}`);
               
               const isClaudeAlias = ['opus-4.8', 'sonnet-4.8', 'haiku-4.8'].includes(model);
@@ -478,7 +526,31 @@ When generating Minecraft code:
                    });
                    messages.push(...convertedHistory);
                 }
-                if (userPrompt) messages.push({ role: 'user', content: userPrompt });
+                let userContent = userPrompt;
+                if (images && Array.isArray(images) && images.length > 0) {
+                  userContent = [{ type: 'text', text: userPrompt || 'Przeanalizuj przesłany obrazek/zrzut ekranu.' }];
+                  images.forEach(imgUrl => {
+                    if (typeof imgUrl === 'string' && imgUrl.startsWith('data:image')) {
+                      const mimeMatch = imgUrl.match(/^data:(image\/\w+);base64,/);
+                      const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+                      const cleanBase64 = imgUrl.replace(/^data:image\/\w+;base64,/, '');
+                      if (isTrueClaude) {
+                        userContent.push({
+                          type: 'image',
+                          source: { type: 'base64', media_type: mimeType, data: cleanBase64 }
+                        });
+                      } else {
+                        userContent.push({
+                          type: 'image_url',
+                          image_url: { url: `data:${mimeType};base64,${cleanBase64}` }
+                        });
+                      }
+                    }
+                  });
+                }
+                if (userPrompt || (images && images.length > 0)) {
+                  messages.push({ role: 'user', content: userContent });
+                }
 
                 const reqHeaders = {
                   'Content-Type': 'application/json',

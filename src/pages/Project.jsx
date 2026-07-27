@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X, Play, Square, CheckCircle2, AlertTriangle, Cpu, Layers, Loader2, ShieldAlert, Server, Box, CheckCircle } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X, Play, Square, CheckCircle2, AlertTriangle, Cpu, Layers, Loader2, ShieldAlert, Server, Box, CheckCircle, Globe } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -32,6 +32,32 @@ const ModelIcon = ({modelId, size=13}) => {
   }
   return <Sparkles size={size}/>;
 };
+
+const MINECRAFT_SERVERS_KNOWLEDGE = `
+# BAZA WIEDZY O SKRYPTACH I MECHANIKACH POPULARNYCH SERWERÓW MINECRAFT
+
+1. ANARCHIA.GG / ANARCHIA / SURVIVAL+FRAKCJE:
+- Mefedron / Mefentyk (&d&lMefentyk Anarchia): Customowy przedmiot (np. Sugar / Pink Dye / Amethyst Shard) z lore "&7Spożycie daje ekstremalną moc!". Po zjedzeniu (PlayerInteractEvent z Potion/Food lub Right Click): daje PotionEffectType.INCREASE_DAMAGE II (30s), SPEED III (30s), CONFUSION I (10s), oraz spawner cząsteczek Particle.PORTAL wokół gracza przez 5s.
+- CobbleX (&8&lCobbleX): Wykonany z 9x64 Cobblestone w CraftingTable lub GUI Rzemieślnika. Po postawieniu/użyciu daje losowe przedmioty: Kox (Enchanted Golden Apple), Refil, Elytra, Różdżka Teleportacyjna, Siekiera 6/3/3, Złote Jabłko.
+- Pandora (&c&lPandora): Customowa skrzynia (End Portal Frame lub Chest). Po postawieniu odtwarza Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR i przyzywa wybuch cząsteczek (FireworkMeta / Particle.EXPLOSION_EMITTER), a następnie wyrzuca wartościowy drop (64x Diamond, Koxy, Totem Nieśmiertelności, Różdżki).
+- Różdżka na Spawn / Schron (&a&lRóżdżka na Spawn): Przedmiot dający teleportację na Spawn lub do Schronu po 5 sekundach oczekiwania bez poruszania się (z odliczaniem na ActionBar / Title oraz zrujnowaniem przy poruszeniu).
+- GUI Dropu & AutoSmelt & AutoSell (/drop, /turbodrop): Interfejs GUI pozwalający włączać/wyłączać dropy surowców z kamienia (Diamenty, Szmaragdy, Złoto, Żelazo, Węgiel, Redstone, Perły, Jabłka), włączać automatyczne przetapianie (AutoSmelt - kamień od razu daje Iron/Gold Ingot) oraz włączać wirtualną sprzedaż (AutoSell). Mnożnik TurboDrop (np. 2x, 3x) włączany komendą admina.
+
+2. HYPIXEL / BEDWARS / SKYWARS:
+- Generatory Surowców (Resource Generators): Zadanie BukkitRunnable działające w tle sprawnie generujące przedmioty (Iron Ingot, Gold Ingot, Diamond, Emerald) w określonych koordynatach z uaktualnianym Hologramem (ArmorStand z CustomName) pokazującym czas do następnego zrzutu.
+- Sklep w GUI (Item Shop): Menu GUI umożliwiające wymianę surowców (np. 4x Gold -> Miecz Żelazny, 12x Iron -> 16x Wool, 4x Diamond -> Ulepszenie Ostrze I).
+- Trapy Drużynowe (Team Traps): Wykrywanie zbliżania się wrogich graczy do bazy drużyny i natychmiastowe nakładanie na intruza Blindness II + Slowness II na 5 sekund z odtworzeniem Sound.ENTITY_ENDER_DRAGON_GROWL dla członków drużyny.
+
+3. MEDIUMHARDHC / MSHC / DRAGONCRAFT:
+- Schowek na Koxy/Refile/Perły (/schowek, /depozyt): System automatycznie ograniczający ilość specjalnych przedmiotów w ekwipunku gracza (np. max 2x Kox, 8x Refil, 12x Perła Endu). Nadmiar jest natychmiastowo zabierany i zapisywany w wirtualnym schowku pod komendą /schowek lub /depozyt, skąd gracz może je wypłacić przyciskiem w GUI.
+- BoyFarmer, SandFarmer, KopaczFosylidów: Specjalne bloki (np. Obsidian / Sand / Sponge). Po postawieniu na ziemi tworzą pionową kolumnę obsydianu lub piasku aż do poziomu Bedrocka, bądź drążą pionowy szyb usuwając kamień.
+- Stoniarki (Generator Kamienia): Blok (np. End Stone / Piston) tworzący blok Kamienia (Stone) powyżej siebie natychmiast po wykopaniu.
+
+4. CRAFTBUKKIT / BOXPVP:
+- Odnawialne Surowce (Renewable Ore Regions): Event BlockBreakEvent zamieniający wykopany blok rzadkiego surowca (np. Diamond Block / Netherite Block) w Bedrock na Czas N sekund, po czym automatycznie odnawiający blok z efektami Particle.HAPPY_VILLAGER.
+- System Prestiżu (/prestige): Menu GUI pozwalające graczowi zresetować poziom surowców w zamian za rządek Prestiżu (np. Prestiż I -> odblokowuje Strefę AFK VIP oraz darmowy Multiplier monet +20%).
+- Sklep za Monety / Perły: System wymieniania waluty BoxPvP na ulepszone Miecze (np. Miecz z Sharpness VI i Knockback I).
+`;
 
 const syntaxCache = new Map();
 const MAX_SYNTAX_CACHE_SIZE = 400;
@@ -172,7 +198,8 @@ const generateWithBackend = async (
   updateMsgCb, 
   abortControllerRef,
   autoContinueCount = 0,
-  accumulatedText = ''
+  accumulatedText = '',
+  images = []
 ) => {
   if (!abortControllerRef.current || autoContinueCount === 0) {
     abortControllerRef.current = new AbortController();
@@ -219,7 +246,8 @@ const generateWithBackend = async (
         model: model,
         systemPrompt: systemPrompt,
         userPrompt: userPrompt,
-        history: history
+        history: history,
+        images: images
       })
     }, 3, 1500);
     
@@ -370,44 +398,6 @@ Kontynuuj kodowanie dokładnie od tego miejsca w kodzie, dokończ obecną klasę
 
   return fullText;
 };
-
-const MINECRAFT_SERVERS_KNOWLEDGE = `
-ZNAJOMOŚĆ POLSKICH SERWERÓW MINECRAFT I ICH WTYCZEK:
-Znasz architekturę, mechanikę i zachowanie popularnych wtyczek z polskich serwerów Minecraft, w tym w szczególności z serwera anarchia.gg (oraz innych serwerów typu Megadrop, Survival+Gildie jak craftmc.pl, realcraft.pl, mysg.pl, blocky.pl, boxcwel.pl itp.):
-- System Sektorów: Rozdzielanie świata na oddzielne instancje serwerowe połączone bazą danych Redis/MySQL do płynnej synchronizacji ekwipunku, zdrowia i statystyk gracza w czasie rzeczywistym podczas przekraczania granic sektorów (teleportacja na krawędzi mapy).
-- BoyFarmer: Blok (zazwyczaj Obsidian lub Gąbka), który po postawieniu automatycznie generuje pionowy słup obsydianu w dół aż do bedrocka (poziom Y=-64).
-- SandFarmer: Blok (zazwyczaj Piasek), który po postawieniu automatycznie generuje pionowy słup piasku w dół aż do bedrocka (poziom Y=-64).
-- KopaczFossy: Blok (zazwyczaj Blok Ruda), który po postawieniu automatycznie usuwa (kopie) pionowy pas bloków o wymiarach np. 1x1 lub 3x3 w dół aż do bedrocka, tworząc fosę.
-- CobbleX: Blok tworzony z 9 staków cobblestone'u w craftingu. Po jego postawieniu i zniszczeniu (lub kliknięciu prawym przyciskiem myszy) gracz otrzymuje losowy drop premium (np. diamenty, netherite, złote jabłka, narzędzia z losowymi zaklęciami).
-- Pandory (lub Skrzynki Pandora): Przedmiot (np. blok muzyczny) o specjalnej nazwie. Postawienie go generuje losowe przedmioty na ziemi lub w ekwipunku gracza, imitując puszkę pandory z dropem.
-- Stoniarki (StoneGenerators / Generator Kamienia): Blok (np. tłok lub gąbka), nad którym po zniszczeniu kamienia automatycznie regeneruje się nowy kamień po krótkim opóźnieniu (zazwyczaj 1-2 sekundy).
-- Różdżki Teleportacyjne (Wands): Przedmioty (np. złota motyka) z określoną liczbą użyć w opisie. Kliknięcie prawym przyciskiem myszy rozpoczyna odliczanie (np. 5 sekund) bez poruszania się, po czym następuje teleportacja na Spawn lub do wyznaczonej lokalizacji.
-- Turbodrop: System modyfikujący dropy z kamienia. Zamiast standardowego dropu z rudy, gracze kopiąc kamień (stone) otrzymują bezpośrednio do ekwipunku surowce (diamenty, szmaragdy, żelazo) z określoną procentową szansą, uwzględniając mnożniki poziomu, uprawnienia VIP/SVIP oraz wydarzenia typu TurboDrop (np. podwójna szansa dla całego serwera). Zawiera rozbudowane GUI z włączaniem/wyłączaniem dropu poszczególnych surowców.
-- Rzucane TNT: Specjalne dynamity, które po kliknięciu prawym przyciskiem myszy są rzucane w kierunku patrzenia gracza. Po uderzeniu w blok wybuchają natychmiastowo, ignorując zabezpieczenia wody/lawy.
-- System Gildii i Sojuszy: Tworzenie gildii za przedmioty z configu, powiększanie terenu (cuboid), podbijanie innych gildii poprzez niszczenie tzw. serca gildii (np. smoczego jaja), naliczanie punktów rankingu gildii na podstawie KDR (zabójstw/zgonów) członków.
-- Otchłań (Abyss): System cyklicznego czyszczenia przedmiotów leżących na ziemi na całym serwerze. Usunięte przedmioty trafiają do wirtualnego schowka (/otchlan), z którego gracze mogą je za darmo lub za opłatą wyciągnąć przez określony czas.
-- Anty-Logut (Combat Log): Blokada wylogowania się podczas walki PvP. Gracz po uderzeniu innego gracza trafia do walki na np. 15 sekund. Użycie komend teleportacji jest zablokowane, a wyjście z serwera skutkuje natychmiastową śmiercią i wypadnięciem przedmiotów.
-
-KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.):
-1. ZAWSZE twórz systemy całkowicie SAMODZIELNE (Self-Contained) zaimplementowane w 100% wewnątrz klas Javy Twojego pluginu.
-2. Jeśli w pluginie potrzebna jest ekonomia (waluta, stany kont, komendy /bal, /pay itp.), ZAWSZE napisz własny \`EconomyManager\` (np. zapisujący stany kont w config.yml, bazie SQLite lub PDC) oraz własne komendy i GUI.
-3. KATEGORYCZNIE ZABRANIA SIĘ pisać użytkownikowi instrukcji typu "Musisz zainstalować Vault oraz EssentialsX" lub odsyłania do pobierania zewnętrznych wtyczek/skryptów z SpigotMC/EssentialsX. Wszystko ma działać natychmiast po wgraniu wygenerowanego pliku JAR, bez żadnych zewnętrznych zależności (dependencies).
-
-Gdy użytkownik poprosi o którykolwiek z tych systemów lub nawiąże do serwerów takich jak anarchia.gg lub craftmc.pl, doskonale wiesz, jak te mechaniki działają i tworzysz dedykowane klasy o identycznym zachowaniu (np. BoyFarmer generujący pionowy pas obsydianu za pomocą BukkitRunnable, Turbodrop z GUI opartym na Inventory i miniserializacją wiadomości Adventure, CobbleX z obsługą receptury rzemieślniczej itp.).
-
-GENEROWANIE OBRAZKÓW DLA ITEMÓW (POLLINATIONS FLUX):
-Gdy użytkownik poprosi o wygenerowanie grafiki, obrazka lub wyglądu przedmiotu/bloku (np. "stwórz grafikę dla boyfarmera" albo "wygeneruj obrazek miecza ognia"):
-1. Stwórz szczegółowy, profesjonalny prompt po angielsku w stylu Minecraft (np. "Minecraft style flat vector icon of a magical burning fire sword, game item, dark gray solid background").
-2. Zakoduj ten prompt do formatu URL (URL-encode).
-3. Wstaw wygenerowany obrazek na samym początku swojej wypowiedzi tekstowej (po bloku <think>, ale KATEGORYCZNIE przed pierwszym tagiem <file>) za pomocą tagu markdown:
-![Opis obrazka](https://image.pollinations.ai/prompt/{URL_ENCODED_PROMPT}?width=512&height=512&nologo=true&private=true&model=flux)
-4. Automatycznie dodaj ten sam URL obrazka do wygenerowanego kodu konfiguracji pluginu (np. config.yml pod kluczem "texture-url" lub "image-url") lub jako stałą/pole w kodzie Javy tworzącym dany przedmiot.
-
-ZAPOBIEGANIE POMIJANIU PLIKÓW I UTRACIE KODU:
-1. Zawsze dokładnie analizuj strukturę plików w projekcie. Sprawdź, czy nie pominąłeś żadnej klasy zadeklarowanej w plugin.yml, config.yml lub w Twoim własnym planie architekta. Zaimplementuj wszystkie brakujące pliki!
-2. Jeśli ze względu na limit tokenów wyjściowych (8192) nie jesteś w stanie wygenerować wszystkich klas w jednej odpowiedzi, wygeneruj najpierw najważniejsze pliki w całości (100% kompletny kod), a na końcu wypisz listę plików, które pozostały do zaimplementowania i poproś użytkownika o napisanie "kontynuuj". Kategorycznie zabrania się generowania klas ze skrótami "..." lub komentarzami oznaczających brak zmian!
-3. Jeśli użytkownik napisał "kontynuuj", "dokończ" lub poprosił o brakujące pliki, natychmiast wygeneruj pozostałe klasy w całości w tagach <file>.
-`;
 
 const isClaudeModel = (model) => {
   return ['opus-4.8', 'sonnet-4.8', 'haiku-4.8', 'claude-opus-4-7', 'claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-sonnet-5'].includes(model);
@@ -572,7 +562,18 @@ const ChatMessageItem = React.memo(({ msg, idx, isEN, currentUser, modelId, rend
          prevProps.isEN === nextProps.isEN;
 });
 
-const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerating, externalInput, setExternalInput }) => {
+const ChatInputDock = React.memo(({ 
+  isGenerating, 
+  isEN, 
+  handleSend, 
+  stopGenerating, 
+  externalInput, 
+  setExternalInput,
+  webSearchEnabled,
+  setWebSearchEnabled,
+  onOpenPresetsModal,
+  onOpenEnhanceModal
+}) => {
   const [inputVal, setInputVal] = useState(externalInput || '');
   const [selectedImages, setSelectedImages] = useState([]);
   const fileInputRef = useRef(null);
@@ -637,7 +638,45 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
   };
 
   return (
-    <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-4 z-10">
+    <div className="absolute bottom-0 inset-x-0 bg-[#0b0c10]/95 backdrop-blur-md border-t border-white/10 p-3 sm:p-4 z-10">
+      
+      {/* QUICK FEATURE CONTROLS STRIP */}
+      <div className="flex items-center justify-between gap-2 mb-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setWebSearchEnabled(prev => !prev)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
+              webSearchEnabled
+                ? 'bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-[0_0_12px_rgba(56,189,248,0.2)]'
+                : 'bg-[#13151d] text-slate-400 border-white/10 hover:text-slate-200'
+            }`}
+            title="Przeszukuj sieć w poszukiwaniu najnowszych informacji o serwerach (np. Anarchia.gg)"
+          >
+            <Globe size={13} className={webSearchEnabled ? 'animate-pulse text-sky-400' : ''} />
+            <span>{webSearchEnabled ? 'Szukanie w sieci: WŁ' : 'Szukanie w sieci: WYŁ'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenPresetsModal}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#13151d] text-amber-300 border border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Server size={13} className="text-amber-400" />
+            <span>Baza Skryptów Serwerów</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenEnhanceModal}
+            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#13151d] text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Sparkles size={13} className="text-purple-400" />
+            <span>Ulepsz Prompt</span>
+          </button>
+        </div>
+      </div>
+
       <div className="relative flex flex-col bg-[#13151d] border border-white/10 focus-within:border-[#ff6b00] rounded-xl transition-colors p-2">
         {selectedImages.length > 0 && (
           <div className="flex flex-wrap gap-2 p-2 border-b border-white/10">
@@ -646,7 +685,7 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
                 <img
                   src={imgUrl}
                   alt={`Podgląd ${i + 1}`}
-                  className="w-16 h-16 object-cover rounded-lg border border-white/20"
+                  className="w-16 h-16 object-cover rounded-lg border border-white/20 shadow-md"
                 />
                 <button
                   type="button"
@@ -859,6 +898,37 @@ function Project() {
   const [rightPanelTab, setRightPanelTab] = useState('code');
   const [projectsList, setProjectsList] = useState([]);
   const modelMenuRef = useRef(null);
+
+  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
+  const [isPresetsModalOpen, setIsPresetsModalOpen] = useState(false);
+  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false);
+  const [enhanceInputText, setEnhanceInputText] = useState('');
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  const handleEnhancePromptAction = async () => {
+    if (!enhanceInputText || !enhanceInputText.trim()) return;
+    setIsEnhancingPrompt(true);
+    try {
+      const res = await fetch('/api/enhance-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: enhanceInputText, lang: isEN ? 'en' : 'pl' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.enhancedPrompt) {
+          setChatInput(data.enhancedPrompt);
+          setIsEnhanceModalOpen(false);
+          setEnhanceInputText('');
+        }
+      }
+    } catch (e) {
+      console.error('Enhance prompt failed:', e);
+    } finally {
+      setIsEnhancingPrompt(false);
+    }
+  };
 
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [showAgentDrawer, setShowAgentDrawer] = useState(false);
@@ -1327,9 +1397,9 @@ KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 6. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
 7. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
 8. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
-9. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
+9. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w Zenexcode jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
 10. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
-11. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
+11. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/zenexcode/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -1406,7 +1476,7 @@ KOD
 4. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu (Komendy, Listenery, Menedżery, GUI)! Żadna klasa odwoływana w kodzie głównym nie może zostać pominięta ani pozostawiona bez pliku.
 5. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package". Poinformuj użytkownika w 1 zdaniu, że aby pobrać plik JAR wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku.
 6. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Wszystkie mechaniki (w tym ekonomia, stany kont, bazy danych) muszą być napisane w 100% od zera wewnątrz generowanego pluginu Javy. NIE każ użytkownikowi instalować Vault ani EssentialsX!
-7. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
+7. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/zenexcode/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
          
          let strippedThought = thoughtText
            .replace(/```[\s\S]*?(?:```|$)/g, '\n[WYGENERUJ TEN KOD ZGODNIE Z PLANEM]\n')
@@ -2186,7 +2256,168 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
               stopGenerating={stopGenerating}
               externalInput={chatInput}
               setExternalInput={setChatInput}
+              webSearchEnabled={webSearchEnabled}
+              setWebSearchEnabled={setWebSearchEnabled}
+              onOpenPresetsModal={() => setIsPresetsModalOpen(true)}
+              onOpenEnhanceModal={() => {
+                setEnhanceInputText(chatInput || '');
+                setIsEnhanceModalOpen(true);
+              }}
             />
+
+            {/* LIGHTBOX IMAGE PREVIEW MODAL */}
+            {lightboxImage && (
+              <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
+                <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                  <img src={lightboxImage} alt="Załącznik" className="max-w-full max-h-[85vh] object-contain rounded-xl border border-white/20 shadow-2xl" />
+                  <button 
+                    className="absolute -top-10 right-0 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors"
+                    onClick={() => setLightboxImage(null)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SERVER SCRIPT DATABASE & PRESETS MODAL */}
+            {isPresetsModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-[#13151d] border border-white/15 rounded-2xl max-w-2xl w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                        <Server size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white">Baza Wzorców & Skryptów Serwerowych</h3>
+                        <p className="text-xs text-slate-400">Wybierz gotową strukturę mechaniki z popularnych serwerów Minecraft</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setIsPresetsModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div 
+                      onClick={() => {
+                        setChatInput('Stwórz plugin zawierający Mefentyk (&d&lMefentyk Anarchia - dający Siłę II, Szybkość III i Mdłości po zjedzeniu z fioletowymi cząsteczkami), CobbleX (losujący Koxy, Elytrę, Siekierę 6/3/3) oraz Różdżkę Teleportacyjną na Spawn z odliczaniem 5 sekund bez ruchu.');
+                        setIsPresetsModalOpen(false);
+                      }}
+                      className="p-3.5 rounded-xl bg-[#0b0c10] border border-amber-500/20 hover:border-amber-500/60 transition-all cursor-pointer group space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">🔴 Anarchia.gg — Mefentyk & CobbleX & Różdżka</span>
+                        <span className="text-[10px] font-mono bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20">Wdrożone</span>
+                      </div>
+                      <p className="text-xs text-slate-300">Customowy zjadalny Mefentyk dający potężne boosty, receptury CobbleX z losowaniem koxów i perie oraz różdżka na spawn z timerem 5s bez ruchu.</p>
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        setChatInput('Stwórz plugin BoxPvP z odnawialnymi rzadkimi blokami diamentu/netheritu (po wykopaniu zamieniają się w Bedrock na 10 sekund), komendą /prestige resetującą surowce za wyższy prestiż oraz sklepem za walutę z wykopanych surowców.');
+                        setIsPresetsModalOpen(false);
+                      }}
+                      className="p-3.5 rounded-xl bg-[#0b0c10] border border-sky-500/20 hover:border-sky-500/60 transition-all cursor-pointer group space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-sky-400 flex items-center gap-1.5">🛡️ BoxPvP — Odnawialne Minerały & Prestiż</span>
+                        <span className="text-[10px] font-mono bg-sky-500/10 text-sky-300 px-2 py-0.5 rounded border border-sky-500/20">Wdrożone</span>
+                      </div>
+                      <p className="text-xs text-slate-300">System stref BoxPvP z automatycznym odnawianiem wykopanego złoża z Bedrocka na Diamenty oraz prestiżami dającymi stałe bonusy do obrażeń.</p>
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        setChatInput('Zbuduj plugin MediumHardHC (MSHC) z komendą /schowek (/depozyt), która automatycznie wymusza limit 2x Kox, 8x Refil, 12x Perła w ekwipunku, a nadmiar przenosi do wirtualnego magazynu w GUI.');
+                        setIsPresetsModalOpen(false);
+                      }}
+                      className="p-3.5 rounded-xl bg-[#0b0c10] border border-emerald-500/20 hover:border-emerald-500/60 transition-all cursor-pointer group space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">⚔️ MediumHardHC — Schowek Limitów & BoyFarmer</span>
+                        <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/20">Wdrożone</span>
+                      </div>
+                      <p className="text-xs text-slate-300">Wirtualny depozyt blokujący posiadanie nadmiaru perie/koxów w eq oraz specjalne bloki BoyFarmer i SandFarmer budujące filary obsydianu/piasku.</p>
+                    </div>
+
+                    <div 
+                      onClick={() => {
+                        setChatInput('Stwórz mechanikę BedWars zawierającą zadania BukkitRunnable spawnujące Żelazo, Złoto, Diamenty z uaktualnianym Hologramem ArmorStand nad spawnerem oraz menu Sklepu GUI za surowce.');
+                        setIsPresetsModalOpen(false);
+                      }}
+                      className="p-3.5 rounded-xl bg-[#0b0c10] border border-purple-500/20 hover:border-purple-500/60 transition-all cursor-pointer group space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">🛏️ Hypixel BedWars — Generatory Surowców & Trapy</span>
+                        <span className="text-[10px] font-mono bg-purple-500/10 text-purple-300 px-2 py-0.5 rounded border border-purple-500/20">Wdrożone</span>
+                      </div>
+                      <p className="text-xs text-slate-300">Zautomatyzowane generatory żelaza/złota/diamentów z odliczającymi hologramami oraz pułapki drużynowe aktywujące naciągnięcie przy intruzie.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PROMPT ENHANCER MODAL */}
+            {isEnhanceModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-[#13151d] border border-purple-500/30 rounded-2xl max-w-xl w-full p-5 shadow-[0_0_40px_rgba(168,85,247,0.15)] space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                        <Sparkles size={18} className="animate-spin" style={{ animationDuration: '4s' }} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white">Generator Promptów AI</h3>
+                        <p className="text-xs text-slate-400">Wpisz krótki pomysł, a AI zamieni go w profesjonalny, szczegółowy prompt</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setIsEnhanceModalOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <textarea
+                    className="w-full h-32 bg-[#0b0c10] border border-white/10 rounded-xl p-3 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500 transition-colors resize-none leading-relaxed"
+                    placeholder="Np. Chcę skrypt na Anarchia.gg z Mefentykiem i CobbleX..."
+                    value={enhanceInputText}
+                    onChange={e => setEnhanceInputText(e.target.value)}
+                  />
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                    <button 
+                      onClick={() => setIsEnhanceModalOpen(false)}
+                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                    >
+                      Anuluj
+                    </button>
+                    <button 
+                      onClick={handleEnhancePromptAction}
+                      disabled={isEnhancingPrompt || !enhanceInputText.trim()}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 ${
+                        isEnhancingPrompt || !enhanceInputText.trim()
+                          ? 'bg-purple-950/40 text-purple-400/50 cursor-not-allowed border border-purple-900/30'
+                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-md shadow-purple-500/20 cursor-pointer'
+                      }`}
+                    >
+                      {isEnhancingPrompt ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Optymalizowanie promptu...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} />
+                          <span>Wygeneruj Profesjonalny Prompt</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
 

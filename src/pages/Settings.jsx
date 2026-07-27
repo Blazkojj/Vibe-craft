@@ -237,9 +237,6 @@ export default function Settings() {
           <button className={`settings-nav-item${activeTab==='billing'?' active':''}`} onClick={() => setActiveTab('billing')}>
             <CreditCard size={14}/> <span>{isEN ? 'Billing' : 'Rozliczenia'}</span>
           </button>
-          <button className={`settings-nav-item${activeTab==='developer'?' active':''}`} onClick={() => setActiveTab('developer')}>
-            <Zap size={14}/> <span>{isEN ? 'Developer' : 'Developer'}</span>
-          </button>
         </nav>
       </aside>
 
@@ -403,81 +400,6 @@ export default function Settings() {
                 <div className="billing-rule"><span className="billing-rule-dot"/>{isEN ? 'Top-ups never expire' : 'Doładowania (top-up) nie wygasają nigdy'}</div>
                 <div className="billing-rule"><span className="billing-rule-dot"/>{isEN ? 'One wallet works with all models' : 'Jeden portfel działa ze wszystkimi modelami'}</div>
               </div>
-            </section>
-          </div>
-        )}
-
-        {activeTab === 'developer' && (
-          <div className="settings-section-list">
-            <section className="settings-card">
-              <div className="settings-card-title"><Zap size={14}/> {isEN ? 'Custom API Keys' : 'Własne klucze API'}</div>
-              <p className="settings-card-desc">
-                {isEN 
-                  ? 'You can provide your own API key and custom Base URL (e.g., https://aiapiflow.com, https://api.openai.com, or https://openrouter.ai/api) to use any LLM provider without deducting funds from your balance.'
-                  : 'Możesz podać swój własny klucz API oraz niestandardowy Base URL (np. https://aiapiflow.com, https://api.openai.com lub https://openrouter.ai/api), aby korzystać z dowolnego dostawcy LLM bez pobierania środków z salda.'
-                }
-              </p>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
-                  {isEN ? 'API Key (Authorization Bearer Token)' : 'Klucz API (Authorization Bearer Token)'}
-                </label>
-                <input
-                  className="settings-input"
-                  type="password"
-                  placeholder="sk-..."
-                  value={customApiKey}
-                  onChange={e => setCustomApiKey(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
-                  {isEN ? 'Custom Base URL (Optional)' : 'Niestandardowy Base URL (Opcjonalnie)'}
-                </label>
-                <input
-                  className="settings-input"
-                  type="text"
-                  placeholder="https://aiapiflow.com/v1"
-                  value={customBaseUrl}
-                  onChange={e => setCustomBaseUrl(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                  {isEN ? 'Leave blank to use the ZenMux server by default.' : 'Pozostaw puste, aby domyślnie korzystać z serwera ZenMux.'}
-                </span>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontFamily: 'var(--mono)', color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.375rem' }}>
-                  {isEN ? 'Custom model name (Optional)' : 'Niestandardowa nazwa modelu (Opcjonalnie)'}
-                </label>
-                <input
-                  className="settings-input"
-                  type="text"
-                  placeholder="claude-sonnet-4-6 lub gpt-4o"
-                  value={customModelName}
-                  onChange={e => setCustomModelName(e.target.value)}
-                  style={{ width: '100%' }}
-                />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                  {isEN 
-                    ? 'Force a specific model in the HTTP request. If empty, the model selected in the chat will be sent.'
-                    : 'Wymuś konkretny model w żądaniu HTTP. Jeśli puste, wysłany zostanie model wybrany w czacie.'
-                  }
-                </span>
-              </div>
-
-              <button 
-                className="settings-btn-accent" 
-                onClick={handleSaveDeveloperSettings}
-                disabled={saving}
-                style={{ marginTop: '0.5rem' }}
-              >
-                {savingField === 'developer' ? <Loader2 size={13} className="spin" style={{ marginRight: '0.25rem' }}/> : null}
-                {isEN ? 'Save developer settings' : 'Zapisz ustawienia deweloperskie'}
-              </button>
             </section>
           </div>
         )}

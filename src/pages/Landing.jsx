@@ -21,7 +21,9 @@ import {
   X,
   Gauge,
   Lock,
-  Database
+  Database,
+  Globe,
+  Image as ImageIcon
 } from 'lucide-react';
 import Pricing from './Pricing';
 import { useLang } from '../LangContext';
@@ -56,30 +58,40 @@ const SUPPORTED_ENGINES = [
 const METRICS = [
   { label: 'Obsługiwane Silniki', value: 'Paper / Spigot / Folia' },
   { label: 'Czas Kompilacji JAR', value: '< 5 sekund' },
-  { label: 'Zgodność z API', value: '1.8 - 1.21.4' },
-  { label: 'Bazy Danych', value: 'MySQL / SQLite / Mongo' }
+  { label: 'Baza Wiedzy Serwerowej', value: 'Anarchia.gg / MSHC / BoxPvP' },
+  { label: 'Wyszukiwanie w Sieci', value: 'Live Real-Time Web Search' }
 ];
 
 const USE_CASES = [
   {
+    icon: Server,
+    title: 'Anarchia.gg & Survival+Gildie',
+    desc: 'Mefentyk, CobbleX, Skrzynki Pandora, Różdżki na Spawn oraz Turbodrop z pełną konfiguracją i GUI.'
+  },
+  {
+    icon: Globe,
+    title: 'Przeszukiwanie Sieci w Czasie Rzeczywistym',
+    desc: 'AI pobiera najnowsze informacje o wersjach Minecrafta, recepturach i mechanikach prosto z sieci.'
+  },
+  {
+    icon: ImageIcon,
+    title: 'Natywna Analiza Obrazów (Multimodal)',
+    desc: 'Wklejaj zrzuty ekranu błędów, paneli GUI lub receptur — AI przeanalizuje je i wygeneruje kod.'
+  },
+  {
     icon: Database,
     title: 'Autorska Ekonomia i Sklepy GUI',
-    desc: 'Twórz systemy monetarne z obsługą Vault, bazami danych MySQL oraz interaktywnymi menu Inventory GUI.'
+    desc: 'Twórz systemy monetarne, wirtualne magazyny/schowki MSHC, bazy MySQL/SQLite i menu Inventory.'
   },
   {
     icon: ShieldCheck,
     title: 'Gildie, Tereny i Ochrona',
-    desc: 'Systemy drajwów, claimowania działek, zapisu danych gracza w PDC (PersistentDataContainer) oraz tablic wyników Scoreboard.'
+    desc: 'Systemy drajwów, claimowania działek, zapisu danych gracza w PDC oraz tablic wyników Scoreboard.'
   },
   {
     icon: Zap,
-    title: 'Minigry i Areny PvP',
-    desc: 'Instancjonowane minigry, automatyczne resetowanie map, systemy kitów, odliczanie czasowe oraz asynchroniczne eventy.'
-  },
-  {
-    icon: Layers,
-    title: 'Customowe Komendy i Permisje',
-    desc: 'Automatyczne generowanie struktury `plugin.yml`, zaawansowany TabCompleter oraz integracja z LuckPerms.'
+    title: 'Minigry BedWars & BoxPvP',
+    desc: 'Generatory surowców z odliczającym hologramem, odnawialne minerały BoxPvP oraz system prestiżu.'
   }
 ];
 
