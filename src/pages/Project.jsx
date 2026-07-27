@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X, Play, Square, CheckCircle2, AlertTriangle, Cpu, Layers, Loader2, ShieldAlert, Server } from 'lucide-react';
+import { Package, ChevronDown, Send, FileCode, Sparkles, ArrowLeft, Trash2, Settings as SettingsIcon, Wallet, Copy, Check, ChevronRight, Lightbulb, Wrench, Lock, Download, FileText, Code2, Terminal, RefreshCw, User, Bot, Image as ImageIcon, Paperclip, X, Play, Square, CheckCircle2, AlertTriangle, Cpu, Layers, Loader2, ShieldAlert, Server, Box, CheckCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -719,6 +719,113 @@ const ChatInputDock = React.memo(({ isGenerating, isEN, handleSend, stopGenerati
     </div>
   );
 });
+
+const AgentActionCard = ({ log, isLast }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const text = log.text || '';
+  const lines = text.split('\n');
+
+  // Determine action card type
+  let cardType = 'info';
+  let title = 'Planowanie i Analiza';
+  let badge = 'ANALIZA';
+  let badgeStyle = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
+  let IconComponent = Sparkles;
+
+  if (log.type === 'error' || text.includes('❌') || text.includes('Błąd')) {
+    cardType = 'error';
+    title = 'Wykryto Błąd Kompilacji / Runtime';
+    badge = 'BŁĄD';
+    badgeStyle = 'bg-red-500/10 text-red-400 border-red-500/30';
+    IconComponent = AlertTriangle;
+  } else if (log.type === 'success' || text.includes('✅') || text.includes('SUKCES')) {
+    cardType = 'success';
+    title = 'Test Wdrożenia Zakończony Pomyślnie';
+    badge = 'SUKCES';
+    badgeStyle = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+    IconComponent = CheckCircle2;
+  } else if (log.type === 'warn' || text.includes('🔧') || text.includes('Auto-Fix')) {
+    cardType = 'autofix';
+    title = 'Autonomiczna Korekta Kodu AI';
+    badge = 'AUTO-FIX';
+    badgeStyle = 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+    IconComponent = Wrench;
+  } else if (text.includes('⚙️') || text.includes('Maven')) {
+    cardType = 'command';
+    title = 'Kompilacja Projektu Maven';
+    badge = 'MAVEN BUILD';
+    badgeStyle = 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+    IconComponent = Cpu;
+  } else if (text.includes('📦') || text.includes('Pelican') || text.includes('MC')) {
+    cardType = 'server';
+    title = 'Deploy na Serwer Pelican MC';
+    badge = 'PELICAN MC';
+    badgeStyle = 'bg-purple-500/10 text-purple-300 border-purple-500/30';
+    IconComponent = Server;
+  } else if (text.includes('src/main/java') || text.includes('.java') || text.includes('pom.xml')) {
+    cardType = 'file';
+    title = 'Edycja Plików Źródłowych';
+    badge = 'KOD JAVA';
+    badgeStyle = 'bg-blue-500/10 text-blue-300 border-blue-500/30';
+    IconComponent = FileCode;
+  }
+
+  const isLong = lines.length > 4;
+  const previewText = isLong && !isExpanded ? lines.slice(0, 3).join('\n') : text;
+
+  return (
+    <div className="relative pl-6 pb-4 group">
+      {/* Timeline Connector Line */}
+      {!isLast && (
+        <div className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-gradient-to-b from-indigo-500/40 to-transparent group-hover:from-indigo-400 transition-colors" />
+      )}
+
+      {/* Timeline Node Icon */}
+      <div className={`absolute left-0 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border shadow-sm transition-transform group-hover:scale-110 ${
+        cardType === 'error' ? 'bg-red-950 border-red-500/50 text-red-400' :
+        cardType === 'success' ? 'bg-emerald-950 border-emerald-500/50 text-emerald-400' :
+        cardType === 'autofix' ? 'bg-amber-950 border-amber-500/50 text-amber-400' :
+        'bg-[#131728] border-indigo-500/40 text-indigo-300'
+      }`}>
+        <IconComponent size={12} />
+      </div>
+
+      {/* Action Card Body */}
+      <div className={`rounded-xl border p-3.5 transition-all shadow-md backdrop-blur-sm ${
+        cardType === 'error' ? 'bg-gradient-to-br from-[#1c0c12] to-[#0f070b] border-red-900/40' :
+        cardType === 'success' ? 'bg-gradient-to-br from-[#0c1c14] to-[#070f0b] border-emerald-900/40' :
+        cardType === 'autofix' ? 'bg-gradient-to-br from-[#1c160c] to-[#0f0c07] border-amber-900/40' :
+        'bg-gradient-to-br from-[#0f1220] to-[#090b14] border-white/10 hover:border-indigo-500/40'
+      }`}>
+        {/* Card Header */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold border tracking-wider uppercase ${badgeStyle}`}>
+              {badge}
+            </span>
+            <h4 className="text-xs font-bold text-slate-200 tracking-tight">{title}</h4>
+          </div>
+          <span className="text-[10px] font-mono text-slate-500">{log.time}</span>
+        </div>
+
+        {/* Content Body */}
+        <div className="font-mono text-[11px] text-slate-300 leading-relaxed whitespace-pre-wrap break-all bg-black/40 p-2.5 rounded-lg border border-white/5">
+          {previewText}
+        </div>
+
+        {/* Expand / Collapse Button */}
+        {isLong && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 text-[10px] font-mono font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+          >
+            {isExpanded ? '▲ Zwiń szczegóły' : `▼ Pokaż pełny log (${lines.length} linii)...`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 function Project() {
   const { id } = useParams();
@@ -2208,7 +2315,7 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                 </div>
 
                 {/* Real-Time Live Execution Stream (Agent AI Terminal Logs) */}
-                <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 font-mono text-xs bg-[#040508]/80 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 space-y-1 font-mono text-xs bg-[#040508]/80 custom-scrollbar">
                   {agentLogs.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3 py-16">
                       <div className="p-4 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
@@ -2222,23 +2329,12 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                       </div>
                     </div>
                   ) : (
-                    agentLogs.map((log) => (
-                      <div key={log.id} className={`p-3 rounded-2xl leading-relaxed border transition-all shadow-sm ${
-                        log.type === 'error' ? 'text-red-300 bg-red-950/30 border-red-900/50 shadow-red-950/20' :
-                        log.type === 'success' ? 'text-emerald-300 bg-emerald-950/30 border-emerald-900/50 font-bold shadow-emerald-950/20' :
-                        log.type === 'warn' ? 'text-amber-300 bg-amber-950/20 border-amber-900/40' :
-                        log.type === 'step' ? 'text-indigo-200 bg-indigo-950/40 border-indigo-800/50 font-bold' :
-                        'text-slate-300 bg-[#0c0e18]/90 border-white/5'
-                      }`}>
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 mb-1.5 border-b border-white/5 pb-1">
-                          <span className="font-extrabold text-indigo-400/90 tracking-wider flex items-center gap-1.5">
-                            <span className="w-1 h-1 rounded-full bg-indigo-400" />
-                            AGENT AI TERMINAL
-                          </span>
-                          <span className="font-mono text-[9px] text-slate-500">{log.time}</span>
-                        </div>
-                        <span className="whitespace-pre-wrap break-all text-[11px] leading-relaxed">{log.text}</span>
-                      </div>
+                    agentLogs.map((log, idx) => (
+                      <AgentActionCard 
+                        key={log.id || idx} 
+                        log={log} 
+                        isLast={idx === agentLogs.length - 1} 
+                      />
                     ))
                   )}
                   <div ref={agentLogsEndRef} />
