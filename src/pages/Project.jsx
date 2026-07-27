@@ -2383,33 +2383,9 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                     </button>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                      ⚡ Wybierz gotowy szablon z GitHub:
-                    </label>
-                    <div className="flex flex-wrap gap-1.5 mb-2.5">
-                      {[
-                        { title: '💧 Hydro Klatka', prompt: 'Stwórz profesjonalny skrypt/plugin Hydro Klatka dla Paper 1.21.4 (Anarchia.gg mechanic). Przedmiot Hydro Klatka po postawieniu tworzy wokół gracza szczelną klatkę 3x3x3 z niebieskiego szkła/obsydianu wypełnioną wodą wewnątrz (wodna pułapka spowalnia i blokuje stawianie bloków). Po 12 sekundach klatka automatycznie znika i przywraca oryginalne bloki.' },
-                        { title: '📦 Anarchia Hardcore', prompt: 'Napisz pełny plugin Minecraft 1.21.4 (Paper API) dla serwera Hardcore Anarchia. Zaimplementuj: System Mefentery (specjalna mikstura dająca efekt szału), system CobbleX po zniszczeniu 64 kamienia z losowaniem rzadkich itemów (strefa dropu w GUI), system Anty-Logout podczas walki z paskiem BossBar oraz schowki na kox/refile/perły w GUI.' },
-                        { title: '🏰 Gildie & Tereny', prompt: 'Stwórz zaawansowany system gildii dla Paper 1.21.4 z Vault API. Każda gildia ma swoje Serce (End Crystal), teren 50x50 z blokadą budowania dla obcych, skarbiec gildijny w GUI oraz system wojen gildii.' },
-                        { title: '⚔️ RPG Bosses & Dungeons', prompt: 'Napisz silnik RPG Bossów i Lochów (Paper 1.21.4). Zaimplementuj bossa z celowanymi umiejętnościami obszarowymi (AoE particle effects), paskiem zdrowia BossBar, fazą wściekłości (Rage mode na 25% HP) i dynamiczną generacją portalu po pokonaniu bossa z epicką skrzynią nagród.' },
-                        { title: '💰 AuctionHouse GUI', prompt: 'Zbuduj profesjonalny plugin Domu Aukcyjnego w GUI (AuctionHouse) dla Spigot 1.21.4 z podłączeniem Vault economy. Funkcje: wystawianie przedmiotu trzymanego w dłoni (/ah sell <cena>), sortowanie ofert (najnowsze/najtańsze), odbiór zarobionych pieniędzy i 5% prowizji rynkowej.' },
-                        { title: '🛡️ Anti-Crash Guard', prompt: 'Stwórz bezkompromisowy plugin zabezpieczający serwer Minecraft Paper 1.21.4 przed exploitami pakietowymi. Zaimplementuj limiter interakcji ekwipunku, detekcję i czyszczenie nielegalnych Shulker Boxów z NBT oraz blokadę nadmiaru pakietów.' }
-                      ].map((item, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setEnhanceInputText(item.prompt)}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 border border-white/10 text-slate-300 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-white transition-all cursor-pointer"
-                        >
-                          {item.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <textarea
                     className="w-full h-32 bg-[#0b0c10] border border-white/10 rounded-xl p-3 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500 transition-colors resize-none leading-relaxed"
-                    placeholder="Np. Chcę skrypt na Anarchia.gg z Mefentykiem i CobbleX..."
+                    placeholder="Np. Chcę skrypt na Anarchia.gg z Hydro Klatką, Mefentykiem i CobbleX..."
                     value={enhanceInputText}
                     onChange={e => setEnhanceInputText(e.target.value)}
                   />

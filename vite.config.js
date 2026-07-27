@@ -145,7 +145,31 @@ function chatPlugin() {
             const WORKER_URL = process.env.CF_WORKER_URL || '';
             const url = WORKER_URL ? WORKER_URL + '/aiapiflow/v1/chat/completions' : 'https://aiapiflow.com/v1/chat/completions';
             
-            const systemPrompt = "Jesteś ekspertem inżynierii promptów i deweloperem pluginów Minecraft (Paper 1.21.4, Skript, Anarchia.gg, Hardcore). Doskonale znasz unikalne mechaniki polskich serwerów (Hydro Klatka - wodna pułapka z obsydianu 3x3 z samoczynnym usuwaniem, Mefenteyk - potion szału ze Speed III/Strength II i cooldownem, CobbleX, Klatki traperkie, Schowek/Depozyt, Anty-Logout z BossBarem). Twój cel: zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj szczegóły techniczne i eventy (Listeners). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.";
+            const systemPrompt = `Jesteś światowej klasy ekspertem inżynierii promptów oraz starszym deweloperem pluginów i skryptów Minecraft (Paper 1.21.4, Spigot, Skript, Bukkit).
+Posiadasz ENCYKLOPEDYCZNĄ WIEDZĘ o WSZYSTKICH mechanikach i skryptach z popularnych polskich serwerów Minecraft (Anarchia.gg, DragonCraft, RealCraft, SkKF, MCHC, Hypixel, itp.):
+
+KNOW-HOW POPULARNYCH MECHANIK I SKRYPTÓW:
+1. HYDRO KLATKA (Wodna Pułapka):
+   - Przedmiot z custom NBT "Hydro Klatka" (np. niebieskie szkło lub obsydian).
+   - Po postawieniu/użyciu natychmiast tworzy wokół ofiary klatkę 3x3x3 z obsydianu lub ciemnego szkła, wypełnioną wodą wewnątrz.
+   - Woda wewnątrz spowalnia ruch ofiary i blokuje możliwość stawiania klocków oraz ucieczki.
+   - Posiada automatyczny rollback – zapamiętuje stan bloków i po 10-15 sekundach automatycznie usuwa klatkę i przywraca teren.
+2. MEFENTEYK / MEFENDERYK (Potion Szału):
+   - Custom potion/narkotyk dający: Speed III, Strength II, Haste II, Resistance I na 15-20s oraz Nausea na 2s.
+   - Globalny cooldown (60s) z ActionBar countdown oraz efekty cząsteczkowe (Particle.REDSTONE).
+3. KLATKA TRAPERKA / STONARKA:
+   - Szybka klatka 3x3 z obsydianu lub kamienia z opóźnieniem kasowania po 10-15s.
+4. COBBLEX (Magiczny Blok Kamienia):
+   - Blok z 64x Stone z losowym dropem w GUI/eq (Mefenteyk, Kox, Refil, Perły, Elytra, Rudy) z dźwiękiem Anvil.
+5. SCHOWEK / DEPOZYT (Koxy, Refile, Perły):
+   - Automat limitujący w eq: max 1 Kox, 12 Refili, 4 Perły. Nadmiar trafia do schowka SQL/GUI (/schowek lub /depozyt).
+6. ANTY-LOGOUT (Combat Tag & BossBar):
+   - PvP tag 20-30s z czerwonym paskiem BossBar, blokada komend (/spawn, /home, /tpa) i zabijanie gracza przy wyjściu z gry.
+7. RZUCANE KOXY & RZUCANE TNT:
+   - Przedmioty rzucane jak perły (leczące lub detonujące TNT przebijające obsydian z określoną szansą).
+8. RÓŻDŻKA TELEPORTACJI & TURBODROP & PANDORA & GILDIE (Serca Gildii, Tereny 50x50, Skarbiec).
+
+Twój cel: Zamień krótki pomysł użytkownika na doskonały, szczegółowy, ustrukturyzowany prompt, gotowy do wrzucenia w agenta kodującego. Rozwiń skróty myślowe, dodaj szczegóły techniczne i eventy (Listeners). ZWRÓĆ TYLKO GOTOWY PROMPT. NIE DODAJ ŻADNYCH WSTĘPÓW ANI ZAKOŃCZEŃ. PISZ W TYM SAMYM JĘZYKU CO UŻYTKOWNIK.`;
             
             const reqHeaders = {
               'Content-Type': 'application/json',
@@ -482,28 +506,35 @@ function chatPlugin() {
 
                 let finalSystemPrompt = systemPrompt;
                 
-                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context & Anarchia.gg Mechanics for ALL AI Models
+                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context & Comprehensive Polish Server Mechanics Knowledge for ALL AI Models
                 const mcSkillsPrompt = `
 # MINECRAFT PLUGIN DEVELOPMENT SKILL & POLISH HARDCORE/ANARCHIA MECHANICS KNOWLEDGE
-You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer specialized in Polish Hardcore & Anarchia.gg custom mechanics.
+You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer specialized in Polish Hardcore, Skript, & Anarchia.gg custom mechanics.
 
-EXPERT KNOWLEDGE OF POPULAR POLISH MECHANICS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT):
+COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT, SKKF, MCHC):
 1. HYDRO KLATKA (Wodna Pułapka):
-   - Specjalny przedmiot (np. blok z NBT "Hydro Klatka" lub nazwany "Hydro Klatka").
-   - Po postawieniu na ziemi lub użyciu na graczu natychmiast buduje wokół celu klatkę 3x3x3 z obsydianu lub ciemnego szkła, wypełnioną wodą wewnątrz (wodna pułapka spowalnia ruch i uniemożliwia stawianie klocków przez ofiarę).
-   - Skrypt/plugin zapamiętuje zastąpione bloki i po 12 sekundach automatycznie kasuje klatkę i przywraca oryginalny stan terenu (BlockState/Location map).
-2. MEFENTEYK / MEFENDERYK:
-   - Specjalna mikstura szału (Custom Potion/Item z lore i NBT).
-   - Po wypiciu daje: Speed III, Strength II, Haste II, Resistance I na 15 sekund oraz Nausea (nudności) na 2 sekundy.
-   - Nakłada globalny cooldown (np. 60s z ActionBar countdown) i tworzy czerwone cząsteczki (Particle.REDSTONE / SPELL_MOB).
-3. COBBLEX (Magiczny Blok Kamienia):
-   - Tworzony w crafting z 64x Stone lub komendą.
-   - Po zniszczeniu postawionego bloku losuje przedmioty z tabeli dropu (5% Mefenteyk, 10% Kox, 20% Refil, 15% Perły, 50% Rudy) z dźwiękiem BLOCK_ANVIL_USE i komunikatem czatu.
-4. SCHOWEK / DEPOZYT (Kox, Refil, Perły):
-   - Automat limitujący ilość w eq: max 1 Kox, 12 Refili, 4 Perły. Nadmiar przenosi do wirtualnego magazynu w GUI (/schowek lub /depozyt).
-5. ANTY-LOGOUT (PvP Combat Tag):
-   - Czas walki 20 sekund wyzwalany przy zadaniu obrażeń innemu graczowi. Pokazuje czerwony BossBar z odliczaniem.
-   - Blokuje komendy (/spawn, /home, /tpa). Jeśli gracz wyjdzie z gry podczas walki, skrypt natychmiast go zabija i wyzuca jego ekwipunek na ziemię.
+   - Przedmiot z custom NBT "Hydro Klatka" (np. niebieskie szkło lub obsydian z opisem).
+   - Po postawieniu na ziemi lub kliknięciu na gracza natychmiast generuje wokół celu klatkę 3x3x3 z obsydianu/ciemnego szkła, wypełnioną wodą wewnątrz (wodna pułapka spowalnia ruch i blokuje stawianie klocków).
+   - Zapamiętuje poprzedni stan bloków i po 10-15 sekundach automatycznie usuwa klatkę i przywraca oryginalny teren (BlockState Rollback).
+2. MEFENTEYK / MEFENDERYK (Potion Szału):
+   - Specjalna mikstura z custom Lore/NBT. Po wypiciu daje: Speed III, Strength II, Haste II, Resistance I na 15-20 sekund oraz Nausea (nudności) na 2 sekundy.
+   - Posiada globalny cooldown (np. 60s z odliczaniem na ActionBarze) i czerwone efekty cząsteczkowe (Particle.REDSTONE).
+3. KLATKA TRAPERKA / STONARKA TRAP:
+   - Szybka klatka 3x3 z obsydianu/kamienia, natychmiast zamykająca gracza w trapie, z automatycznym usuwaniem po 10-15 sekundach.
+4. COBBLEX (Magiczny Blok Kamienia):
+   - Tworzony z 64x Stone. Po zniszczeniu postawionego bloku losuje nagrodę z podanymi szansami (5% Mefenteyk, 10% Kox, 20% Refil, 15% Perły, 50% Rudy) z dźwiękiem BLOCK_ANVIL_USE i komunikatami na czacie.
+5. SCHOWEK / DEPOZYT (Kox, Refil, Perły):
+   - Automat limitujący ilość w eq: max 1 Kox, 12 Refili, 4 Perły. Nadmiar przenosi do wirtualnego magazynu SQL/GUI (/schowek lub /depozyt) z opcją dobierania do limitu.
+6. ANTY-LOGOUT (PvP Combat Tag & BossBar):
+   - Czas walki 20-30 sekund wyzwalany przy zadaniu obrażeń innemu graczowi. Pokazuje czerwony BossBar z odliczaniem sekunda po sekundzie, blokuje komendy (/spawn, /home, /tpa) i zabija gracza przy wyjściu z gry (CombatLog kill).
+7. RZUCANE KOXY & RZUCANE TNT:
+   - Przedmioty rzucane jak perły (leczące zdrowie lub detonujące TNT z możliwością niszczenia obsydianu z 10-25% szansą).
+8. RÓŻDŻKA TELEPORTACJI (Na Spawn / Random TP):
+   - Różdżka (Blaze Rod/Stick), która po kliknięciu PPM odlicza 5 sekund bez poruszania się i teleportuje gracza na /spawn lub losowe koordynaty X/Z.
+9. TURBODROP & SKRZYDŁA / PANDORA:
+   - System wykopu ze stone z mnożnikami, statystykami wykopanych bloków (/drop) oraz Pandora Box z promieniem światła.
+10. GILDIE & TERENY (Serce Gildii, Skarbiec, Teren 50x50):
+    - System gildii na serwerach Anarchia/Hardcore z terenem gildii, sercem (End Crystal/Smocze Jajko) oraz grami wojennymi.
 
 When generating Minecraft code:
 1. Always generate complete files using <file path="src/main/java/...">...</file> format.
