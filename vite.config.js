@@ -565,6 +565,7 @@ CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
 3. Always generate src/main/resources/plugin.yml containing: name, version, main class path, api-version: '1.20', and full command definitions with usage & permission notes.
 4. Always generate a valid pom.xml with paper-api 1.21.4-R0.1-SNAPSHOT, maven-compiler-plugin (Java 21 source & target), and UTF-8 encoding.
 5. All Bukkit/Paper API calls must be 100% valid for Minecraft 1.21.4.
+6. AUTOMATIC FILE DELETION RULE: NEVER ask the user to manually delete files or directories! If old, obsolete, or refactored classes/packages exist (such as old files in src/main/java/pl/zenexcode/hyperac/), YOU MUST OUTPUT <delete path="src/main/java/pl/zenexcode/hyperac"/> TAGS SO THE SYSTEM DELETES THEM AUTOMATICALLY!
 
 COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT, SKKF, MCHC):
 1. HYDRO KLATKA (Wodna Pułapka):

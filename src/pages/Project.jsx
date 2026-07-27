@@ -1561,30 +1561,23 @@ Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwi
      await supabase.from('projects').update({ model: modelId }).eq('id', id);
   };
 
-  const handleBuild = async () => {
-    if (isBuilding) return;
-    setIsBuilding(true);
-    setBuildStatus(isEN ? 'Initializing Maven server...' : 'Inicjalizacja serwera Maven...');
+  const extractProjectFiles = (messagesList) => {
+    const files = {};
+    if (!messagesList || !Array.isArray(messagesList)) return files;
     
-    // Gather all files from messages (keeping only the newest version of each file)
-    const filesMap = {};
-    let aiEditsCount = 0;
-    
-    messages.forEach(msg => {
+    messagesList.forEach(msg => {
       const text = msg.text || '';
-      const regex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
+      
+      // 1. Process <file path="..."> tags
+      const fileRegex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
       let match;
-      let hasFile = false;
-      while ((match = regex.exec(text)) !== null) {
+      while ((match = fileRegex.exec(text)) !== null) {
         let filePath = match[1] ? match[1].trim() : '';
-        // Filter out dummy or simulated example paths
-        if (!filePath || filePath.includes('dokładna_ścieżka') || filePath.includes('sciezka/do/pliku') || filePath.endsWith('.dokładna_ścieżka')) continue;
+        if (!filePath || filePath === '...' || filePath.includes('dokładna_ścieżka') || filePath.includes('sciezka/do/pliku') || filePath.endsWith('.dokładna_ścieżka')) continue;
         
-        let fileContent = match[2] || '';
-        // Thoroughly clean all markdown fences (```java or ```) from inside file content
+        let fileContent = (match[2] || '').replace(/^\s*```[a-zA-Z]*\r?\n?/i, '').replace(/\r?\n?```\s*$/i, '').trim();
         fileContent = fileContent.replace(/```[a-zA-Z]*/g, '').replace(/```/g, '');
         
-        // Auto-fix truncated Java files (missing closing braces)
         if (filePath.endsWith('.java')) {
           const openBraces = (fileContent.match(/\{/g) || []).length;
           const closeBraces = (fileContent.match(/\}/g) || []).length;
@@ -1592,12 +1585,42 @@ Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwi
             fileContent += '\n' + '}'.repeat(openBraces - closeBraces);
           }
         }
-
-        filesMap[filePath] = fileContent.trim();
-        hasFile = true;
+        files[filePath] = fileContent;
       }
-      if (hasFile && msg.sender !== 'You') aiEditsCount++;
+
+      // 2. Process <delete path="..."> or <delete file="..."> or <delete dir="..."> tags
+      const deleteRegex = /<(?:delete|remove)\s+(?:path|file|dir)="([^"]+)"\s*\/>/g;
+      let delMatch;
+      while ((delMatch = deleteRegex.exec(text)) !== null) {
+        let targetPath = delMatch[1] ? delMatch[1].trim() : '';
+        if (!targetPath) continue;
+        const cleanTarget = targetPath.replace(/\/+$/, '');
+        Object.keys(files).forEach(fp => {
+          if (fp === cleanTarget || fp.startsWith(cleanTarget + '/')) {
+            delete files[fp];
+          }
+        });
+      }
     });
+    return files;
+  };
+
+  const handleDeleteFile = async (filePathToDelete) => {
+    if (!filePathToDelete) return;
+    if (window.confirm(isEN ? `Are you sure you want to delete ${filePathToDelete}?` : `Czy na pewno chcesz usunąć plik ${filePathToDelete}?`)) {
+      const deleteMsg = `<delete path="${filePathToDelete}"/>`;
+      await handleSend(deleteMsg, [], true);
+    }
+  };
+
+  const handleBuild = async () => {
+    if (isBuilding) return;
+    setIsBuilding(true);
+    setBuildStatus(isEN ? 'Initializing Maven server...' : 'Inicjalizacja serwera Maven...');
+    
+    // Gather all files from messages using chronological creation and deletion
+    const filesMap = extractProjectFiles(messages);
+    let aiEditsCount = messages.filter(m => m.sender !== 'You' && /<file path=/.test(m.text || '')).length;
     
     const buildVersion = `1.${Math.max(0, aiEditsCount - 1)}`;
 
@@ -1974,21 +1997,9 @@ Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwi
     {id:'z-ai/glm-5.2', label:'GLM 5.2'},
   ];
 
-  // Compute files map for live workspace inspector
+  // Compute files map for live workspace inspector using chronological creation and deletion
   const allFilesMap = useMemo(() => {
-    const files = {};
-    messages.forEach(msg => {
-      const text = msg.text || '';
-      const regex = /<file path="([^"]+)">([\s\S]*?)(?:<\/file>|$)/g;
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        let fileContent = match[2].replace(/^\s*```[a-zA-Z]*\r?\n?/i, '').replace(/\r?\n?```\s*$/i, '').trim();
-        if (match[1] && match[1] !== '...' && match[1].length > 2) {
-          files[match[1]] = fileContent;
-        }
-      }
-    });
-    return files;
+    return extractProjectFiles(messages);
   }, [messages]);
 
   const filePathsList = Object.keys(allFilesMap);
@@ -2600,6 +2611,13 @@ Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwi
                         }}
                       >
                         <Copy size={14}/>
+                      </button>
+                      <button 
+                        className="p-1.5 rounded-md hover:bg-red-500/20 text-[#94a3b8] hover:text-red-400 transition-colors"
+                        title="Usuń ten plik z projektu"
+                        onClick={() => handleDeleteFile(selectedFilePath)}
+                      >
+                        <Trash2 size={14}/>
                       </button>
                     </div>
                   )}
