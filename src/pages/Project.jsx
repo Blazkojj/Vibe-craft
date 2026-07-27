@@ -758,9 +758,35 @@ function Project() {
   const [agentLogs, setAgentLogs] = useState([]);
   const agentLogsEndRef = useRef(null);
 
+  const [mcCommandInput, setMcCommandInput] = useState('');
+
   const addAgentLog = (text, type = 'info') => {
     const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setAgentLogs(prev => [...prev, { id: Math.random(), time, text, type }]);
+  };
+
+  const sendMcConsoleCommand = async (cmdToRun = null) => {
+    const targetCmd = typeof cmdToRun === 'string' ? cmdToRun : mcCommandInput;
+    if (!targetCmd || !targetCmd.trim()) return;
+    
+    addAgentLog(`⚡ [CLI KONSOLA MC] Executing: ${targetCmd}`, 'step');
+    setMcCommandInput('');
+
+    try {
+      const res = await fetch('/api/agent/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: targetCmd })
+      });
+      const data = await res.json();
+      if (data.success) {
+        addAgentLog(`📜 Odpowiedź konsoli Pelican MC:\n${data.logs ? data.logs.split('\n').slice(-15).join('\n') : ''}`, 'info');
+      } else {
+        addAgentLog(`❌ Błąd wykonywania komendy: ${data.error}`, 'error');
+      }
+    } catch(e) {
+      addAgentLog(`❌ Błąd sieci: ${e.message}`, 'error');
+    }
   };
 
   const messagesEndRef = useRef(null);
@@ -1162,26 +1188,38 @@ function Project() {
       historyContext = summaryToUse ? `[STRESZCZENIE STARSZYCH USTALEŃ]\n${summaryToUse}` : '';
       
       const identityInjection = getIdentityInjection(projectData.model);
+      const selectedEngine = projectData?.engine || 'Paper';
+      const selectedVersion = projectData?.version || '1.21.4';
       
-      
-      const systemPrompt = `${identityInjection}${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym inżynierem oprogramowania (Java/PaperMC). 
+      const systemPrompt = `${identityInjection}${MINECRAFT_SERVERS_KNOWLEDGE}Jesteś elitarnym inżynierem oprogramowania (Java/Minecraft Plugin Developer). 
+
+KONFIGURACJA PROJEKTU:
+- Silnik: ${selectedEngine}
+- Wersja Minecraft: ${selectedVersion}
+
+ZASADY WERSJONOWANIA I SPECYFIKACJA DLA WERSJI ${selectedVersion} (${selectedEngine}):
+1. Wersjonowanie Javy i pom.xml:
+   - Dla MC 1.20.5+ / 1.21.x: Wymagany Java Target 21. Używaj Kyori Adventure API (Component & MiniMessage.deserialize) do formatowania kolorów i nagłówków.
+   - Dla MC 1.17 - 1.20.4: Wymagany Java Target 17. Używaj MiniMessage lub org.bukkit.ChatColor.
+   - Dla MC 1.12.2 - 1.16.5: Wymagany Java Target 11/8. Używaj org.bukkit.ChatColor.
+   - Dla MC 1.8.8 - 1.12.2: Wymagany Java Target 8. Używaj org.bukkit.ChatColor i klasycznego Spigot API 1.8.8-R0.1-SNAPSHOT.
+2. Zawsze wygeneruj pełny, wykompilowany plik pom.xml dopasowany do silnika ${selectedEngine} i wersji ${selectedVersion}!
+
 ZASADY KRYTYCZNE:
 1. Brak kodu jeśli prompt to luźna rozmowa.
 2. BŁĘDY [SYSTEM-AUTO-FIX]: Gdy dostaniesz błąd z konsoli (wiadomość zawierającą [SYSTEM-AUTO-FIX]), musisz bezwzględnie poprawić pliki wykazujące błędy. Zwróć każdy poprawiony plik jako kompletny plik w tagu <file path="dokładna_ścieżka_pliku">...</file> (np. pom.xml lub odpowiednia klasa Java). Nie pomijaj żadnych linii kodu ani nie stosuj skrótów. Ścieżki plików w tagu <file> muszą być identyczne ze ścieżkami z sekcji "AKTUALNY KOD W PROJEKCIE".
-3. Paper 1.21+: używaj Adventure API (Component), nie ChatColor.
-4. Jeśli modyfikujesz logikę - dbaj o config.yml, PDC, title i uprawnienia.
-5. Format plików:
+3. Format plików:
 <file path="sciezka/do/pliku">
 KOD (ZAWSZE PEŁNY, NIGDY NIE SKRACAJ Z "...")
 </file>
-7. Zmieniaj tylko te pliki, które wymagają edycji. Każdy zmieniony plik musisz bezwzględnie wygenerować w całości (100% gotowy kod) w tagach <file>. Zabrania się opisywania zmian tylko tekstowo oraz stosowania skrótów typu "..." lub "// reszta kodu bez zmian".
-8. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
-9. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
-10. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
-11. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
-12. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
-13. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
-14. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
+4. Zmieniaj tylko te pliki, które wymagają edycji. Każdy zmieniony plik musisz bezwzględnie wygenerować w całości (100% gotowy kod) w tagach <file>. Zabrania się opisywania zmian tylko tekstowo oraz stosowania skrótów typu "..." lub "// reszta kodu bez zmian".
+5. KATEGORYCZNY ZAKAZ pytania użytkownika o zgodę na napisanie kodu (np. "Chcesz żebym wygenerował kod?"). Masz OD RAZU napisać i zwrócić wszystkie potrzebne pliki w tagach <file>!
+6. KRYTYCZNE: ZAWSZE na samym początku swojej wiadomości (zaraz po bloku <think>, ale KATEGORYCZNIE PRZED jakimkolwiek tagiem <file>) napisz bardzo szczegółowe, bogate tekstowe wprowadzenie, opis i instrukcje po polsku. Opisz dokładnie co zostało zrobione, co i jak zostanie zaimplementowane, jak działa kod, wypisz wszystkie komendy, uprawnienia (permissions) oraz przykłady użycia i instrukcję konfiguracji. Dopiero PO TYM kompletnym opisie wygeneruj tagi <file> z kodem.
+7. Nie powtarzaj kodu. Przechodź od razu do rzeczy.
+8. BEZWZGLĘDNA KOMPLETNOŚĆ KODU I ARCHITEKTURY: ZAWSZE wygeneruj WSZYSTKIE pliki klas Javy zadeklarowane lub używane w kodzie pluginu! Jeśli główna klasa pluginu (np. w onEnable) rejestruje Komendy, Listenery, Menedżery lub klasy GUI (np. EconomyCommand.java, JobCommand.java, ShopCommand.java, JobListener.java, JobGUI.java, ShopGUI.java itp.), to KAŻDA z tych klas MUSI zostać wygenerowana w osobnych tagach <file path="...">...</file>! Żadna klasa nie może zostać pominięta ani pozostawiona bez pliku źródłowego, aby uniknąć błędu kompilacji.
+9. KATEGORYCZNY ZAKAZ PODAWANIA KOMEND BASH / TERMINALA / MVN: Kategorycznie zabrania się podawania instrukcji konsolowych typu "mvn clean package" czy uruchamiania komend w terminalu. Kompilacja w VibeCraft jest w 100% automatyczna na serwerze! Poinformuj użytkownika w 1 zdaniu, że aby skompilować i pobrać plik JAR, wystarczy kliknąć przycisk "Buduj JAR" na górnym pasku edytora.
+10. KATEGORYCZNY ZAKAZ KAZANIA UŻYTKOWNIKOWI POBIERANIA/INSTALOWANIA ZEWNĘTRZNYCH WTYCZEK LUB SKRYPTÓW (VAULT, ESSENTIALSX, SKRIPT ITP.): Kategorycznie zabrania się podawania instrukcji typu "Zainstaluj Vault" lub "Zainstaluj EssentialsX". Wszystkie funkcjonalności (ekonomia, komendy, GUI, stany kont, bazy danych, zakupy) MUSZĄ być zaimplementowane Samodzielnie (Self-Contained) wewnątrz klas Javy Twojego pluginu (np. własny EconomyManager).
+11. ZAKAZ FENCÓW ORAZ BŁĘDNYCH ŚCIEŻEK: Kategorycznie zabrania się używania znaków backtick wewnątrz tagów <file path="...">!</file>. Tagi <file path="..."> MUSZĄ zawierać PRAWIDŁOWĄ, REALNĄ ścieżkę pliku w projekcie (np. src/main/java/pl/vibecraft/ruletka/Ruletka.java). Kategorycznie zabrania się używania ścieżek symulowanych jak "dokładna_ścieżka" czy "sciezka/do/pliku"!`;
       
       msgId = addMessage('Claude', '', true);
       setStreamingMessageId(msgId);
@@ -2126,6 +2164,36 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                     ))
                   )}
                   <div ref={agentLogsEndRef} />
+                </div>
+
+                {/* Interactive CLI Console Command Bar */}
+                <div className="p-2 bg-[#0a0c14] border-t border-white/10 flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#131520] border border-white/10 rounded-lg">
+                    <span className="text-xs font-mono text-emerald-400 select-none">$ mc-console &gt;</span>
+                    <input 
+                      type="text" 
+                      value={mcCommandInput} 
+                      onChange={(e) => setMcCommandInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') sendMcConsoleCommand();
+                      }}
+                      placeholder="Wpisz komendę do konsoli Minecraft (np. plugins, help, reload)..." 
+                      className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-500"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => sendMcConsoleCommand()}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow"
+                  >
+                    <Send size={12}/> Wyślij
+                  </button>
+                  <button 
+                    onClick={() => sendMcConsoleCommand('plugins')}
+                    className="px-2.5 py-1.5 bg-[#1e2338] hover:bg-[#282e4a] text-indigo-300 rounded-lg text-[11px] font-mono transition-colors border border-indigo-500/30"
+                    title="Pokaż wtyczki serwera"
+                  >
+                    /plugins
+                  </button>
                 </div>
               </div>
             )}

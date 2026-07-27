@@ -432,10 +432,24 @@ const isClaude = isTrueClaude || isClaudeAlias;
                 }
 
                 let finalSystemPrompt = systemPrompt;
-                if (model === 'z-ai/glm-5.2') {
+                
+                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context for ALL AI Models
+                const mcSkillsPrompt = `
+# MINECRAFT PLUGIN DEVELOPMENT SKILL & GUIDELINES
+You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer.
+When generating Minecraft code:
+1. Always generate complete files using <file path="src/main/java/...">...</file> format.
+2. Include full pom.xml with standard dependencies (paper-api 1.21.4-R0.1-SNAPSHOT, VaultAPI, etc.).
+3. Ensure plugin.yml is created in src/main/resources/plugin.yml.
+4. Do NOT use markdown codeblock fences inside <file> tags.
+5. Provide clean, production-ready Java code without placeholder paths or missing imports.
+`;
+                finalSystemPrompt = (finalSystemPrompt || '') + '\n' + mcSkillsPrompt;
+
+                if (model === 'z-ai/glm-5.2' || model === 'claude-3-5-sonnet-20241022' || model === 'claude-3-opus-20240229') {
                   try {
                     const opusPrompt = fs.readFileSync(path.join(process.cwd(), 'anthropic-claude-opus-4.5-full_20251124.txt'), 'utf8');
-                    finalSystemPrompt = finalSystemPrompt + '\n\n# SYSTEM BEHAVIOR INSTRUCTIONS (OPUS 4.5 SIMULATION)\n' + opusPrompt;
+                    finalSystemPrompt = finalSystemPrompt + '\n\n# SYSTEM BEHAVIOR INSTRUCTIONS (ANTHROPIC CORE SYSTEM PROMPT)\n' + opusPrompt;
                   } catch (e) {
                     console.error('Failed to load Opus prompt:', e.message);
                   }
@@ -746,6 +760,58 @@ function agentPlugin() {
   return {
     name: 'agent-plugin',
     configureServer(server) {
+      server.middlewares.use('/api/agent/command', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          return res.end('Method not allowed');
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', async () => {
+          try {
+            const { command, serverUuid = 'c3183a04-7ea7-49df-a75e-5416712c3757' } = JSON.parse(body);
+            if (!command) {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Command is required' }));
+            }
+
+            const sendScript = `<?php
+require '/var/www/pelican/vendor/autoload.php';
+$app = require_once '/var/www/pelican/bootstrap/app.php';
+$kernel = $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class);
+$kernel->bootstrap();
+use App\\Models\\Server;
+use App\\Repositories\\Daemon\\DaemonServerRepository;
+$server = Server::where('uuid', '${serverUuid}')->first();
+if (\$server) {
+  $repo = app(DaemonServerRepository::class);
+  $repo->setServer(\$server);
+  $repo->getHttpClient()->post("/api/servers/\$server->uuid/commands", ['commands' => ['${command.replace(/'/g, "\\'")}']]);
+}
+`;
+            fs.writeFileSync('/tmp/agent_exec_cmd.php', sendScript);
+            try {
+              execSync('php /tmp/agent_exec_cmd.php');
+            } catch(e) {}
+
+            await new Promise(r => setTimeout(r, 1200));
+
+            const pelicanServerVolume = `/var/lib/pelican/volumes/${serverUuid}`;
+            const logPath = path.join(pelicanServerVolume, 'logs', 'latest.log');
+            let logContent = 'Command sent to Minecraft Server Console.';
+            if (fs.existsSync(logPath)) {
+              logContent = fs.readFileSync(logPath, 'utf8').split('\n').slice(-60).join('\n');
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, logs: logContent }));
+          } catch(e) {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+      });
+
       server.middlewares.use('/api/agent/deploy-and-test', async (req, res) => {
         if (req.method !== 'POST') {
           res.statusCode = 405;
