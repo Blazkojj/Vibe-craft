@@ -1086,7 +1086,7 @@ function Project() {
     setStreamingMessageId(null);
   };
 
-  const handleSend = async (overrideMsg = null, overrideImages = []) => {
+  const handleSend = async (overrideMsg = null, overrideImages = [], isSilent = false) => {
     if (isGeneratingRef.current) return;       // synchroniczny guard — blokuje podwójne wywołania
     if (isGenerating) return;
     const isEvent = overrideMsg && (overrideMsg.target || overrideMsg.preventDefault || typeof overrideMsg === 'object');
@@ -1098,7 +1098,9 @@ function Project() {
     const textToSend = (userMsg && userMsg !== 'undefined' && userMsg.trim()) ? userMsg : (imgs.length > 0 ? "Przeanalizuj i uwzględnij ten obrazek:" : "");
     
     isGeneratingRef.current = true;            // zablokuj natychmiast, zanim state się zaktualizuje
-    addMessage('You', textToSend, false, imgs);
+    if (!isSilent) {
+      addMessage('You', textToSend, false, imgs);
+    }
     if (typeof overrideMsg !== 'string' || isEvent) setChatInput('');
     setIsGenerating(true);
     
@@ -1367,7 +1369,9 @@ KOD
 
   const handleAutoFix = () => {
     if (!buildError) return;
-    setActiveTab('chat');
+    setShowCodePanel(true);
+    setRightPanelTab('agent');
+    addAgentLog('🔧 Agent AI inicjalizuje cichą analizę i naprawę błędu kompilacji Maven...', 'warn');
     
     // Pass the actual project parameters, telling AI this is an automated system fix
     const errorMsg = isEN 
@@ -1385,7 +1389,7 @@ ${buildError}
 Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
     
     setBuildError(null);
-    handleSend(errorMsg);
+    handleSend(errorMsg, [], true);
   };
 
   const handleClearChat = async () => {
@@ -1565,9 +1569,9 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
       const filesToBuild = Object.keys(filesMap).map(path => ({ path, content: filesMap[path] }));
 
       if (filesToBuild.length === 0 || !filesMap['pom.xml']) {
-        addAgentLog('⚙️ Generowanie brakującego kodu źródłowego Java i pom.xml...', 'info');
+        addAgentLog('⚙️ Generowanie brakującego kodu źródłowego Java i pom.xml w tle...', 'info');
         setAgentStep(1);
-        await handleSend(messages.length === 0 ? projectData.prompt : "Wygeneruj wszystkie brakujące pliki klas Javy i pom.xml dla tego pluginu!");
+        await handleSend(messages.length === 0 ? projectData.prompt : "Wygeneruj wszystkie brakujące pliki klas Javy i pom.xml dla tego pluginu!", [], true);
         await new Promise(r => setTimeout(r, 4000));
         continue;
       }
@@ -1591,16 +1595,16 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
         if (!result.success) {
           if (result.phase === 'maven_compile') {
             addAgentLog(`❌ Błąd kompilacji Maven podczas budowania paczki!`, 'error');
-            addAgentLog(`🔧 Auto-Fix: Przekazywanie logów błędu do AI...`, 'warn');
+            addAgentLog(`🔧 Auto-Fix (Cichy): Przekazywanie logów błędu do Agenta AI...`, 'warn');
             setAgentStep(1);
-            await handleSend(`[SYSTEM-AUTO-FIX] Nastąpił błąd kompilacji Maven podczas budowania pliku .jar. Napraw wykazane błędy i zwróć poprawione pliki:\n\n${result.error}`);
+            await handleSend(`[SYSTEM-AUTO-FIX] Nastąpił błąd kompilacji Maven podczas budowania pliku .jar. Napraw wykazane błędy i zwróć poprawione pliki:\n\n${result.error}`, [], true);
             await new Promise(r => setTimeout(r, 4000));
           } else if (result.phase === 'runtime_test') {
             addAgentLog(`❌ Wykryto wyjątek runtime w konsoli serwera Minecraft Paper!`, 'error');
             addAgentLog(`📜 Wyciąg z logów: ${result.logs ? result.logs.slice(-300) : ''}`, 'warn');
-            addAgentLog(`🔧 Auto-Fix: Przekazywanie wyjątku serwera MC do AI...`, 'warn');
+            addAgentLog(`🔧 Auto-Fix (Cichy): Przekazywanie wyjątku serwera MC do Agenta AI...`, 'warn');
             setAgentStep(4);
-            await handleSend(`[SYSTEM-RUNTIME-FIX] Plugin napotkał błąd podczas ładowania na serwerze Paper 1.21.4 (Pelican). Przeanalizuj poniższe logi i popraw kod klas Javy:\n\n${result.logs}`);
+            await handleSend(`[SYSTEM-RUNTIME-FIX] Plugin napotkał błąd podczas ładowania na serwerze Paper 1.21.4 (Pelican). Przeanalizuj poniższe logi i popraw kod klas Javy:\n\n${result.logs}`, [], true);
             await new Promise(r => setTimeout(r, 4000));
           }
         } else {
@@ -1986,10 +1990,10 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                   runAgentLoop();
                 }
               }}
-              title="Autonomiczny Agent AI dla serwera Pelican MC (Tryb Antigravity)"
+              title="Autonomiczny Agent AI dla serwera Pelican MC"
             >
               <Bot size={14} className={isAgentRunning ? "animate-spin" : ""} />
-              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI (Antigravity)"}</span>
+              <span>{isAgentRunning ? "Agent pracuje..." : "Agent AI"}</span>
             </button>
 
             <button 
@@ -2113,7 +2117,7 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                   }`}
                 >
                   <Bot size={14} className={isAgentRunning ? "animate-spin text-amber-400" : ""} />
-                  <span>Agent AI (Antigravity)</span>
+                  <span>Agent AI</span>
                   {isAgentRunning && (
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
                   )}
@@ -2143,21 +2147,27 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
 
             {/* TAB CONTENT */}
             {rightPanelTab === 'agent' ? (
-              /* ANTIGRAVITY AUTONOMOUS AGENT WORKSPACE */
-              <div className="flex-1 flex flex-col bg-[#07080d] overflow-hidden">
+              /* AUTONOMOUS AGENT AI WORKSPACE */
+              <div className="flex-1 flex flex-col bg-gradient-to-b from-[#0a0c16] via-[#06070c] to-[#040508] overflow-hidden">
                 {/* Agent Header & Control Card */}
-                <div className="p-3.5 bg-[#0e101a] border-b border-indigo-500/20 flex flex-col gap-3">
+                <div className="p-4 bg-[#0e1120]/90 backdrop-blur-md border-b border-indigo-500/20 flex flex-col gap-3.5 shadow-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                        <Bot size={20} className={isAgentRunning ? "animate-spin text-amber-400" : "text-indigo-400"} />
+                    <div className="flex items-center gap-3">
+                      <div className="relative p-2.5 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 text-indigo-400 border border-indigo-500/30 shadow-inner">
+                        <Bot size={22} className={isAgentRunning ? "animate-spin text-amber-400" : "text-indigo-400"} />
+                        {isAgentRunning && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-amber-400 animate-ping" />
+                        )}
                       </div>
                       <div>
-                        <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                          Tryb Antigravity Agent
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">Pelican MC</span>
+                        <h3 className="text-xs font-extrabold text-white tracking-wide flex items-center gap-2">
+                          Agent AI
+                          <span className="text-[9px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 shadow-xs flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Pelican Sandbox
+                          </span>
                         </h3>
-                        <p className="text-[10px] text-slate-400 font-mono">Serwer: {projectData.engine || 'Paper'} {projectData.version || '1.21.4'}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">Silnik: {projectData.engine || 'Paper'} • Wersja: {projectData.version || '1.21.4'}</p>
                       </div>
                     </div>
 
@@ -2165,61 +2175,69 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                       {!isAgentRunning ? (
                         <button 
                           onClick={runAgentLoop}
-                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md hover:scale-105"
+                          className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-emerald-900/30 active:scale-95"
                         >
-                          <Play size={13}/> Uruchom Agenta
+                          <Play size={13} className="fill-current"/> Uruchom Agenta
                         </button>
                       ) : (
                         <button 
                           onClick={() => setIsAgentRunning(false)}
-                          className="px-3.5 py-1.5 bg-red-600/90 hover:bg-red-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                          className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95"
                         >
-                          <Square size={13}/> Przerwij
+                          <Square size={13} className="fill-current"/> Przerwij
                         </button>
                       )}
                     </div>
                   </div>
 
                   {/* Stepper Progress */}
-                  <div className="grid grid-cols-4 gap-1.5 text-[10px] font-medium text-center font-mono">
-                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 1 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                  <div className="grid grid-cols-4 gap-2 text-[10px] font-medium text-center font-mono">
+                    <div className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all border ${agentStep >= 1 ? 'bg-indigo-950/90 text-indigo-200 border-indigo-600/70 font-bold shadow-md shadow-indigo-950/50' : 'bg-black/30 text-slate-600 border-white/5'}`}>
                       <span>🧠 Kod AI</span>
                     </div>
-                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 2 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                    <div className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all border ${agentStep >= 2 ? 'bg-indigo-950/90 text-indigo-200 border-indigo-600/70 font-bold shadow-md shadow-indigo-950/50' : 'bg-black/30 text-slate-600 border-white/5'}`}>
                       <span>⚙️ Maven</span>
                     </div>
-                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 3 ? 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs' : 'bg-black/40 text-slate-600'}`}>
+                    <div className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all border ${agentStep >= 3 ? 'bg-indigo-950/90 text-indigo-200 border-indigo-600/70 font-bold shadow-md shadow-indigo-950/50' : 'bg-black/30 text-slate-600 border-white/5'}`}>
                       <span>📦 Pelican</span>
                     </div>
-                    <div className={`p-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${agentStep >= 4 ? (agentStep === 5 ? 'bg-emerald-950 text-emerald-300 border border-emerald-600 font-bold shadow-xs' : 'bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-bold shadow-xs') : 'bg-black/40 text-slate-600'}`}>
+                    <div className={`py-1.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all border ${agentStep >= 4 ? (agentStep === 5 ? 'bg-emerald-950/90 text-emerald-200 border-emerald-600/80 font-bold shadow-md shadow-emerald-950/50' : 'bg-indigo-950/90 text-indigo-200 border-indigo-600/70 font-bold shadow-md shadow-indigo-950/50') : 'bg-black/30 text-slate-600 border-white/5'}`}>
                       <span>📜 Logi MC</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Real-Time Live Execution Stream (Antigravity Terminal Logs) */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2 font-mono text-xs bg-[#040508] custom-scrollbar">
+                {/* Real-Time Live Execution Stream (Agent AI Terminal Logs) */}
+                <div className="flex-1 overflow-y-auto p-3.5 space-y-2.5 font-mono text-xs bg-[#040508]/80 custom-scrollbar">
                   {agentLogs.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 py-12">
-                      <Terminal size={36} className="opacity-30 text-indigo-400 animate-pulse" />
-                      <p className="text-xs text-center max-w-xs text-slate-400">
-                        Konsola Agenta gotowa. Kliknij <strong className="text-emerald-400">"Uruchom Agenta"</strong>, aby uruchomić pełny cykl kompilacji Maven, wdrożenia na Pelican MC i testów.
-                      </p>
+                    <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-3 py-16">
+                      <div className="p-4 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
+                        <Terminal size={40} className="text-indigo-400/60 animate-pulse" />
+                      </div>
+                      <div className="text-center max-w-xs space-y-1">
+                        <p className="text-xs font-bold text-slate-300">Konsola Agenta AI jest gotowa</p>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Kliknij <strong className="text-emerald-400">"Uruchom Agenta"</strong>, aby rozpocząć autonomiczny cykl kompilacji Maven, deploy na Pelican MC oraz testowania.
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     agentLogs.map((log) => (
-                      <div key={log.id} className={`p-2.5 rounded-xl leading-relaxed border transition-all ${
-                        log.type === 'error' ? 'text-red-300 bg-red-950/40 border-red-900/60' :
-                        log.type === 'success' ? 'text-emerald-300 bg-emerald-950/40 border-emerald-900/60 font-bold' :
+                      <div key={log.id} className={`p-3 rounded-2xl leading-relaxed border transition-all shadow-sm ${
+                        log.type === 'error' ? 'text-red-300 bg-red-950/30 border-red-900/50 shadow-red-950/20' :
+                        log.type === 'success' ? 'text-emerald-300 bg-emerald-950/30 border-emerald-900/50 font-bold shadow-emerald-950/20' :
                         log.type === 'warn' ? 'text-amber-300 bg-amber-950/20 border-amber-900/40' :
                         log.type === 'step' ? 'text-indigo-200 bg-indigo-950/40 border-indigo-800/50 font-bold' :
-                        'text-slate-300 bg-[#0c0e18]/80 border-white/5'
+                        'text-slate-300 bg-[#0c0e18]/90 border-white/5'
                       }`}>
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 mb-1 border-b border-white/5 pb-0.5">
-                          <span className="font-bold text-indigo-400/80">ANTIGRAVITY CLI</span>
-                          <span>{log.time}</span>
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 mb-1.5 border-b border-white/5 pb-1">
+                          <span className="font-extrabold text-indigo-400/90 tracking-wider flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-indigo-400" />
+                            AGENT AI TERMINAL
+                          </span>
+                          <span className="font-mono text-[9px] text-slate-500">{log.time}</span>
                         </div>
-                        <span className="whitespace-pre-wrap break-all">{log.text}</span>
+                        <span className="whitespace-pre-wrap break-all text-[11px] leading-relaxed">{log.text}</span>
                       </div>
                     ))
                   )}
@@ -2227,33 +2245,56 @@ Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas kome
                 </div>
 
                 {/* Interactive CLI Console Command Bar */}
-                <div className="p-2.5 bg-[#0a0c14] border-t border-indigo-500/20 flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-[#040508] border border-indigo-500/30 rounded-xl">
-                    <span className="text-xs font-mono text-emerald-400 select-none">$ mc &gt;</span>
-                    <input 
-                      type="text" 
-                      value={mcCommandInput} 
-                      onChange={(e) => setMcCommandInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') sendMcConsoleCommand();
-                      }}
-                      placeholder="Komenda MC (np. plugins, help, reload)..." 
-                      className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-500"
-                    />
+                <div className="p-3 bg-[#090b14] border-t border-indigo-500/20 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2 bg-[#030407] border border-indigo-500/30 rounded-xl focus-within:border-indigo-400 transition-all shadow-inner">
+                      <span className="text-xs font-mono text-emerald-400 font-bold select-none">$ mc &gt;</span>
+                      <input 
+                        type="text" 
+                        value={mcCommandInput} 
+                        onChange={(e) => setMcCommandInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') sendMcConsoleCommand();
+                        }}
+                        placeholder="Komenda MC (np. plugins, help, reload)..." 
+                        className="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-500"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => sendMcConsoleCommand()}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Send size={12}/> Wyślij
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => sendMcConsoleCommand()}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow"
-                  >
-                    <Send size={12}/> Wyślij
-                  </button>
-                  <button 
-                    onClick={() => sendMcConsoleCommand('plugins')}
-                    className="px-2.5 py-2 bg-[#171a2b] hover:bg-[#222740] text-indigo-300 rounded-xl text-[11px] font-mono transition-colors border border-indigo-500/30"
-                    title="Pokaż wtyczki serwera"
-                  >
-                    /plugins
-                  </button>
+
+                  {/* Quick Preset Command Pills */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pt-0.5 custom-scrollbar">
+                    <button 
+                      onClick={() => sendMcConsoleCommand('plugins')}
+                      className="px-2.5 py-1 bg-[#141829] hover:bg-[#1f253d] text-indigo-300 rounded-lg text-[10px] font-mono transition-colors border border-indigo-500/30 whitespace-nowrap"
+                    >
+                      /plugins
+                    </button>
+                    <button 
+                      onClick={() => sendMcConsoleCommand('reload confirm')}
+                      className="px-2.5 py-1 bg-[#141829] hover:bg-[#1f253d] text-amber-300 rounded-lg text-[10px] font-mono transition-colors border border-amber-500/30 whitespace-nowrap"
+                    >
+                      /reload
+                    </button>
+                    <button 
+                      onClick={() => sendMcConsoleCommand('tps')}
+                      className="px-2.5 py-1 bg-[#141829] hover:bg-[#1f253d] text-emerald-300 rounded-lg text-[10px] font-mono transition-colors border border-emerald-500/30 whitespace-nowrap"
+                    >
+                      /tps
+                    </button>
+                    <button 
+                      onClick={() => sendMcConsoleCommand('help')}
+                      className="px-2.5 py-1 bg-[#141829] hover:bg-[#1f253d] text-slate-300 rounded-lg text-[10px] font-mono transition-colors border border-white/10 whitespace-nowrap"
+                    >
+                      /help
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
