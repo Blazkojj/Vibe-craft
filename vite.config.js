@@ -543,10 +543,25 @@ Twój cel: Zamień krótki pomysł użytkownika na doskonały, szczegółowy, us
 
                 let finalSystemPrompt = systemPrompt;
                 
-                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context & Comprehensive Polish Server Mechanics Knowledge for ALL AI Models
+                // Inject Minecraft Spigot/Paper/Vault Plugin Development Skill Context (from Jahrome907/minecraft-agent-skills) & Comprehensive Polish Server Mechanics Knowledge for ALL AI Models
                 const mcSkillsPrompt = `
-# MINECRAFT PLUGIN DEVELOPMENT SKILL & POLISH HARDCORE/ANARCHIA MECHANICS KNOWLEDGE
-You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer specialized in Polish Hardcore, Skript, & Anarchia.gg custom mechanics.
+# MINECRAFT AGENT SKILL: PAPER PLUGIN DEV (1.21.x / Java 21) & POLISH HARDCORE MECHANICS
+You are an expert Paper/Spigot 1.21.4 Minecraft plugin developer executing with the official "minecraft-agent-skills" standards (Jahrome907/minecraft-agent-skills).
+
+OFFICIAL AGENT SKILL RULES (PAPER 1.21.x / JAVA 21):
+1. Target Platform: Server-side Paper 1.21.4 API (Java 21). Paper includes all Bukkit and Spigot APIs plus async performance improvements and Adventure native components.
+2. Text Components: ALWAYS use net.kyori.adventure.text.Component and net.kyori.adventure.text.format.NamedTextColor for code-owned messages. Use MiniMessage for config-driven rich text. Avoid legacy ChatColor.
+3. Event Priority & Handling: Use @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true). EventPriority order is LOWEST -> LOW -> NORMAL -> HIGH -> HIGHEST -> MONITOR (MONITOR is read-only).
+4. Persistent Data Storage (PDC): Store entity/item/chunk metadata using PersistentDataContainer with NamespacedKey and PersistentDataType.
+5. Vault Economy: Soft-depend on Vault, check presence via getPluginManager().getPlugin("Vault"), check RegisteredServiceProvider<Economy>, and gracefully disable economy if provider is absent.
+6. Asynchronous Safety: Never block the main thread. Run async tasks via BukkitScheduler runTaskAsynchronously or Paper RegionScheduler/AsyncScheduler.
+
+CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
+1. ALWAYS generate 100% complete, self-contained Java code. You MUST generate full code for EVERY class referenced (Main JavaPlugin class, Listener classes, Command Executors, TabCompleters, GUI Manager classes, Task Timers, Custom Item Builders). Missing class symbols cause Maven compilation errors!
+2. Wrap EVERY file strictly inside <file path="src/main/java/com/example/plugin/Klasa.java">...</file> tags. NEVER use markdown code blocks inside <file> tags and NEVER use placeholders like '// ... rest of code'.
+3. Always generate src/main/resources/plugin.yml containing: name, version, main class path, api-version: '1.20', and full command definitions with usage & permission notes.
+4. Always generate a valid pom.xml with paper-api 1.21.4-R0.1-SNAPSHOT, maven-compiler-plugin (Java 21 source & target), and UTF-8 encoding.
+5. All Bukkit/Paper API calls must be 100% valid for Minecraft 1.21.4.
 
 COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAGONCRAFT, REALCRAFT, SKKF, MCHC):
 1. HYDRO KLATKA (Wodna Pułapka):
@@ -572,13 +587,6 @@ COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAG
    - System wykopu ze stone z mnożnikami, statystykami wykopanych bloków (/drop) oraz Pandora Box z promieniem światła.
 10. GILDIE & TERENY (Serce Gildii, Skarbiec, Teren 50x50):
     - System gildii na serwerach Anarchia/Hardcore z terenem gildii, sercem (End Crystal/Smocze Jajko) oraz grami wojennymi.
-
-CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
-1. ALWAYS generate 100% complete, self-contained Java code. You MUST include full code for EVERY class referenced (Main plugin class, Listener classes, Command Executors, GUI Manager classes, Task Timers, Custom Item Builders). Missing class symbols cause Maven compilation errors!
-2. Wrap EVERY file strictly inside <file path="src/main/java/com/example/plugin/Klasa.java">...</file> tags. NEVER use markdown code blocks inside <file> tags and NEVER use placeholders like '// ... rest of code'.
-3. Always generate src/main/resources/plugin.yml containing: name, version, main class path, api-version: '1.20', and full command definitions with usage & permission notes.
-4. Always generate a valid pom.xml with paper-api 1.21.4-R0.1-SNAPSHOT, maven-compiler-plugin (Java 21 source & target), and UTF-8 encoding.
-5. All Bukkit/Paper API calls must be 100% valid for Minecraft 1.21.4 (org.bukkit.entity.Player, org.bukkit.event.Listener, org.bukkit.inventory.ItemStack, etc.).
 `;
                 finalSystemPrompt = (finalSystemPrompt || '') + '\n' + mcSkillsPrompt;
 
