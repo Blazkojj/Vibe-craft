@@ -648,29 +648,6 @@ const ChatInputDock = React.memo(({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setWebSearchEnabled(prev => !prev)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
-              webSearchEnabled
-                ? 'bg-sky-500/20 text-sky-300 border-sky-500/50 shadow-[0_0_12px_rgba(56,189,248,0.2)]'
-                : 'bg-[#13151d] text-slate-400 border-white/10 hover:text-slate-200'
-            }`}
-            title="Przeszukuj sieć w poszukiwaniu najnowszych informacji o serwerach (np. Anarchia.gg)"
-          >
-            <Globe size={13} className={webSearchEnabled ? 'animate-pulse text-sky-400' : ''} />
-            <span>{webSearchEnabled ? 'Szukanie w sieci: WŁ' : 'Szukanie w sieci: WYŁ'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenPresetsModal}
-            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#13151d] text-amber-300 border border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-          >
-            <Server size={13} className="text-amber-400" />
-            <span>Baza Skryptów Serwerów</span>
-          </button>
-
-          <button
-            type="button"
             onClick={onOpenEnhanceModal}
             className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#13151d] text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
@@ -1550,8 +1527,7 @@ KOD
   const handleAutoFix = () => {
     if (!buildError) return;
     setShowCodePanel(true);
-    setRightPanelTab('agent');
-    addAgentLog('🔧 Agent AI inicjalizuje cichą analizę i naprawę błędu kompilacji Maven...', 'warn');
+    setRightPanelTab('files');
     
     // Pass the actual project parameters, telling AI this is an automated system fix
     const errorMsg = isEN 
@@ -1560,13 +1536,13 @@ Here is the error from the terminal:
 \`\`\`
 ${buildError}
 \`\`\`
-Analyze the reason for the error and fix it. If any classes, commands, listeners, managers or GUI classes are missing (e.g. cannot find symbol), you MUST generate ALL missing class files 100% complete in <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> tags. Never use comments like '// rest of code...' or abbreviation '...'. Do NOT tell the user to run bash/mvn commands!`
+Analyze the reason for the error and fix it immediately. If any classes, commands, listeners, managers or GUI classes are missing (e.g. cannot find symbol), you MUST generate ALL missing class files 100% complete in <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> tags. Never use comments like '// rest of code...' or abbreviation '...'. Do NOT tell the user to run bash/mvn commands!`
       : `[SYSTEM-AUTO-FIX] Wystąpił błąd kompilacji podczas budowania pluginu Javy. 
 Oto treść błędu z terminala:
 \`\`\`
 ${buildError}
 \`\`\`
-Przeanalizuj powód błędu i napraw go. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
+Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwiek klas komend, listenerów, menedżerów lub GUI (błąd typu "cannot find symbol"), musisz bezwzględnie wygenerować WSZYSTKIE brakujące klasy Java w tagach <file path="src/main/java/twoja/sciezka/Klasa.java">...</file> w 100% pełnym kodzie od początku do końca. Kategoryczny zakaz podawania komend "mvn clean package" — po prostu wygeneruj brakujące pliki!`;
     
     setBuildError(null);
     handleSend(errorMsg, [], true);

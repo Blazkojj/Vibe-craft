@@ -573,12 +573,12 @@ COMPREHENSIVE KNOWLEDGE OF POPULAR POLISH MECHANICS & SKRIPTS (ANARCHIA.GG, DRAG
 10. GILDIE & TERENY (Serce Gildii, Skarbiec, Teren 50x50):
     - System gildii na serwerach Anarchia/Hardcore z terenem gildii, sercem (End Crystal/Smocze Jajko) oraz grami wojennymi.
 
-When generating Minecraft code:
-1. Always generate complete files using <file path="src/main/java/...">...</file> format.
-2. Include full pom.xml with standard dependencies (paper-api 1.21.4-R0.1-SNAPSHOT, VaultAPI, etc.).
-3. Ensure plugin.yml is created in src/main/resources/plugin.yml.
-4. Do NOT use markdown codeblock fences inside <file> tags.
-5. Provide clean, production-ready Java code without placeholder paths or missing imports.
+CRITICAL CODE GENERATION RULES (ZERO COMPILATION ERRORS):
+1. ALWAYS generate 100% complete, self-contained Java code. You MUST include full code for EVERY class referenced (Main plugin class, Listener classes, Command Executors, GUI Manager classes, Task Timers, Custom Item Builders). Missing class symbols cause Maven compilation errors!
+2. Wrap EVERY file strictly inside <file path="src/main/java/com/example/plugin/Klasa.java">...</file> tags. NEVER use markdown code blocks inside <file> tags and NEVER use placeholders like '// ... rest of code'.
+3. Always generate src/main/resources/plugin.yml containing: name, version, main class path, api-version: '1.20', and full command definitions with usage & permission notes.
+4. Always generate a valid pom.xml with paper-api 1.21.4-R0.1-SNAPSHOT, maven-compiler-plugin (Java 21 source & target), and UTF-8 encoding.
+5. All Bukkit/Paper API calls must be 100% valid for Minecraft 1.21.4 (org.bukkit.entity.Player, org.bukkit.event.Listener, org.bukkit.inventory.ItemStack, etc.).
 `;
                 finalSystemPrompt = (finalSystemPrompt || '') + '\n' + mcSkillsPrompt;
 
