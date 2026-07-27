@@ -1412,7 +1412,7 @@ ${userMsg}
             isHybrid = true;
          }
       }
-      const isContinuation = /^(kontynuuj|continue|dokończ|dokoncz|dalej|pisz dalej|generuj dalej|napisz resztę|napisz reszte|write more)/i.test(userMsg.trim());
+      const isContinuation = /^(kontynuuj|continue|dokończ|dokoncz|dalej|pisz dalej|generuj|generuj dalej|napisz|tak|akceptuj|akceptuję|zrób|zrob|rob)/i.test(userMsg.trim());
       const isFixRequest = /(błąd|error|exception|napraw|popraw|failed|compile|kompilacj)/i.test(userMsg.trim());
       if (userMsg.includes('[SYSTEM-AUTO-FIX]') || isContinuation || isFixRequest) {
          isHybrid = false;
@@ -1591,6 +1591,16 @@ Przeanalizuj powód błędu i napraw go natychmiast. Jeżeli brakuje jakichkolwi
         fileContent = fileContent.replace(/```[a-zA-Z]*/g, '').replace(/```/g, '');
         
         if (filePath.endsWith('.java')) {
+          let trimmedLines = fileContent.split('\n');
+          while (trimmedLines.length > 3) {
+            const lastLine = trimmedLines[trimmedLines.length - 1].trim();
+            if (lastLine.endsWith(';') || lastLine.endsWith('}') || lastLine.endsWith('{') || lastLine.startsWith('//') || lastLine.startsWith('*') || lastLine.startsWith('/*')) {
+              break;
+            }
+            trimmedLines.pop();
+          }
+          fileContent = trimmedLines.join('\n');
+
           const openBraces = (fileContent.match(/\{/g) || []).length;
           const closeBraces = (fileContent.match(/\}/g) || []).length;
           if (openBraces > closeBraces) {
